@@ -1,1 +1,4 @@
-Mod Folder, ÒâÎªÄ£×éÎÄ¼ş¼Ğ, Ö¼ÔÚÒÔÎÄ¼ş¼ĞµÄĞÎÊ½¹ÜÀíÄ£×é, ·½±ã¶©ÔÄÁË´óÁ¿Ä£×éµÄÍæ¼Ò.
+Mod Folder, æ„ä¸ºæ¨¡ç»„æ–‡ä»¶å¤¹, æ—¨åœ¨ä»¥æ–‡ä»¶å¤¹çš„å½¢å¼ç®¡ç†æ¨¡ç»„, æ–¹ä¾¿è®¢é˜…äº†å¤§é‡æ¨¡ç»„çš„ç©å®¶ã€‚
+å³é”® "ç®¡ç†æ¨¡ç»„" æŒ‰é’®ä»¥è¿›å…¥æ–‡ä»¶å¤¹ç³»ç»Ÿã€‚
+Mod Folder is designed to manage mods in folder system, making it convenient for players with a lot of mods subscribed.
+Rightclick at the "Manage Mods" button to open the folder system.
