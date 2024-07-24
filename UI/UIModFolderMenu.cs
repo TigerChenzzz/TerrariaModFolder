@@ -9,38 +9,86 @@ using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
 
-namespace ModFolder;
-public class UIModFolder : UIState, IHaveBackButtonCommand {
-    public static UIModFolder Instance { get; private set; } = new();
+namespace ModFolder.UI;
+
+public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
+    #region 字段与属性
+    public static UIModFolderMenu Instance { get; private set; } = new();
     public const int MyMenuMode = 47133;
 
-    public UIState? PreviousUIState { get; set; }
+    #region 所有模组 ModItems
+    /// <summary>
+    /// 当找完模组后, 这里会存有所有的模组
+    /// </summary>
+    private List<UIModItemInFolder> ModItems { get; set; } = [];
+    #endregion
+    #region 根列表中的物品 Items
+    /// <summary>
+    /// 存有根列表中的物品, 包含模组与文件夹
+    /// </summary>
+    public List<UIFolderItem> Items { get; set; } = [];
+    #endregion
+    #region 当前文件夹 CurrentFolder
+    private UIFolder? _currentFolder;
+    /// <summary>
+    /// 当前处于哪个文件夹下, 若为空则代表处于根目录下
+    /// </summary>
+    public UIFolder? CurrentFolder {
+        get => _currentFolder;
+        set {
+            _currentFolder = value;
+            updateNeeded = true;
+        }
+    }
+    #endregion
+
+    #region 子元素
     private UIElement uIElement = null!;
     private UIPanel uIPanel = null!;
     private UILoaderAnimatedImage uiLoader = null!;
-    private bool needToRemoveLoading;
-    private UIList modList = null!;
-    private float modListViewPosition;
-    private readonly List<UIModItemInFolder> items = [];
-    private Task<List<UIModItemInFolder>>? modItemsTask;
-    private bool updateNeeded;
-    public bool loading;
+    private UIList list = null!;
     private UIInputTextField filterTextBox = null!;
     public UICycleImage SearchFilterToggle = null!;
-    public ModsMenuSortMode sortMode = ModsMenuSortMode.RecentlyUpdated;
-    public EnabledFilter enabledFilterMode = EnabledFilter.All;
-    public ModSideFilter modSideFilterMode = ModSideFilter.All;
-    public SearchFilter searchFilterMode = SearchFilter.Name;
     internal readonly List<UICycleImage> _categoryButtons = [];
-    internal string filter = string.Empty;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonEA = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonDA = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonRM = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonB = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonOMF = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonCL = null!;
+    #endregion
+    #region 排序与过滤相关字段
+    public ModsMenuSortMode sortMode = ModsMenuSortMode.RecentlyUpdated;
+    public EnabledFilter enabledFilterMode = EnabledFilter.All;
+    public ModSideFilter modSideFilterMode = ModSideFilter.All;
+    public SearchFilter searchFilterMode = SearchFilter.Name;
+    internal string filter = string.Empty;
+    #endregion
+    #region 杂项
+    private Task<List<UIModItemInFolder>>? modItemsTask;
     private CancellationTokenSource? _cts;
-    private bool forceReloadHidden => ModLoader.autoReloadRequiredModsLeavingModsScreen && !ModCompile.DeveloperMode;
+    private bool updateNeeded;
+    private bool needToRemoveLoading;
+    public bool loading;
+    private float listViewPosition;
+    
+    public UIState? PreviousUIState { get; set; }
+    private Texture2D? _mouseTexture;
+    private int _mouseTextureWidth;
+    private int _mouseTextureHeight;
+    private int _mouseTextureOffsetX;
+    private int _mouseTextureOffsetY;
+    private Color _mouseTextureColor;
+    public void SetMouseTexture(Texture2D mouseTexture, int width = 0, int height = 0, int offsetX = 0, int offsetY = 0, Color color = default) {
+        _mouseTexture = mouseTexture;
+        _mouseTextureWidth = width == 0 ? mouseTexture.Width : width;
+        _mouseTextureHeight = height == 0 ? mouseTexture.Height : height;
+        _mouseTextureOffsetX = offsetX;
+        _mouseTextureOffsetY = offsetY;
+        _mouseTextureColor = color == default ? Color.White : color;
+    }
+    #endregion
+    #endregion
 
     public override void OnInitialize() {
         #region 全部元素的容器
@@ -63,13 +111,13 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         #endregion
         uiLoader = new UILoaderAnimatedImage(0.5f, 0.5f, 1f);
         #region 模组列表
-        modList = new UIList {
+        list = new UIList {
             Width = { Pixels = -25, Percent = 1f },
             Height = { Pixels = ModLoader.showMemoryEstimates ? -72 : -50, Percent = 1f },
             Top = { Pixels = ModLoader.showMemoryEstimates ? 72 : 50 },
-            ListPadding = 5f
+            ListPadding = 2f,
         };
-        uIPanel.Append(modList);
+        uIPanel.Append(list);
         #endregion
         #region 内存占用
         if (ModLoader.showMemoryEstimates) {
@@ -88,7 +136,7 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         }.WithView(100f, 1000f);
         uIPanel.Append(uIScrollbar);
 
-        modList.SetScrollbar(uIScrollbar);
+        list.SetScrollbar(uIScrollbar);
         #endregion
         #region 标题
         var uIHeaderTexTPanel = new UITextPanel<LocalizedText>(Language.GetText("tModLoader.ModsModsList"), 0.8f, true) {
@@ -106,7 +154,14 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
             VAlign = 1f,
             Top = { Pixels = -65 }
         }.WithFadedMouseOver();
-        buttonEA.OnLeftClick += EnableAll;
+        buttonEA.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            foreach (var modItem in ModItems) {
+                if (modItem.tMLUpdateRequired != null)
+                    continue;
+                modItem.Enable();
+            }
+        };
         uIElement.Append(buttonEA);
         #endregion
         #region 禁用全部按钮
@@ -116,7 +171,12 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         buttonDA.TextColor = Color.Red;
         buttonDA.HAlign = 0.5f;
         buttonDA.WithFadedMouseOver();
-        buttonDA.OnLeftClick += DisableAll;
+        buttonDA.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            foreach (var modItem in ModItems) {
+                modItem.Disable();
+            }
+        };
         uIElement.Append(buttonDA);
         #endregion
         #region 重新加载按钮
@@ -125,10 +185,13 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         buttonRM.Width = new StyleDimension(-10f, 1f / 3f);
         buttonRM.HAlign = 1f;
         buttonRM.WithFadedMouseOver();
-        buttonRM.OnLeftClick += ReloadMods;
+        buttonRM.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+            if (ModItems.Count > 0)
+                ModLoader.Reload();
+        };
         uIElement.Append(buttonRM);
         #endregion
-        UpdateTopRowButtons();
         #region 返回按钮
         buttonB = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("UI.Back")) {
             Width = new StyleDimension(-10f, 1f / 3f),
@@ -136,7 +199,23 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
             VAlign = 1f,
             Top = { Pixels = -20 }
         }.WithFadedMouseOver();
-        buttonB.OnLeftClick += (_, _) => HandleBackButtonUsage();
+        buttonB.OnLeftClick += (_, _) => {
+            // To prevent entering the game with Configs that violate ReloadRequired
+            if (ConfigManager.AnyModNeedsReload()) {
+                Main.menuMode = Interface.reloadModsID;
+                return;
+            }
+
+            // If auto reloading required mods is enabled, check if any mods need reloading and reload as required
+            if (ModLoader.autoReloadRequiredModsLeavingModsScreen && ModItems.Any(i => i.NeedsReload)) {
+                Main.menuMode = Interface.reloadModsID;
+                return;
+            }
+
+            ConfigManager.OnChangedAll();
+
+            IHaveBackButtonCommand.GoBackTo(PreviousUIState);
+        };
 
         uIElement.Append(buttonB);
         #endregion
@@ -145,7 +224,17 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         buttonOMF.CopyStyle(buttonB);
         buttonOMF.HAlign = 0.5f;
         buttonOMF.WithFadedMouseOver();
-        buttonOMF.OnLeftClick += OpenModsFolder;
+        buttonOMF.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+            Directory.CreateDirectory(ModLoader.ModPath);
+            Utils.OpenFolder(ModLoader.ModPath);
+
+            if (ModOrganizer.WorkshopFileFinder.ModPaths.Count != 0) {
+                string? workshopFolderPath = Directory.GetParent(ModOrganizer.WorkshopFileFinder.ModPaths[0])?.ToString();
+                if (workshopFolderPath != null)
+                    Utils.OpenFolder(workshopFolderPath);
+            }
+        };
         uIElement.Append(buttonOMF);
         #endregion
         #region 仨排序按钮
@@ -171,7 +260,7 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
                 };
             }
             else if (j == 1) {
-                toggleImage = new UICycleImage(texture, 3, 32, 32, 34 * 4, 0);
+                toggleImage = new(texture, 3, 32, 32, 34 * 4, 0);
                 toggleImage.SetCurrentState((int)enabledFilterMode);
                 toggleImage.OnLeftClick += (a, b) => {
                     enabledFilterMode = enabledFilterMode.NextEnum();
@@ -183,7 +272,7 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
                 };
             }
             else {
-                toggleImage = new UICycleImage(texture, 5, 32, 32, 34 * 5, 0);
+                toggleImage = new(texture, 5, 32, 32, 34 * 5, 0);
                 toggleImage.SetCurrentState((int)modSideFilterMode);
                 toggleImage.OnLeftClick += (a, b) => {
                     modSideFilterMode = modSideFilterMode.NextEnum();
@@ -198,7 +287,8 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
             _categoryButtons.Add(toggleImage);
             upperMenuContainer.Append(toggleImage);
         }
-
+        #endregion
+        #region 搜索栏
         var filterTextBoxBackground = new UIPanel {
             Top = { Percent = 0f },
             Left = { Pixels = -185, Percent = 1f },
@@ -208,8 +298,6 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         filterTextBoxBackground.SetPadding(0);
         filterTextBoxBackground.OnRightClick += ClearSearchField;
         upperMenuContainer.Append(filterTextBoxBackground);
-        #endregion
-        #region 搜索栏
         filterTextBox = new UIInputTextField(Language.GetTextValue("tModLoader.ModsTypeToSearch")) {
             Top = { Pixels = 5 },
             Height = { Percent = 1f },
@@ -253,7 +341,11 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         buttonCL.CopyStyle(buttonOMF);
         buttonCL.HAlign = 1f;
         buttonCL.WithFadedMouseOver();
-        buttonCL.OnLeftClick += GotoModConfigList;
+        buttonCL.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+            Main.menuMode = Interface.modConfigListID;
+            IsPreviousUIStateOfConfigList = true;
+        };
         uIElement.Append(buttonCL);
         #endregion
         uIPanel.Append(upperMenuContainer);
@@ -264,87 +356,17 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
 
     private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => filterTextBox.Text = "";
 
-    // Adjusts sizing and placement of top row buttons according to whether or not
-    // the Force Reload button is being shown.
-    private void UpdateTopRowButtons() {
-        var buttonWidth = new StyleDimension(-10f, 1f / (forceReloadHidden ? 2f : 3f));
-
-        buttonEA.Width = buttonWidth;
-
-        buttonDA.Width = buttonWidth;
-        buttonDA.HAlign = forceReloadHidden ? 1f : 0.5f;
-
-        uIElement.AddOrRemoveChild(buttonRM, ModCompile.DeveloperMode || !forceReloadHidden);
-    }
-
-    public void HandleBackButtonUsage() {
-        // To prevent entering the game with Configs that violate ReloadRequired
-        if (ConfigManager.AnyModNeedsReload()) {
-            Main.menuMode = Interface.reloadModsID;
-            return;
-        }
-
-        // If auto reloading required mods is enabled, check if any mods need reloading and reload as required
-        if (ModLoader.autoReloadRequiredModsLeavingModsScreen && items.Any(i => i.NeedsReload)) {
-            Main.menuMode = Interface.reloadModsID;
-            return;
-        }
-
-        ConfigManager.OnChangedAll();
-
-        IHaveBackButtonCommand.GoBackTo(PreviousUIState);
-    }
-
-    private void ReloadMods(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuOpen);
-        if (items.Count > 0)
-            ModLoader.Reload();
-    }
-
-    private static void OpenModsFolder(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuOpen);
-        Directory.CreateDirectory(ModLoader.ModPath);
-        Utils.OpenFolder(ModLoader.ModPath);
-
-        if (ModOrganizer.WorkshopFileFinder.ModPaths.Count != 0) {
-            string? workshopFolderPath = Directory.GetParent(ModOrganizer.WorkshopFileFinder.ModPaths[0])?.ToString();
-            if (workshopFolderPath != null)
-                Utils.OpenFolder(workshopFolderPath);
-        }
-    }
-
-    private void EnableAll(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuTick);
-        foreach (var modItem in items) {
-            if (modItem.tMLUpdateRequired != null)
-                continue;
-            modItem.Enable();
-        }
-    }
-
-    private void DisableAll(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuTick);
-        foreach (var modItem in items) {
-            modItem.Disable();
-        }
-    }
-
-    private void GotoModConfigList(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuOpen);
-        Main.menuMode = Interface.modConfigListID;
-        IsPreviousUIStateOfConfigList = true;
-    }
-
     public UIModItemInFolder? FindUIModItem(string modName) {
-        return items.SingleOrDefault(m => m.ModName == modName);
+        return ModItems.SingleOrDefault(m => m.ModName == modName);
     }
 
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
+        #region 当加载完成时做一些事情
         if (modItemsTask is { IsCompleted: true }) {
             var result = modItemsTask.Result;
-            items.AddRange(result);
-            foreach (var item in items) {
+            ModItems.AddRange(result);
+            foreach (var item in ModItems) {
                 item.Activate(); // Activate must happen after all UIModItem are in `items`
             }
             needToRemoveLoading = true;
@@ -352,21 +374,29 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
             loading = false;
             modItemsTask = null;
         }
+        #endregion
+        #region 尝试移除加载动画
         if (needToRemoveLoading) {
             needToRemoveLoading = false;
             uIPanel.RemoveChild(uiLoader);
         }
+        #endregion
+
+        #region 如果不需要更新就直接返回
         if (!updateNeeded)
             return;
         updateNeeded = false;
+        #endregion
+
         filter = filterTextBox.Text;
-        modList.Clear();
+        list.Clear();
         var filterResults = new UIModsFilterResults();
-        var visibleItems = items.Where(item => item.PassFilters(filterResults)).ToList();
+        var visibleItems = ModItems.Where(item => item.PassFilters(filterResults)).ToList();
+        #region 若有任何被过滤的, 则在列表中添加一个元素提示过滤了多少东西
         if (filterResults.AnyFiltered) {
             var panel = new UIPanel();
             panel.Width.Set(0, 1f);
-            modList.Add(panel);
+            list.Add(panel);
             var filterMessages = new List<string>();
             if (filterResults.filteredByEnabled > 0)
                 filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByEnabled", filterResults.filteredByEnabled));
@@ -384,9 +414,10 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
             panel.Append(text);
             panel.Height.Set(text.MinHeight.Pixels + panel.PaddingTop, 0f);
         }
-        modList.AddRange(visibleItems);
+        #endregion
+        list.AddRange(visibleItems);
         Recalculate();
-        modList.ViewPosition = modListViewPosition;
+        list.ViewPosition = listViewPosition;
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
@@ -394,7 +425,8 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         base.Draw(spriteBatch);
         for (int i = 0; i < _categoryButtons.Count; i++) {
             if (_categoryButtons[i].IsMouseHovering) {
-                string text = i switch {
+                string text = i switch
+                {
                     0 => sortMode.ToFriendlyString(),
                     1 => enabledFilterMode.ToFriendlyString(),
                     2 => modSideFilterMode.ToFriendlyString(),
@@ -407,36 +439,61 @@ public class UIModFolder : UIState, IHaveBackButtonCommand {
         }
         if (buttonOMF.IsMouseHovering)
             UICommon.TooltipMouseText(Language.GetTextValue("tModLoader.ModsOpenModsFoldersTooltip"));
+
+        #region DrawMouseTexture
+        if (_mouseTexture != null) {
+
+            spriteBatch.Draw(_mouseTexture, new Rectangle(
+                Math.Min(Main.mouseX + _mouseTextureOffsetX, Main.screenWidth - _mouseTextureWidth),
+                Math.Min(Main.mouseY + _mouseTextureOffsetY, Main.screenHeight - _mouseTextureHeight),
+                _mouseTextureWidth,
+                _mouseTextureHeight), _mouseTextureColor);
+            
+            _mouseTexture = null;
+        }
+        #endregion
     }
 
     public override void OnActivate() {
         Main.clrInput();
-        modList.Clear();
-        items.Clear();
+        list.Clear();
+        ModItems.Clear();
         loading = true;
         uIPanel.Append(uiLoader);
         ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
         Populate();
-        UpdateTopRowButtons();
     }
 
     public override void OnDeactivate() {
-        _cts?.Cancel(false);
-        _cts?.Dispose();
-        _cts = null;
-        modListViewPosition = modList.ViewPosition;
+        if (_cts != null) {
+            _cts.Cancel(false);
+            _cts.Dispose();
+            _cts = null;
+        }
+        listViewPosition = list.ViewPosition;
     }
-
-    internal void Populate() {
-        _cts = new CancellationTokenSource();
-        modItemsTask = Task.Run(() => {
-            var mods = ModOrganizer.FindMods(logDuplicates: true);
-            List<UIModItemInFolder> pendingUIModItems = [];
-            foreach (var mod in mods) {
-                UIModItemInFolder modItem = new(mod);
-                pendingUIModItems.Add(modItem);
-            }
-            return pendingUIModItems;
-        }, _cts.Token);
+    #region 异步寻找 Mod
+    private static List<UIModItemInFolder> FindModsTask() {
+        var mods = ModOrganizer.FindMods(logDuplicates: true);
+        List<UIModItemInFolder> pendingUIModItems = [];
+        foreach (var mod in mods) {
+            UIModItemInFolder modItem = new(mod);
+            pendingUIModItems.Add(modItem);
+        }
+        return pendingUIModItems;
     }
+    public void Populate() {
+        _cts = new();
+        modItemsTask = Task.Run(FindModsTask, _cts.Token);
+    }
+    public void Repopulate() {
+        if (_cts != null) {
+            _cts.Cancel(false);
+            _cts.Dispose();
+            _cts = null;
+        }
+        _cts = new();
+        modItemsTask = Task.Run(FindModsTask, _cts.Token);
+    }
+    #endregion
 }

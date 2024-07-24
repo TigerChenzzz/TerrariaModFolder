@@ -8,6 +8,7 @@ global using Terraria;
 global using Terraria.ID;
 global using Terraria.Localization;
 global using Terraria.ModLoader;
+using ModFolder.UI;
 using System.Reflection;
 using Terraria.Audio;
 using Terraria.GameContent.UI.States;
@@ -25,19 +26,24 @@ public class ModFolder : Mod {
         var bfs = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         MonoModHooks.Add(typeof(Interface).GetMethod(nameof(Interface.ModLoaderMenus), bfs), On_Interface_ModLoaderMenus);
         var configList = Interface.modConfigList;
-        if (!configList._isInitialized)
+        if (!configList._isInitialized) {
             configList.Initialize();
-        Interface.modConfigList.backButton.OnLeftClick += UIModConfigList_BackButton_OnLeftClick;
+        }
+        if (Interface.modConfigList.backButton is { } backButton) {
+            backButton.OnLeftClick += UIModConfigList_BackButton_OnLeftClick;
+        }
     }
     public override void Unload() {
-        Interface.modConfigList.backButton.OnLeftClick -= UIModConfigList_BackButton_OnLeftClick;
+        if (Interface.modConfigList?.backButton is { } backButton) {
+            backButton.OnLeftClick -= UIModConfigList_BackButton_OnLeftClick;
+        }
     }
 
     #region 在 UIModConfigList 中返回时尝试回到文件夹页面
     private void UIModConfigList_BackButton_OnLeftClick(UIMouseEvent evt, UIElement listeningElement) {
-        if (Main.gameMenu && UIModFolder.IsPreviousUIStateOfConfigList) {
-            UIModFolder.IsPreviousUIStateOfConfigList = false;
-            Main.menuMode = UIModFolder.MyMenuMode;
+        if (Main.gameMenu && UIModFolderMenu.IsPreviousUIStateOfConfigList) {
+            UIModFolderMenu.IsPreviousUIStateOfConfigList = false;
+            Main.menuMode = UIModFolderMenu.MyMenuMode;
         }
     }
     #endregion
@@ -45,8 +51,8 @@ public class ModFolder : Mod {
     private delegate void InterfaceModLoaderMenusDelegate(Main main, int selectedMenu, string[] buttonNames, float[] buttonScales, int[] buttonVerticalSpacing, ref int offY, ref int spacing, ref int numButtons, ref bool backButtonDown);
     private static void On_Interface_ModLoaderMenus(InterfaceModLoaderMenusDelegate orig, Main main, int selectedMenu, string[] buttonNames, float[] buttonScales, int[] buttonVerticalSpacing, ref int offY, ref int spacing, ref int numButtons, ref bool backButtonDown) {
         orig(main, selectedMenu, buttonNames, buttonScales, buttonVerticalSpacing, ref offY, ref spacing, ref numButtons, ref backButtonDown);
-        if (Main.menuMode == UIModFolder.MyMenuMode) {
-            Main.MenuUI.SetState(UIModFolder.Instance);
+        if (Main.menuMode == UIModFolderMenu.MyMenuMode) {
+            Main.MenuUI.SetState(UIModFolderMenu.Instance);
             Main.menuMode = 888;
         }
     }
@@ -60,8 +66,8 @@ public class ModFolder : Mod {
         };
         buttonMods.OnRightClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
-            UIModFolder.Instance.PreviousUIState = self;
-            Main.MenuUI.SetState(UIModFolder.Instance);
+            UIModFolderMenu.Instance.PreviousUIState = self;
+            Main.MenuUI.SetState(UIModFolderMenu.Instance);
         };
     }
     #endregion
