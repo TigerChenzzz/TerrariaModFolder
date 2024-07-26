@@ -8,6 +8,7 @@ namespace ModFolder.Systems;
 public static class FolderDataSystem {
     #region 类型
     public class Node { }
+    [JsonObject(MemberSerialization.OptIn)]
     public class ModNode : Node {
         public ModNode(LocalMod mod) {
             ModName = mod.Name;
@@ -16,7 +17,11 @@ public static class FolderDataSystem {
             }
         }
         public ModNode(string modName) => ModName = modName;
+        [JsonConstructor]
+        private ModNode() : this(string.Empty) { }
+        [JsonProperty]
         public string ModName { get; set; }
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public ulong PublishId { get; set; }
         public void ReceiveDataFrom(LocalMod mod) {
             ModName = mod.Name;
@@ -25,10 +30,14 @@ public static class FolderDataSystem {
             }
         }
     }
+    [JsonObject(MemberSerialization.OptIn)]
     public class FolderNode(string folderName) : Node {
+        [JsonConstructor]
+        private FolderNode() : this(string.Empty) { }
+        [JsonProperty]
         public string FolderName { get; set; } = folderName;
+        [JsonProperty]
         public List<Node> Children { get; set; } = [];
-        [JsonIgnore]
         public IEnumerable<ModNode> ModNodesInTree {
             get {
                 foreach (var child in Children) {

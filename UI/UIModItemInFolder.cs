@@ -122,6 +122,7 @@ public class UIModItemInFolder : UIFolderItem {
         Append(_modIcon);
         #endregion
         #region 名字
+        // TODO: 名字太长怎么办 (UIHorizontalList?)
         string text = _mod.DisplayName + " v" + _mod.modFile.Version;
         _modName = new UIText(text) {
             Left = new StyleDimension(_modIconAdjust, 0f),
@@ -159,7 +160,8 @@ public class UIModItemInFolder : UIFolderItem {
         };
         _uiModStateCheckBoxHitbox.Append(_uiModStateCheckBox);
         #endregion
-        #region 升级版本
+        #region 升级版本提示
+        // TODO: 美化
         // Don't show the Enable/Disable button if there is no loadable version
         string? updateVersion = null;
         string updateURL = "https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches";
@@ -195,6 +197,7 @@ public class UIModItemInFolder : UIFolderItem {
         }
         #endregion
         #region 删除
+        // TODO: 
         int bottomRightRowOffset = -30;
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
             _deleteModButton = new UIImage(TextureAssets.Trash) {
@@ -312,6 +315,7 @@ public class UIModItemInFolder : UIFolderItem {
         #endregion
         #region 未完全卸载
         // TODO: Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
+        // TODO: 测试它的位置
         if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
             _keyImage = new UIHoverImage(UICommon.ButtonErrorTexture, Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning")) {
                 Left = { Pixels = _modIconAdjust + PADDING },
@@ -335,6 +339,7 @@ public class UIModItemInFolder : UIFolderItem {
         }
         #endregion
         #region Steam 标志
+        // TODO:  Steam 标志和整合包标志放在何处
         if (_mod.location == ModLocation.Workshop && false) {
             var steamIcon = new UIImage(TextureAssets.Extra[243])
             {
@@ -356,6 +361,7 @@ public class UIModItemInFolder : UIFolderItem {
         if (loadedMod != null) {
             _loaded = true;
         }
+        // TODO: 这几个标放在哪里 (当鼠标放在更多信息按钮上时?)
         if (loadedMod != null && false) {
             _loaded = true;
             // TODO: refactor and add nicer icons (and maybe not iterate 6 times)
@@ -392,6 +398,7 @@ public class UIModItemInFolder : UIFolderItem {
         };
         #endregion
         #region 服务器版本不同的提示
+        // TODO: 修改这个
         if (loadedMod != null && _mod.modFile.path != loadedMod.File.path) {
             var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session")
             {
@@ -399,11 +406,11 @@ public class UIModItemInFolder : UIFolderItem {
                 Width = new StyleDimension(0, 1f),
                 Height = new StyleDimension(30, 0f),
                 BackgroundColor = Color.Orange,
-                Top = { Pixels = 82 }
+                // Top = { Pixels = 82 }
             };
             Append(serverDiffMessage);
 
-            Height.Pixels = 130;
+            // Height.Pixels = 130;
         }
         #endregion
     }
@@ -633,6 +640,10 @@ public class UIModItemInFolder : UIFolderItem {
     }
 
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {
+        // TODO: 二次确认时选择删除索引还是取消订阅
+        // TODO: shift 和 ctrl 控制删除索引和取消订阅 (在二次确认面板中提示这个操作)
+        // TODO: 同时按住 shift 和 ctrl 则既删除索引同时取消订阅 (只按住 ctrl 只是取消订阅但不删除索引 (方便重新下载))
+        // TODO: 他们的提示
         bool shiftPressed = Main.keyState.PressingShift();
 
         if (!shiftPressed) {

@@ -1,18 +1,15 @@
 ﻿using ModFolder.Systems;
-using ReLogic.Content;
 using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
-using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
-using Terraria.ModLoader.UI.ModBrowser;
-using Terraria.Social.Base;
+using Terraria.Social.Steam;
 using Terraria.UI;
 
 namespace ModFolder.UI;
 
-public class UIModItemInFolderWhenLoading(FolderDataSystem.ModNode modNode) : UIFolderItem {
-    private const float PADDING = 5f;
+// TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
+public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFolderItem {
     private UIText _uiModName = null!;
     private UIImage? _deleteModButton;
     private UIAutoScaleTextTextPanel<string>? _dialogYesButton;
@@ -46,6 +43,19 @@ public class UIModItemInFolderWhenLoading(FolderDataSystem.ModNode modNode) : UI
         _deleteModButton.OnLeftClick += QuickModDelete;
         Append(_deleteModButton);
         #endregion
+        // TODO: 显示 SteamId, 以及引导到 Steam 处
+        // TODO: 自动订阅?
+        // TODO: 显示下载进度 (滚动宽斜条表示)
+        // SteamedWraps.ModDownloadInstance downloadInstance = new();
+        // downloadInstance.Download(new(_modNode.PublishId));
+        // SteamedWraps.UninstallWorkshopItem(new(_modNode.PublishId));
+    }
+
+    public void TrySubscribeMod() {
+        // TODO: 判断是否需要订阅并下载
+        SteamedWraps.ModDownloadInstance downloadInstance = new();
+        // TODO: 填写后面的参数
+        downloadInstance.Download(new(_modNode.PublishId));
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
@@ -70,7 +80,7 @@ public class UIModItemInFolderWhenLoading(FolderDataSystem.ModNode modNode) : UI
     }
 
     public override int CompareTo(object obj) {
-        if (obj is not UIModItemInFolderWhenLoading item)
+        if (obj is not UIModItemInFolderUnloaded item)
             return 1;
         string name = ModName;
         string othername = item.ModName;
@@ -83,6 +93,8 @@ public class UIModItemInFolderWhenLoading(FolderDataSystem.ModNode modNode) : UI
     }
 
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {
+        // TODO: 删除的提示
+        // TODO: 是否正在加载时的不同提示 (不管哪种只能删除索引)
         bool shiftPressed = Main.keyState.PressingShift();
 
         if (!shiftPressed) {

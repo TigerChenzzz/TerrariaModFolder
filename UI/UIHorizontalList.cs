@@ -3,6 +3,7 @@ using Terraria.UI;
 
 namespace ModFolder.UI;
 
+// TODO: 边缘虚化
 public class UIHorizontalList : UIElement {
     private class UIInnerList : UIElement {
         public override bool ContainsPoint(Vector2 point) => true;

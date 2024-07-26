@@ -3,7 +3,6 @@ using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
-using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
@@ -16,6 +15,7 @@ using ModNode = ModFolder.Systems.FolderDataSystem.ModNode;
 
 namespace ModFolder.UI;
 
+// TODO: 在进入时即刻生成 UI
 public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #region 字段与属性
     public static UIModFolderMenu Instance { get; private set; } = new();
@@ -340,7 +340,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 搜索过滤器按钮
         SearchFilterToggle = new UICycleImage(texture, 2, 32, 32, 34 * 2, 0) {
-            Left = { Pixels = - 32, Percent = 1 }
+            Left = { Pixels = -32, Percent = 1 }
         };
         SearchFilterToggle.SetCurrentState((int)searchFilterMode);
         SearchFilterToggle.OnLeftClick += (a, b) => {
@@ -412,6 +412,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Append(uIHeaderTexTPanel);
         #endregion
         #region 启用全部按钮
+        // TODO: 只启用或禁用本文件夹下的模组, 按住 shift 时才是所有模组
+        // TODO: 按住 alt 同时包含子文件夹
+        // TODO: 按住 ctrl 在禁用时同时禁用收藏
+        // TODO: 使用悬浮文字以提示这些操作
         int buttonTopPixels = 220;
         buttonEA = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModsEnableAll")) {
             TextColor = Color.Green,
@@ -499,6 +503,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Append(buttonCreateFolder);
         #endregion
         #region 返回按钮
+        // TODO: 在它之前添加一个重置模组启用状态的按钮 (使用直接操纵 ModLoader.EnabledMods 的方式修改, 最后再 ModOrganizer.SaveEnabledMods(), 还需要日志打印)
         buttonB = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("UI.Back"));
         buttonB.CopyStyle(buttonEA);
         buttonB.Top.Pixels = buttonTopPixels + 5;
@@ -531,17 +536,25 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private FolderNode? nodeToRename;
     private void EnableAllMods(UIMouseEvent mouse, UIElement element) {
         SoundEngine.PlaySound(SoundID.MenuTick);
+        // TODO: 未加载完成时给出(悬浮)提示
+        if (!loaded) {
+            return;
+        }
         foreach (var modItem in ModItemDict.Values) {
             if (modItem.tMLUpdateRequired != null)
                 continue;
-            modItem.Enable();
+            ModLoader.EnabledMods.Add(modItem.ModName);
         }
+        // TODO: 已经启用的模组不再在这里提示?
+        // Logging.tML.Info
+        ModFolder.Instance.Logger.Info("Enabling All Mods: " + string.Join(", ", ModLoader.EnabledMods));
+        ModOrganizer.SaveEnabledMods();
     }
     private void DisableAllMods(UIMouseEvent mouse, UIElement element) {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        foreach (var modItem in ModItemDict.Values) {
-            modItem.Disable();
-        }
+        // 不用在乎是否加载完成, 可一键全部取消
+        // TODO: 只有在同时取消收藏且全部取消时这么做, 否则要判断是否加载完成
+        ModLoader.DisableAllMods();
     }
 
     public static bool IsPreviousUIStateOfConfigList { get; set; }
@@ -586,7 +599,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (n is ModNode m) {
                 return ModItemDict.TryGetValue(m.ModName, out var uiMod)
                     ? uiMod.PassFilters(filterResults) ? uiMod : (UIElement?)null
-                    : new UIModItemInFolderWhenLoading(m);
+                    : new UIModItemInFolderUnloaded(m);
             }
             else if (n is FolderNode f) {
                 var uf = new UIFolder(f);
@@ -600,6 +613,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }).Where(e => e != null).ToList();
         nodeToRename = null;
         if (CurrentFolderNode == FolderDataSystem.Root) {
+            // TODO: 缓存此结果, 且在文件夹树发生变化时做出修改
             HashSet<string> modsInFolder = [];
             foreach (var m in FolderDataSystem.Root.ModNodesInTree) {
                 modsInFolder.Add(m.ModName);
@@ -685,7 +699,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Main.clrInput();
         list.Clear();
         loading = true;
-        Append(uiLoader);
+        if (!loaded) {
+            Append(uiLoader);
+        }
         ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
         Populate();
     }

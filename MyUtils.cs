@@ -20,7 +20,7 @@ public static class MyUtils {
             Color.White, Color.Transparent, Color.White,
             Color.White, Color.White      , Color.White,
         ]);
-        
+
         public static Texture2D FromColors(int width, int height, Color[] colors) {
             Texture2D result = new(Main.instance.GraphicsDevice, width, height);
             result.SetData(colors);

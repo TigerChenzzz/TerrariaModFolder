@@ -1,8 +1,6 @@
-﻿using Microsoft.Xna.Framework.Input;
-using ModFolder.Systems;
+﻿using ModFolder.Systems;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
-using Terraria.GameInput;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -44,7 +42,7 @@ public class UIFolder : UIFolderItem {
     public UIFolder(string name) {
         Name = name;
     }
-
+    #region 名字与输入框之间的替换
     private void ReplaceChildren(UIElement from, UIElement to, bool forceAdd = true) {
         for (int i = 0; i < Elements.Count; ++i) {
             if (Elements[i] == from) {
@@ -62,7 +60,19 @@ public class UIFolder : UIFolderItem {
     private bool replaceToFolderName;
     private bool replaceToRenameText;
     public void SetReplaceToRenameText() => replaceToRenameText = true;
-
+    private void CheckReplace() {
+        if (replaceToFolderName) {
+            replaceToFolderName = false;
+            ReplaceChildren(_renameText, _folderName, false);
+        }
+        if (replaceToRenameText) {
+            replaceToRenameText = false;
+            _renameText.CurrentString = string.Empty;
+            ReplaceChildren(_folderName, _renameText, false);
+            _renameText.Focused = true;
+        }
+    }
+    #endregion
     public override void OnInitialize() {
         #region 删除按钮
         int rightRowOffset = -30;
@@ -76,6 +86,9 @@ public class UIFolder : UIFolderItem {
         };
         rightRowOffset -= 24;
         _deleteButton.OnLeftClick += (_, _) => {
+            // TODO: 未加载完时...
+            // TODO: 删除的二次确认, 按住 Shift 时才直接删除
+            // TODO: 直接取消订阅所有内含模组, 三次确认
             if (Node != null) {
                 UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(Node);
                 UIModFolderMenu.Instance.SetUpdateNeeded();
@@ -126,6 +139,7 @@ public class UIFolder : UIFolderItem {
         _renameText.Width.Set(-30 + rightRowOffset, 1);
         _renameText.OnUnfocus += (_, _) => {
             var newName = _renameText.CurrentString;
+            // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
             if (Node == null || newName == ".." || newName == string.Empty) {
                 replaceToFolderName = true;
                 return;
@@ -138,8 +152,12 @@ public class UIFolder : UIFolderItem {
         _renameText.UnfocusOnTab = true;
         #endregion
         #region 双击进入文件夹
+        // TODO: 双击某些位置时不进入文件夹 / 测试
         OnLeftDoubleClick += (_, target) => {
             if (Name == null) {
+                return;
+            }
+            if (target == _renameText || target == _deleteButton || target == _renameButton) {
                 return;
             }
             if (Name == "..") {
@@ -156,16 +174,10 @@ public class UIFolder : UIFolderItem {
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         base.DrawSelf(spriteBatch);
-        if (replaceToFolderName) {
-            replaceToFolderName = false;
-            ReplaceChildren(_renameText, _folderName, false);
-        }
-        if (replaceToRenameText) {
-            replaceToRenameText = false;
-            _renameText.CurrentString = string.Empty;
-            ReplaceChildren(_folderName, _renameText, false);
-            _renameText.Focused = true;
-        }
+        CheckReplace();
+        // TODO: 状态显示: 全启用 / 部分启用 / 全禁用 / 待启用 / 待禁用 / 待启用及禁用
+        // TODO: 悬浮提示中显示详细状态 : 启用状态, 待启用数, 待禁用数
+        // TODO: 配置是否显示状态 (因为数据庞大时可能会影响性能)
         #region 当鼠标在某些东西上时显示些东西
         // 更多信息按钮
         // 删除按钮
@@ -183,102 +195,6 @@ public class UIFolder : UIFolderItem {
         base.Draw(spriteBatch);
         if (!string.IsNullOrEmpty(_tooltip)) {
             UICommon.TooltipMouseText(_tooltip);
-        }
-    }
-}
-
-public class UIFocusInputTextFieldPro(string hintText) : UIElement {
-    public delegate void EventHandler(object sender, EventArgs e);
-    public bool Focused;
-    public string CurrentString = "";
-    private readonly string _hintText = hintText;
-    private int _textBlinkerCount;
-    private int _textBlinkerState;
-
-    public bool UnfocusOnTab {
-        get;
-        set;
-    }
-    public event EventHandler? OnTextChange;
-    public event EventHandler? OnUnfocus;
-    public event EventHandler? OnTab;
-    public void SetText(string text) {
-        text ??= "";
-
-        if (CurrentString != text) {
-            CurrentString = text;
-            OnTextChange?.Invoke(this, new());
-        }
-    }
-
-    public override void LeftClick(UIMouseEvent evt) {
-        Main.clrInput();
-        Focused = true;
-    }
-
-    public override void Update(GameTime gameTime) {
-        Vector2 point = new(Main.mouseX, Main.mouseY);
-        if (!ContainsPoint(point) && Main.mouseLeft) {
-            Focused = false;
-            OnUnfocus?.Invoke(this, new());
-        }
-
-        base.Update(gameTime);
-    }
-    private static bool JustPressed(Keys key) {
-        if (Main.inputText.IsKeyDown(key)) {
-            return !Main.oldInputText.IsKeyDown(key);
-        }
-
-        return false;
-    }
-    public override void DrawSelf(SpriteBatch spriteBatch) {
-        if (Focused) {
-            PlayerInput.WritingText = true;
-            Main.instance.HandleIME();
-            string inputText = Main.GetInputText(CurrentString);
-            if (Main.inputTextEscape) {
-                Main.inputTextEscape = false;
-                Focused = false;
-                OnUnfocus?.Invoke(this, new());
-            }
-
-            if (!inputText.Equals(CurrentString)) {
-                CurrentString = inputText;
-                OnTextChange?.Invoke(this, new());
-            }
-            else {
-                CurrentString = inputText;
-            }
-
-            if (JustPressed(Keys.Tab)) {
-                if (UnfocusOnTab) {
-                    Focused = false;
-                    OnUnfocus?.Invoke(this, new());
-                }
-
-                OnTab?.Invoke(this, new());
-            }
-            if (JustPressed(Keys.Enter)) {
-                OnUnfocus?.Invoke(this, new());
-            }
-            if (++_textBlinkerCount >= 20) {
-                _textBlinkerState = (_textBlinkerState + 1) % 2;
-                _textBlinkerCount = 0;
-            }
-        }
-
-        string text = CurrentString;
-        if (_textBlinkerState == 1 && Focused) {
-            text += "|";
-        }
-
-        CalculatedStyle dimensions = GetDimensions();
-        if (CurrentString.Length == 0 && !Focused) {
-            Utils.DrawBorderString(spriteBatch, _hintText, new Vector2(dimensions.X, dimensions.Y), Color.Gray);
-        }
-        else {
-            Utils.DrawBorderString(spriteBatch, text, new Vector2(dimensions.X, dimensions.Y), Color.White);
         }
     }
 }

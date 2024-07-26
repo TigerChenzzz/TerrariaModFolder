@@ -3,6 +3,7 @@ using Terraria.UI;
 
 namespace ModFolder.UI;
 
+// TODO: 边缘虚化
 public class UIFolderItemList : UIList {
     public UIFolderItemList() {
         ManualSortMethod = _ => { };
