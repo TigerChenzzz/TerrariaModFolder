@@ -32,7 +32,7 @@ public class UIFolder : UIFolderItem {
     private UIImage _folderIcon = null!;
     private UIText _folderName = null!;
     private UIFocusInputTextFieldPro _renameText = null!;
-    private UIImage _deleteButton =  null!;
+    private UIImage? _deleteButton;
     private UIImage? _renameButton;
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
@@ -74,27 +74,47 @@ public class UIFolder : UIFolderItem {
     }
     #endregion
     public override void OnInitialize() {
-        #region 删除按钮
-        int rightRowOffset = -30;
-        _deleteButton = new UIImage(TextureAssets.Trash) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            Left = { Pixels = rightRowOffset, Precent = 1 },
-            Top = { Pixels = -12, Percent = 0.5f },
+        #region 文件夹图标
+        _folderIcon = new(UICommon.ButtonOpenFolder) {
+            Left = { Pixels = 1 },
+            Top = { Pixels = 1 },
+            Width = { Pixels = 28 },
+            Height = { Pixels = 28 },
             ScaleToFit = true,
             AllowResizingDimensions = false,
         };
+        Append(_folderIcon);
+        #endregion
+        #region 名称
+        _folderName = new(Name ?? string.Empty);
+        _folderName.Left.Pixels = 30;
+        // _folderName.Top.Pixels = 7;
+        _folderName.VAlign = 0.5f;
+        Append(_folderName);
+        #endregion
+        #region 删除按钮
+        int rightRowOffset = -30;
+        if (Node != null) {
+            _deleteButton = new UIImage(TextureAssets.Trash) {
+                Width = { Pixels = 24 },
+                Height = { Pixels = 24 },
+                Left = { Pixels = rightRowOffset, Precent = 1 },
+                Top = { Pixels = -12, Percent = 0.5f },
+                ScaleToFit = true,
+                AllowResizingDimensions = false,
+            };
+            _deleteButton.OnLeftClick += (_, _) => {
+                // TODO: 未加载完时...
+                // TODO: 删除的二次确认, 按住 Shift 时才直接删除
+                // TODO: 直接取消订阅所有内含模组, 三次确认
+                if (Node != null) {
+                    UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(Node);
+                    UIModFolderMenu.Instance.SetUpdateNeeded();
+                }
+            };
+            Append(_deleteButton);
+        }
         rightRowOffset -= 24;
-        _deleteButton.OnLeftClick += (_, _) => {
-            // TODO: 未加载完时...
-            // TODO: 删除的二次确认, 按住 Shift 时才直接删除
-            // TODO: 直接取消订阅所有内含模组, 三次确认
-            if (Node != null) {
-                UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(Node);
-                UIModFolderMenu.Instance.SetUpdateNeeded();
-            }
-        };
-        Append(_deleteButton);
         #endregion
         #region 重命名按钮
         if (Node != null) {
@@ -112,23 +132,6 @@ public class UIFolder : UIFolderItem {
             Append(_renameButton);
         }
         rightRowOffset -= 24;
-        #endregion
-        #region 文件夹图标
-        _folderIcon = new(UICommon.ButtonOpenFolder) {
-            Left = { Pixels = 1 },
-            Top = { Pixels = 1 },
-            Width = { Pixels = 28 },
-            Height = { Pixels = 28 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-        };
-        Append(_folderIcon);
-        #endregion
-        #region 名称
-        _folderName = new(Name ?? string.Empty);
-        _folderName.Left.Pixels = 30;
-        _folderName.Top.Pixels = 7;
-        Append(_folderName);
         #endregion
         #region 重命名输入框
         // TODO: 本地化
@@ -153,11 +156,11 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 双击进入文件夹
         // TODO: 双击某些位置时不进入文件夹 / 测试
-        OnLeftDoubleClick += (_, target) => {
+        OnLeftDoubleClick += (e, target) => {
             if (Name == null) {
                 return;
             }
-            if (target == _renameText || target == _deleteButton || target == _renameButton) {
+            if (e.Target == _renameText || e.Target == _deleteButton || e.Target == _renameButton) {
                 return;
             }
             if (Name == "..") {
@@ -181,7 +184,7 @@ public class UIFolder : UIFolderItem {
         #region 当鼠标在某些东西上时显示些东西
         // 更多信息按钮
         // 删除按钮
-        if (_deleteButton.IsMouseHovering) {
+        if (_deleteButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         else if (_renameButton?.IsMouseHovering == true) {

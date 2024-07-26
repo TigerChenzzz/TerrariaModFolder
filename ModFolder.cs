@@ -28,7 +28,7 @@ namespace ModFolder;
 // TODO: 在自定义排序时右键拖动 (右键拖动时禁用左键?)
 
 // TODO: 排序: 自定义排序, 文件夹在模组上 / 下 / 任意
-// TODO: 分组与筛选: 按类型 (客户服务端文件夹), 按 Steam 还是本地文件, 按是否启用, 收藏
+// TODO: 分组与筛选: 按类型 (客户服务端文件夹), 按 Steam 还是本地文件, 按[是否启用 / 准备启用或禁用 / 修改了启禁用状态], 收藏
 
 // TODO: 文件夹的最近更新属性
 // TODO: ModNode 保存显示名? (配置)
@@ -97,7 +97,10 @@ public class ModFolder : Mod {
         buttonMods.OnRightClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
             // !!!!! Test
+#if DEBUG
             UIModFolderMenu.TotallyReload();
+            FolderDataSystem.Reload();
+#endif
             UIModFolderMenu.Instance.PreviousUIState = self;
             Main.MenuUI.SetState(UIModFolderMenu.Instance);
         };

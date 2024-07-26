@@ -36,6 +36,7 @@ public static class FolderDataSystem {
         private FolderNode() : this(string.Empty) { }
         [JsonProperty]
         public string FolderName { get; set; } = folderName;
+        // TODO: 优化: 在 Children.Count == 0 时不序列化 Children 字段
         [JsonProperty]
         public List<Node> Children { get; set; } = [];
         public IEnumerable<ModNode> ModNodesInTree {

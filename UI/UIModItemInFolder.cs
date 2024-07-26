@@ -197,7 +197,7 @@ public class UIModItemInFolder : UIFolderItem {
         }
         #endregion
         #region 删除
-        // TODO: 
+        // TODO: 配置右边这堆按钮是否向右缩紧
         int bottomRightRowOffset = -30;
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
             _deleteModButton = new UIImage(TextureAssets.Trash) {
@@ -235,12 +235,15 @@ public class UIModItemInFolder : UIFolderItem {
             };
             _configButton.OnLeftClick += OpenConfig;
             Append(_configButton);
+            // TODO: 在合适的情况下更新此值
+            // TODO: 看看这个类中还有没有这种可能会发生变化的值
             if (ConfigManager.ModNeedsReload(loadedMod)) {
                 _configChangesRequireReload = true;
             }
         }
         #endregion
         #region 需求与引用
+        // TODO: 显示引用了它的目前启用了的模组的数量
         _modReferences = _mod.properties.modReferences.Select(x => x.mod).ToArray();
 
         var availableMods = ModOrganizer.RecheckVersionsToLoad();
@@ -361,7 +364,7 @@ public class UIModItemInFolder : UIFolderItem {
         if (loadedMod != null) {
             _loaded = true;
         }
-        // TODO: 这几个标放在哪里 (当鼠标放在更多信息按钮上时?)
+        // TODO: 这几个标放在哪里 (当鼠标放在更多信息按钮上时? 放在模组名字上时?)
         if (loadedMod != null && false) {
             _loaded = true;
             // TODO: refactor and add nicer icons (and maybe not iterate 6 times)
@@ -450,13 +453,24 @@ public class UIModItemInFolder : UIFolderItem {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
         #region 是否启用
-        if (_mod.Enabled) {
+        // TODO: 显示因配置而需要重载的状态?  _configChangesRequireReload
+        if (_mod.Enabled && (_loaded || _mod.properties.side == ModSide.Server)) {
             spriteBatch.DrawBox(rectangle, Color.White * 0.6f, Color.White * 0.2f);
         }
         #endregion
         #region 需要重新加载
-        if (_mod.properties.side != ModSide.Server && (_mod.Enabled != _loaded || _configChangesRequireReload)) {
-            spriteBatch.DrawBox(rectangle, Color.Yellow * 0.6f, Color.Yellow * 0.2f);
+        // TODO: 调色   现在的绿色貌似不是很显眼
+        if (_mod.properties.side != ModSide.Server) {
+            if (_mod.Enabled && !_loaded) {
+                spriteBatch.DrawBox(rectangle, new Color(0f, 1f, 0f) * 0.6f, new Color(0f, 1f, 0f) * 0.15f);
+            }
+            else if (!_mod.Enabled && _loaded) {
+                spriteBatch.DrawBox(rectangle, Color.Red * 0.6f, Color.Red * 0.15f);
+            }
+            else if (_configChangesRequireReload) {
+                // TODO: 和收藏的颜色冲突了
+                spriteBatch.DrawBox(rectangle, Color.Yellow * 0.6f, Color.Yellow * 0.2f);
+            }
         }
         #endregion
         #region 显示 mod 是否为仅服务端 (禁用)

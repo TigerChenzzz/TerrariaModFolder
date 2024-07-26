@@ -42,7 +42,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
 
-    private FolderPathClass FolderPath = null!;
+    private FolderPathClass? _folderPath;
+    private FolderPathClass FolderPath {
+        get {
+            _folderPath ??= [];
+            if (_folderPath.Count == 0) {
+                _folderPath.Add(FolderDataSystem.Root);
+            }
+            return _folderPath;
+        }
+    }
     #region 当 FolderPath 改变时同步修改 folderPathList 中的元素
     private class FolderPathClass : IList<FolderNode> {
         private static UIElementCustom NewHListElement(FolderNode folder) {
@@ -369,8 +378,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
         };
         uIElement.Append(folderPathList);
-
-        FolderPath = [FolderDataSystem.Root];
         #endregion
         #region 模组列表
         upperPixels += 6;
@@ -394,6 +401,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         */
         #endregion
         #region 滚条
+        // TODO: 点按这个滚条会产生一个偏移的 bug
         var uIScrollbar = new UIScrollbar {
             Height = { Pixels = -upperPixels, Percent = 1f },
             Top = { Pixels = upperPixels },
@@ -440,6 +448,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Append(buttonDA);
         #endregion
         #region 重新加载按钮
+        // TODO: 另一个重载按钮: 重载文件夹中的 Mod
         buttonRM = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModsForceReload"));
         buttonRM.CopyStyle(buttonEA);
         buttonRM.Top.Pixels = buttonTopPixels + 5;
@@ -511,6 +520,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         buttonB.WithFadedMouseOver();
         buttonB.OnLeftClick += (_, _) => {
             FolderDataSystem.Save();
+            FolderPath.Clear();
+            listViewPosition = list.ViewPosition = 0;
             // To prevent entering the game with Configs that violate ReloadRequired
             if (ConfigManager.AnyModNeedsReload()) {
                 Main.menuMode = Interface.reloadModsID;
@@ -569,14 +580,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
         #region 当加载完成时做一些事情
-        if (modItemsTask is { IsCompleted: true }) {
-            foreach (var item in ModItemDict.Values) {
-                item.Activate();
-            }
-            needToRemoveLoading = true;
-            updateNeeded = true;
-            loading = false;
-            modItemsTask = null;
+        if (modItemsTask is { IsCompleted: true, IsFaulted: true }) {
+            // TODO: 检查报错
+            ;
         }
         #endregion
         #region 尝试移除加载动画
@@ -624,11 +630,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 }
             }
         }
-        else {
-            UIFolder upperFolder = new("..");
-            list.Add(upperFolder);
-            upperFolder.Activate();
-        }
         #region 若有任何被过滤的, 则在列表中添加一个元素提示过滤了多少东西
         if (filterResults.AnyFiltered) {
             var panel = new UIPanel();
@@ -652,6 +653,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             panel.Height.Set(text.MinHeight.Pixels + panel.PaddingTop, 0f);
         }
         #endregion
+        if (CurrentFolderNode != FolderDataSystem.Root) {
+            UIFolder upperFolder = new("..");
+            list.Add(upperFolder);
+            upperFolder.Activate();
+        }
         list.AddRange(visibleItems);
         foreach (var item in visibleItems) {
             item?.Activate();
@@ -696,14 +702,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
 
     public override void OnActivate() {
+        updateNeeded = true;
         Main.clrInput();
         list.Clear();
-        loading = true;
         if (!loaded) {
+            loading = true;
             Append(uiLoader);
+            ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
+            Populate();
         }
-        ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
-        Populate();
     }
 
     public override void OnDeactivate() {
@@ -712,6 +719,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _cts.Dispose();
             _cts = null;
         }
+        modItemsTask = null;
         listViewPosition = list.ViewPosition;
     }
     #region 异步寻找 Mod
@@ -721,16 +729,26 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         var mods = ModOrganizer.FindMods(logDuplicates: true);
-        ModItemDict.Clear();
+        Dictionary<string, UIModItemInFolder> tempModItemDict = [];
         foreach (var mod in mods) {
             UIModItemInFolder modItem = new(mod);
-            ModItemDict.Add(modItem.ModName, modItem);
+            tempModItemDict.Add(modItem.ModName, modItem);
+            modItem.Activate();
         }
+        ModItemDict = tempModItemDict;
+
+        // TODO: 遍历一遍 Root 来做各种事情
+
         loaded = true;
+        needToRemoveLoading = true;
+        updateNeeded = true;
+        loading = false;
+        modItemsTask = null;
     }
     public void Populate() {
         _cts = new();
         modItemsTask = Task.Run(FindModsTask, _cts.Token);
+        Task.Run(FindModsTask, _cts.Token);
     }
     public void Repopulate() {
         if (_cts != null) {
