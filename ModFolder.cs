@@ -8,6 +8,7 @@ global using Terraria;
 global using Terraria.ID;
 global using Terraria.Localization;
 global using Terraria.ModLoader;
+using ModFolder.Systems;
 using ModFolder.UI;
 using System.Reflection;
 using Terraria.Audio;
@@ -17,11 +18,15 @@ using Terraria.UI;
 
 namespace ModFolder;
 
+// TODO: 模组和文件夹的移动 (包括顺序和改变路径)
+// TODO: 排序
+
 public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;
 
     public override void Load() {
         Instance = this;
+        FolderDataSystem.Reload();
         On_UIWorkshopHub.OnInitialize += On_UIWorkshopHub_OnInitialize;
         var bfs = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
         MonoModHooks.Add(typeof(Interface).GetMethod(nameof(Interface.ModLoaderMenus), bfs), On_Interface_ModLoaderMenus);
@@ -34,6 +39,7 @@ public class ModFolder : Mod {
         }
     }
     public override void Unload() {
+        FolderDataSystem.Save();
         if (Interface.modConfigList?.backButton is { } backButton) {
             backButton.OnLeftClick -= UIModConfigList_BackButton_OnLeftClick;
         }
@@ -66,6 +72,8 @@ public class ModFolder : Mod {
         };
         buttonMods.OnRightClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
+            // !!!!! Test
+            UIModFolderMenu.TotallyReload();
             UIModFolderMenu.Instance.PreviousUIState = self;
             Main.MenuUI.SetState(UIModFolderMenu.Instance);
         };

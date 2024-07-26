@@ -16,8 +16,6 @@ namespace ModFolder.UI;
 /// </summary>
 public class UIModItemInFolder : UIFolderItem {
     private const float PADDING = 5f;
-    private float left2ndLine = 0;
-
     private UIImage _moreInfoButton = null!;
     private UIImage _modIcon = null!;
     private UIImageFramed? updatedModDot;
@@ -109,7 +107,7 @@ public class UIModItemInFolder : UIFolderItem {
         modIcon = smallIcon ?? bigIcon ?? Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
         _modIcon = new UIImage(modIcon) {
             Left = { Pixels = 1 },
-            Top = {Pixels = 1},
+            Top = { Pixels = 1 },
             Width = { Pixels = 28 },
             Height = { Pixels = 28 },
             ScaleToFit = true,
@@ -130,6 +128,21 @@ public class UIModItemInFolder : UIFolderItem {
             Top = { Pixels = 7, },
         };
         Append(_modName);
+        #endregion
+        #region 已升级小点
+        var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
+        if (oldModVersionData != default) {
+            previousVersionHint = oldModVersionData.previousVersion;
+            var toggleImage = Main.Assets.Request<Texture2D>("Images/UI/Settings_Toggle");   // 大小: 30 x 14
+            updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
+                Left = { Pixels = _modName.GetInnerDimensions().ToRectangle().Right + 8 /* _modIconAdjust*/, Percent = 0f },
+                Top = { Pixels = 8, Percent = 0f },
+                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212)
+            };
+            //_modName.Left.Pixels += 18; // use these 2 for left of the modname
+
+            Append(updatedModDot);
+        }
         #endregion
         #region 启用 / 禁用
         _uiModStateCheckBoxHitbox = new() {
@@ -378,21 +391,6 @@ public class UIModItemInFolder : UIFolderItem {
                 ToggleEnabled(e, el);
         };
         #endregion
-        #region 已升级小点
-        var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
-        if (oldModVersionData != default) {
-            previousVersionHint = oldModVersionData.previousVersion;
-            var toggleImage = Main.Assets.Request<Texture2D>("Images/UI/Settings_Toggle");
-            updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
-                Left = { Pixels = _modName.GetInnerDimensions().ToRectangle().Right + 8 /* _modIconAdjust*/, Percent = 0f },
-                Top = { Pixels = 5, Percent = 0f },
-                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212)
-            };
-            //_modName.Left.Pixels += 18; // use these 2 for left of the modname
-
-            Append(updatedModDot);
-        }
-        #endregion
         #region 服务器版本不同的提示
         if (loadedMod != null && _mod.modFile.path != loadedMod.File.path) {
             var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session")
@@ -441,13 +439,9 @@ public class UIModItemInFolder : UIFolderItem {
     }
 
     public override void DrawSelf(SpriteBatch spriteBatch) {
+        base.DrawSelf(spriteBatch);
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
-        #region 背景
-        if (IsMouseHovering) {
-            spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
-        }
-        #endregion
         #region 是否启用
         if (_mod.Enabled) {
             spriteBatch.DrawBox(rectangle, Color.White * 0.6f, Color.White * 0.2f);
@@ -458,19 +452,18 @@ public class UIModItemInFolder : UIFolderItem {
             spriteBatch.DrawBox(rectangle, Color.Yellow * 0.6f, Color.Yellow * 0.2f);
         }
         #endregion
-        CalculatedStyle innerDimensions = GetInnerDimensions();
-        var drawPos = new Vector2(innerDimensions.X + 5f + _modIconAdjust, innerDimensions.Y + 30f);
-        Rectangle dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4);
-        spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
-        drawPos = new Vector2(innerDimensions.X + 10f + _modIconAdjust, innerDimensions.Y + 45f);
-
+        #region 显示 mod 是否为仅服务端 (禁用)
+        /*
         if (_mod.properties.side == ModSide.Server) {
+            Vector2 drawPos = new(innerDimensions.X + 10f + _modIconAdjust, innerDimensions.Y + 45f);
             drawPos += new Vector2(90f, -2f);
             spriteBatch.Draw(UICommon.ModBrowserIconsTexture.Value, drawPos, new Rectangle(5 * 34, 3 * 34, 32, 32), Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
             if (new Rectangle((int)drawPos.X, (int)drawPos.Y, 32, 32).Contains(Main.MouseScreen.ToPoint()))
                 UICommon.DrawHoverStringInBounds(spriteBatch, Language.GetTextValue("tModLoader.ModIsServerSide"));
         }
-        #region 当鼠标在某些东西上时某些东西
+        */
+        #endregion
+        #region 当鼠标在某些东西上时显示些东西
         // 更多信息按钮
         if (_moreInfoButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("tModLoader.ModsMoreInfo");
