@@ -67,7 +67,7 @@ public class UIFolder : UIFolderItem {
         }
         if (replaceToRenameText) {
             replaceToRenameText = false;
-            _renameText.CurrentString = string.Empty;
+            _renameText.CurrentString = _folderName.Text;
             ReplaceChildren(_folderName, _renameText, false);
             _renameText.Focused = true;
         }

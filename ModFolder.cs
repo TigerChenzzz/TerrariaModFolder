@@ -101,8 +101,7 @@ public class ModFolder : Mod {
             UIModFolderMenu.TotallyReload();
             FolderDataSystem.Reload();
 #endif
-            UIModFolderMenu.Instance.PreviousUIState = self;
-            Main.MenuUI.SetState(UIModFolderMenu.Instance);
+            UIModFolderMenu.EnterFrom(self);
         };
     }
     #endregion

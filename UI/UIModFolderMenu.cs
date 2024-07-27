@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
+using Terraria.GameContent.UI.States;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
@@ -21,6 +22,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public static UIModFolderMenu Instance { get; private set; } = new();
     public static void TotallyReload() {
         Instance = new();
+    }
+    public static void EnterFrom(UIWorkshopHub hub) {
+        Instance.PreviousUIState = hub;
+        Main.MenuUI.SetState(Instance);
+        Instance.SetListViewPositionAfterUpdateNeeded(0);
     }
     public const int MyMenuMode = 47133;
 
@@ -203,6 +209,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIAutoScaleTextTextPanel<LocalizedText> buttonOMF = null!;
     private UIAutoScaleTextTextPanel<LocalizedText> buttonCL = null!;
     private UIAutoScaleTextTextPanel<string> buttonCreateFolder = null!;
+    private UIAutoScaleTextTextPanel<string> buttonRefresh = null!;
     #endregion
     #region 排序与过滤相关字段
     public ModsMenuSortMode sortMode = ModsMenuSortMode.RecentlyUpdated;
@@ -218,7 +225,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public void SetUpdateNeeded() => updateNeeded = true;
     private bool needToRemoveLoading;
     public bool loading;
-    private float listViewPosition;
+    private float? _listViewPositionToSetAfterUpdateNeeded;
+    private void SetListViewPositionAfterUpdateNeeded(float value) => _listViewPositionToSetAfterUpdateNeeded = value;
 
     public UIState? PreviousUIState { get; set; }
     private Texture2D? _mouseTexture;
@@ -494,7 +502,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Append(buttonCL);
         #endregion
         #region 新建文件夹按钮
-        // TODO: 本地化
+        // TODO: 本地化 (改为 UIAutoScaleTextTextPanel<LocalizedText>)
         buttonCreateFolder = new UIAutoScaleTextTextPanel<string>("新建文件夹");
         buttonCreateFolder.CopyStyle(buttonEA);
         buttonCreateFolder.Top.Pixels = buttonTopPixels + 5;
@@ -511,6 +519,24 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         Append(buttonCreateFolder);
         #endregion
+        #region 刷新按钮
+        // TODO: 本地化 (改为 UIAutoScaleTextTextPanel<LocalizedText>)
+        buttonRefresh = new("刷新");
+        buttonRefresh.CopyStyle(buttonEA);
+        buttonRefresh.Top.Pixels = buttonTopPixels + 5;
+        buttonTopPixels += 45;
+        buttonRefresh.WithFadedMouseOver();
+        buttonRefresh.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            if (!loaded && modItemsTask != null) {
+                return;
+            }
+            loading = true;
+            Append(uiLoader);
+            Repopulate();
+        };
+        Append(buttonRefresh);
+        #endregion
         #region 返回按钮
         // TODO: 在它之前添加一个重置模组启用状态的按钮 (使用直接操纵 ModLoader.EnabledMods 的方式修改, 最后再 ModOrganizer.SaveEnabledMods(), 还需要日志打印)
         buttonB = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("UI.Back"));
@@ -521,7 +547,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         buttonB.OnLeftClick += (_, _) => {
             FolderDataSystem.Save();
             FolderPath.Clear();
-            listViewPosition = list.ViewPosition = 0;
+            list.ViewPosition = 0;
             // To prevent entering the game with Configs that violate ReloadRequired
             if (ConfigManager.AnyModNeedsReload()) {
                 Main.menuMode = Interface.reloadModsID;
@@ -663,8 +689,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             item?.Activate();
         }
         Recalculate();
-        list.ViewPosition = listViewPosition;
-        listViewPosition = 0;
+        if (_listViewPositionToSetAfterUpdateNeeded != null) {
+            list.ViewPosition = _listViewPositionToSetAfterUpdateNeeded.Value;
+            _listViewPositionToSetAfterUpdateNeeded = null;
+        }
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
@@ -720,12 +748,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _cts = null;
         }
         modItemsTask = null;
-        listViewPosition = list.ViewPosition;
+        SetListViewPositionAfterUpdateNeeded(list.ViewPosition);
     }
     #region 异步寻找 Mod
     private bool loaded;
     private void FindModsTask() {
         if (loaded) {
+            needToRemoveLoading = true;
+            loading = false;
+            modItemsTask = null;
             return;
         }
         var mods = ModOrganizer.FindMods(logDuplicates: true);
@@ -757,6 +788,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _cts = null;
         }
         _cts = new();
+        loaded = false;
         modItemsTask = Task.Run(FindModsTask, _cts.Token);
     }
     #endregion
