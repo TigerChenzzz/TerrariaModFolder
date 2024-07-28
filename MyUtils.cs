@@ -28,6 +28,7 @@ public static class MyUtils {
         }
     }
 
+    #region Draw...
     public static void DrawBox(this SpriteBatch self, Rectangle destination, Color color, Color innerColor, int width = 1) {
         int size = Math.Min(destination.Width, destination.Height);
         if ((size + 1) / 2 <= width) {
@@ -41,8 +42,54 @@ public static class MyUtils {
         self.Draw(Textures.White, new Rectangle(dx1, dy3, dw, width), color);
         self.Draw(Textures.White, new Rectangle(dx1, dy2, width, ddy), color);
         self.Draw(Textures.White, new Rectangle(dx3, dy2, width, ddy), color);
-        self.Draw(Textures.White, new Rectangle(dx2, dy2, ddx, ddy), innerColor);
+        if (innerColor != default)
+            self.Draw(Textures.White, new Rectangle(dx2, dy2, ddx, ddy), innerColor);
     }
+    public static void DrawDashedOutline(this SpriteBatch self, Rectangle destination, Color color, Color innerColor = default, int width = 1, int dashed = 5, int dashedInterval = 3, int start = 0) {
+        start %= dashed + dashedInterval;
+        if (start > dashedInterval) {
+            start -= dashed + dashedInterval;
+        }
+        else if (start <= -dashed) {
+            start += dashed + dashedInterval;
+        }
+        for (; start < destination.Width; start += dashed + dashedInterval) {
+            var r = NewRectangleByXY(destination.X + Math.Max(0, start), destination.Y,
+                destination.X + Math.Min(destination.Width, start + dashed), destination.Y + width);
+            self.Draw(Textures.White, r, color);
+        }
+        start -= destination.Width;
+        if (start > dashedInterval) {
+            start -= dashed + dashedInterval;
+        }
+        for(; start < destination.Height - 2 * width; start += dashed + dashedInterval) {
+            var r = NewRectangleByXY(destination.X + destination.Width - width, destination.Y + width + Math.Max(0, start),
+                destination.X  + destination.Width, destination.Y + width + Math.Min(destination.Height - 2 * width, start + dashed));
+            self.Draw(Textures.White, r, color);
+        }
+        start -= destination.Height - 2 * width;
+        if (start > dashedInterval) {
+            start -= dashed + dashedInterval;
+        }
+        for (; start < destination.Width; start += dashed + dashedInterval) {
+            var r = NewRectangleByXY(destination.X + destination.Width - Math.Min(destination.Width, start + dashed), destination.Y + destination.Height - width,
+                destination.X + destination.Width - Math.Max(0, start), destination.Y + destination.Height);
+            self.Draw(Textures.White, r, color);
+        }
+        start -= destination.Width;
+        if (start > dashedInterval) {
+            start -= dashed + dashedInterval;
+        }
+        for(; start < destination.Height - 2 * width; start += dashed + dashedInterval) {
+            var r = NewRectangleByXY(destination.X, destination.Y + destination.Height - width - Math.Min(destination.Height - 2 * width, start + dashed),
+                destination.X  + width, destination.Y + destination.Height - width - Math.Max(0, start));
+            self.Draw(Textures.White, r, color);
+        }
+        if (innerColor != default) {
+            self.Draw(Textures.White, new Rectangle(destination.X + width, destination.Y + width, destination.Width - 2 * width, destination.Height - 2 * width), innerColor);
+        }
+    }
+    #region Draw9Piece
     public static void Draw9Piece(this SpriteBatch self, Texture2D texture, Rectangle destination, Color color, int corner) => Draw9Piece(self, texture, null, destination, color, corner);
     public static void Draw9Piece(this SpriteBatch self, Texture2D texture, Rectangle? source, Rectangle destination, Color color, int corner) {
         Rectangle s = source ?? new(0, 0, texture.Width, texture.Height);
@@ -91,6 +138,28 @@ public static class MyUtils {
         // 中心
         self.Draw(textureInner, new Rectangle(dx2, dy2, ddx, ddy), innerSource, color);
     }
+    #endregion
     public static void Draw(this SpriteBatch spriteBatch, Texture2D texture, int dx, int dy, int dw, int dh, int sx, int sy, int sw, int sh, Color color)
         => spriteBatch.Draw(texture, new Rectangle(dx, dy, dw, dh), new Rectangle(sx, sy, sw, sh), color);
+    #endregion
+    public static Rectangle NewRectangleByXY(int x, int y, int xMax, int yMax) {
+        return new(x, y, xMax - x, yMax - y);
+    }
+
+    #region IEnumerable 拓展
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> self) {
+        foreach (var i in self) {
+            if (i is not null) {
+                yield return i;
+            }
+        }
+    }
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> self, Func<T, bool> predicate) {
+        foreach (var i in self) {
+            if (i is not null && predicate(i)) {
+                yield return i;
+            }
+        }
+    }
+    #endregion
 }

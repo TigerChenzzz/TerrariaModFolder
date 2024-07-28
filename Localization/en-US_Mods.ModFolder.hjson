@@ -1,4 +1,26 @@
 UI: {
 	HoverTextOnButtonMods: Rightclick to open the folder system.
-	Placeholder: Placeholder
+
+	Menu: {
+		Buttons: {
+			CreateFolder.DisplayName: Create Folder
+
+			AllMods: {
+				DisplayName: Enable & Disable
+				Tooltip:
+					'''
+					leftclick to enable mods
+					rightclick to disable mods
+					middle click to reset mods to the previous enabled states
+					the mods are from the current folder by default
+					pressing Alt to also contains the subfolders
+					pressing Shift for all mods
+					pressing Ctrl to not ignore the favorite mods
+					(favorite mods cannot be diabled by default)
+					'''
+			}
+		}
+
+		NewFolderDefaultName: New Folder
+	}
 }

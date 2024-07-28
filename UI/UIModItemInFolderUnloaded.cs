@@ -22,6 +22,8 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
 
     public string ModName => _modNode.ModName;
     private readonly FolderDataSystem.ModNode _modNode = modNode;
+    public FolderDataSystem.ModNode ModNode => _modNode;
+    public override FolderDataSystem.Node? Node => ModNode;
 
     public override void OnInitialize() {
         #region 名字

@@ -10,7 +10,8 @@ namespace ModFolder.UI;
 /// 文件夹系统列表中的一个文件夹
 /// </summary>
 public class UIFolder : UIFolderItem {
-    public FolderDataSystem.FolderNode? Node;
+    public FolderDataSystem.FolderNode? FolderNode;
+    public override FolderDataSystem.Node? Node => FolderNode;
     public string? Name { get; set; }
     // TODO
     public DateTime LastModified { get; set; }
@@ -36,7 +37,7 @@ public class UIFolder : UIFolderItem {
     private UIImage? _renameButton;
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
-        Node = folderNode;
+        FolderNode = folderNode;
         Name = folderNode.FolderName;
     }
     public UIFolder(string name) {
@@ -94,7 +95,7 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 删除按钮
         int rightRowOffset = -30;
-        if (Node != null) {
+        if (FolderNode != null) {
             _deleteButton = new UIImage(TextureAssets.Trash) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
@@ -107,8 +108,8 @@ public class UIFolder : UIFolderItem {
                 // TODO: 未加载完时...
                 // TODO: 删除的二次确认, 按住 Shift 时才直接删除
                 // TODO: 直接取消订阅所有内含模组, 三次确认
-                if (Node != null) {
-                    UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(Node);
+                if (FolderNode != null) {
+                    UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(FolderNode);
                     UIModFolderMenu.Instance.SetUpdateNeeded();
                 }
             };
@@ -117,7 +118,7 @@ public class UIFolder : UIFolderItem {
         rightRowOffset -= 24;
         #endregion
         #region 重命名按钮
-        if (Node != null) {
+        if (FolderNode != null) {
             _renameButton = new UIImage(TextureAssets.Star[2]) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
@@ -135,7 +136,7 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 重命名输入框
         // TODO: 本地化
-        _renameText = new("新名字");
+        _renameText = new(ModFolder.Instance.GetLocalization("UI.Menu.NewFolderDefaultName").Value);
         _renameText.Left.Pixels = 30;
         _renameText.Top.Pixels = 5;
         _renameText.Height.Set(-5, 1);
@@ -143,11 +144,11 @@ public class UIFolder : UIFolderItem {
         _renameText.OnUnfocus += (_, _) => {
             var newName = _renameText.CurrentString;
             // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
-            if (Node == null || newName == ".." || newName == string.Empty) {
+            if (FolderNode == null || newName == ".." || newName == string.Empty) {
                 replaceToFolderName = true;
                 return;
             }
-            Node.FolderName = newName;
+            FolderNode.FolderName = newName;
             Name = newName;
             _folderName.SetText(newName);
             replaceToFolderName = true;

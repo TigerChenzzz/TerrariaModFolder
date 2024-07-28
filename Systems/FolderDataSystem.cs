@@ -23,6 +23,9 @@ public static class FolderDataSystem {
         public string ModName { get; set; }
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public ulong PublishId { get; set; }
+        // TODO: Favorite 改用其它方式储存
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Favorite { get; set; }
         public void ReceiveDataFrom(LocalMod mod) {
             ModName = mod.Name;
             if (WorkshopHelper.GetPublishIdLocal(mod.modFile, out ulong publishId)) {

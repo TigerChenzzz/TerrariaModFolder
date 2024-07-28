@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework.Input;
+using ModFolder.Systems;
 using ReLogic.Content;
 using Terraria.Audio;
 using Terraria.GameContent;
@@ -15,6 +17,27 @@ namespace ModFolder.UI;
 /// 文件夹系统列表中的一个模组
 /// </summary>
 public class UIModItemInFolder : UIFolderItem {
+    public override FolderDataSystem.Node? Node => ModNode;
+    public FolderDataSystem.ModNode? ModNode { get; set; }
+    public LocalMod TheLocalMod => _mod;
+    public bool Loaded => _loaded;
+    // TODO: Favorite 的 显示与设置
+    public bool Favorite {
+        get => ModNode?.Favorite ?? false;
+        set {
+            if (ModNode != null) {
+                ModNode.Favorite = value;
+            }
+            if (!value) {
+                return;
+            }
+            ModNode = new(_mod) {
+                Favorite = true
+            };
+            UIModFolderMenu.Instance.CurrentFolderNode.Children.Add(ModNode);
+        }
+    }
+
     private const float PADDING = 5f;
     private UIImage _moreInfoButton = null!;
     private UIImage _modIcon = null!;
@@ -391,13 +414,19 @@ public class UIModItemInFolder : UIFolderItem {
             }
         }
         #endregion
-        #region 左键 启用 / 禁用
+        #region 双击左键 启用 / 禁用
         OnLeftDoubleClick += (e, el) => {
             if (tMLUpdateRequired != null)
                 return;
             // Only trigger if we didn't target the ModStateText, otherwise we trigger this behavior twice
             if (e.Target != _uiModStateCheckBoxHitbox && e.Target != _uiModStateCheckBox)
                 ToggleEnabled(e, el);
+        };
+        #endregion
+        #region alt 左键收藏
+        OnLeftClick += (_, _) => {
+            if (Main.keyState.IsKeyDown(Keys.LeftAlt) || Main.keyState.IsKeyDown(Keys.RightAlt))
+                Favorite = !Favorite;
         };
         #endregion
         #region 服务器版本不同的提示
@@ -452,6 +481,10 @@ public class UIModItemInFolder : UIFolderItem {
         base.DrawSelf(spriteBatch);
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
+        if (Favorite) {
+            // TODO: 金光闪闪冒粒子
+            spriteBatch.Draw(Textures.White, rectangle, Color.Gold * 0.3f);
+        }
         #region 是否启用
         // TODO: 显示因配置而需要重载的状态?  _configChangesRequireReload
         if (_mod.Enabled && (_loaded || _mod.properties.side == ModSide.Server)) {
