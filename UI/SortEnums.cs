@@ -24,3 +24,8 @@ public enum FolderEnabledFilter {
     WouldBeEnabled,
     WouldBeDisabled,
 }
+
+public enum MenuShowType {
+    FolderSystem,
+    AllMods,
+}

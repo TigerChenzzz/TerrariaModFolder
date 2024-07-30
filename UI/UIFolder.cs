@@ -31,20 +31,6 @@ public class UIFolder : UIFolderItem {
         Name = name;
     }
     #region 名字与输入框之间的替换
-    private void ReplaceChildren(UIElement from, UIElement to, bool forceAdd = true) {
-        for (int i = 0; i < Elements.Count; ++i) {
-            if (Elements[i] == from) {
-                from.Parent = null;
-                Elements[i] = to;
-                to.Parent = this;
-                to.Recalculate();
-                return;
-            }
-        }
-        if (forceAdd) {
-            Append(to);
-        }
-    }
     private bool replaceToFolderName;
     private bool replaceToRenameText;
     private bool directlyReplaceToRenameText;
@@ -52,18 +38,18 @@ public class UIFolder : UIFolderItem {
     private void CheckReplace() {
         if (replaceToFolderName) {
             replaceToFolderName = false;
-            ReplaceChildren(_renameText, _folderName, false);
+            this.ReplaceChildren(_renameText, _folderName, false);
         }
         if (replaceToRenameText) {
             replaceToRenameText = false;
             _renameText.CurrentString = _folderName.Text;
-            ReplaceChildren(_folderName, _renameText, false);
+            this.ReplaceChildren(_folderName, _renameText, false);
             _renameText.Focused = true;
         }
         if (directlyReplaceToRenameText) {
             directlyReplaceToRenameText = false;
             _renameText.CurrentString = string.Empty;
-            ReplaceChildren(_folderName, _renameText, false);
+            this.ReplaceChildren(_folderName, _renameText, false);
             _renameText.Focused = true;
         }
         }

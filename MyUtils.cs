@@ -1,5 +1,6 @@
 ﻿global using static ModFolder.MyUtils;
 using ReLogic.Content;
+using Terraria.UI;
 
 namespace ModFolder;
 
@@ -253,4 +254,20 @@ public static class MyUtils {
         }
     }
     #endregion
+
+    public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd) {
+        
+        for (int i = 0; i < self.Elements.Count; ++i) {
+            if (self.Elements[i] == from) {
+                from.Parent = null;
+                self.Elements[i] = to;
+                to.Parent = self;
+                to.Recalculate();
+                return;
+            }
+        }
+        if (forceAdd) {
+            self.Append(to);
+        }
+    }
 }

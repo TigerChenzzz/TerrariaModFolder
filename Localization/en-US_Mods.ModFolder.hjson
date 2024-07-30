@@ -51,6 +51,8 @@ UI: {
 		ToBeToggled.Tooltip: Show only mods to be toggled
 		WouldBeEnabled.Tooltip: Show only mods that would be enabled
 		WouldBeDisabled.Tooltip: Show only mods that would be disabled
+		FolderSystem.Tooltip: Use folder system
+		AllMods.Tooltip: Show all mods
 	}
 
 	NewFolderDefaultName: New Folder

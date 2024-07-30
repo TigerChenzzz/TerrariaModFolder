@@ -51,6 +51,8 @@ UI: {
 		ToBeToggled.Tooltip: 只显示待启用或待禁用的模组
 		WouldBeEnabled.Tooltip: 只显示将启用的模组
 		WouldBeDisabled.Tooltip: 只显示将禁用的模组
+		FolderSystem.Tooltip: 使用文件夹系统
+		AllMods.Tooltip: 显示所有模组
 	}
 
 	NewFolderDefaultName: 新建文件夹

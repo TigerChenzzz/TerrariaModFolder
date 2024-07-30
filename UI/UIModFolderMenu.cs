@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework.Input;
 using ModFolder.Systems;
 using ReLogic.Content;
-using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -22,7 +21,6 @@ namespace ModFolder.UI;
 // TODO: Esc 返回时同样尝试回到上一级目录
 // TODO: 在进入时即刻生成 UI
 public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
-    #region 字段与属性
     public static UIModFolderMenu Instance { get; private set; } = new();
     public int Timer { get; private set; }
     public static void TotallyReload() {
@@ -68,6 +66,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
     public UIHorizontalList folderPathList = null!;
+    private UIElement folderPathListPlaceHolder = new();
 
     private FolderPathClass? _folderPath;
     private FolderPathClass FolderPath {
@@ -87,7 +86,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         FolderPath.Add(folder);
-        generateNeeded = true;
+        ArrangeGenerate();
         if (max) {
             folderPathList.ViewPosition = folderPathList.MaxViewPosition;
         }
@@ -97,7 +96,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         FolderPath.RemoveAt(FolderPath.Count - 1);
-        generateNeeded = true;
+        ArrangeGenerate();
     }
     public void GotoUpperFolder(FolderNode folder) {
         for (int i = 0; i < FolderPath.Count - 1; ++i) {
@@ -105,7 +104,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 continue;
             }
             FolderPath.RemoveRange(i + 1, FolderPath.Count - i - 1);
-            generateNeeded = true;
+            ArrangeGenerate();
             break;
         }
     }
@@ -114,17 +113,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     #region 子元素
     private UIElement uIElement = null!;
-    private UIPanel uIPanel = null!;
+    private UIPanel uiPanel = null!;
     private UIImagePro refreshButton = null!;
+    private UIElement refreshButtonPlaceHolder = new();
     private UIFolderItemList list = null!;
-    #region 排序与过滤相关
-    private UIElement upperMenuContainer = null!;
-    private UIPanel filterTextBoxBackground = null!;
-    private UIImagePro buttonToggleCategoryButtons = null!;
-    private UIElement categoryButtonBg = null!;
-    private UIInputTextField filterTextBox = null!;
-    private UICycleImage SearchFilterToggle = null!;
-    #endregion
+    private UIScrollbar uiScrollbar = null!;
     #region 下面的一堆按钮
     private UIAutoScaleTextTextPanel<LocalizedText> ButtonAllMods { get => buttons[0]; set => buttons[0] = value; }
     private UIAutoScaleTextTextPanel<LocalizedText> ButtonRM { get => buttons[1]; set => buttons[1] = value; }
@@ -135,34 +128,42 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private readonly UIAutoScaleTextTextPanel<LocalizedText>[] buttons = new UIAutoScaleTextTextPanel<LocalizedText>[6];
     #endregion
     #endregion
-    #region 排序与过滤相关字段
-    public FolderMenuSortMode  SortMode          { get => (FolderMenuSortMode )_sortEnumData[0]; set => _sortEnumData[0] = (int)value; }
+
+    #region 排序与过滤相关
+    #region 公开属性
+    public MenuShowType        ShowType          { get => (MenuShowType       )_sortEnumData[0]; set => _sortEnumData[0] = (int)value; }
     public FolderModSortMode   FmSortMode        { get => (FolderModSortMode  )_sortEnumData[1]; set => _sortEnumData[1] = (int)value; }
-    public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_sortEnumData[2]; set => _sortEnumData[2] = (int)value; }
-    public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_sortEnumData[3]; set => _sortEnumData[3] = (int)value; }
-    
-    private readonly UICycleImage[] categoryButtons = new UICycleImage[4];
-    private readonly int[] _sortEnumData = [0, 0, 0, 0];
-    private readonly Type[] _sortEnumTypes = [typeof(FolderMenuSortMode), typeof(FolderModSortMode), typeof(FolderEnabledFilter), typeof(ModSideFilter)];
+    public FolderMenuSortMode  SortMode          { get => (FolderMenuSortMode )_sortEnumData[2]; set => _sortEnumData[2] = (int)value; }
+    public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_sortEnumData[3]; set => _sortEnumData[3] = (int)value; }
+    public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_sortEnumData[4]; set => _sortEnumData[4] = (int)value; }
+    #endregion
+    #region 数据与常数
+    private readonly int[] _sortEnumData = new int[5];
+    private readonly Type[] _sortEnumTypes = [typeof(MenuShowType), typeof(FolderModSortMode), typeof(FolderMenuSortMode), typeof(FolderEnabledFilter), typeof(ModSideFilter)];
     private readonly int[] _sortEnumLengths;
     private readonly Point[] _sortEnumPositionInTexture = [
-        new(0, 0),
+        new(2, 6),
         new(0, 5),
+        new(0, 0),
         new(1, 0),
         new(2, 0),
     ];
     private readonly string[][] _sortEnumLocalizedKeys = [
+        [
+            "Mods.ModFolder.UI.SortButtons.FolderSystem.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.AllMods.Tooltip",
+        ],
+        [
+            "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderFirst.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.ModFirst.Tooltip",
+        ],
         [
             "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
             "tModLoader.ModsSortRecently",
             "Mods.ModFolder.UI.SortButtons.ReverseRecently.Tooltip",
             "tModLoader.ModsSortNamesAlph",
             "tModLoader.ModsSortNamesReverseAlph",
-        ],
-        [
-            "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
-            "Mods.ModFolder.UI.SortButtons.FolderFirst.Tooltip",
-            "Mods.ModFolder.UI.SortButtons.ModFirst.Tooltip",
         ],
         [
             "tModLoader.ModsShowAllMods",
@@ -182,9 +183,276 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             "tModLoader.MBShowMSNoSync",
         ],
     ];
+    #endregion
+    #region UI 条
+    private UIElement upperMenuContainer = null!;
+    private void OnInitialize_UpperMenuContainer(ref float upperPixels) {
+        upperMenuContainer = new UIElement {
+            Width = { Percent = 1f },
+            Height = { Pixels = 32 },
+            Top = { Pixels = upperPixels }
+        };
+        upperPixels += 32;
+        var texture = Textures.UI("SortIcons");
+        OnInitialize_SortButtons(texture);
+        OnInitialize_SearchFilter(texture);
+        uiPanel.Append(upperMenuContainer);
+    }
+    #endregion
+    #region 排序与过滤的按钮
+    private void OnInitialize_SortButtons(Asset<Texture2D> texture) {
+        OnInitialize_ButtonToggleCategoryButtons(texture); // 总按钮
+        OnInitialize_CategoryButtonBg(); // 其余按钮的背景板
+        OnInitialize_CategoryButtons(texture);
+    }
+    #region 总按钮
+    private UIImagePro buttonToggleCategoryButtons = null!;
+    private void OnInitialize_ButtonToggleCategoryButtons(Asset<Texture2D> texture) {
+        buttonToggleCategoryButtons = new(texture) {
+            Width = { Pixels = 32 },
+            Height = { Pixels = 32 },
+            SourceRectangle = new(2 * 34, 5 * 34, 32, 32),
+        };
+        // 左键切换开关
+        buttonToggleCategoryButtons.OnLeftClick += (_, _) => ToggleCategoryButtons();
+        // 中键重置
+        buttonToggleCategoryButtons.OnMiddleClick += (_, _) => {
+            for (int i = 0; i < _sortEnumData.Length; ++i) {
+                _sortEnumData[i] = 0;
+            }
+            foreach (var button in categoryButtons) {
+                button.SetCurrentState(0);
+            }
+            Filter = string.Empty;
+            ResettleVertical();
+            ArrangeGenerate();
+        };
+        // 点到其它位置时关闭
+        OnLeftMouseDown += (_, _) => {
+            if (!buttonToggleCategoryButtons.IsMouseHovering && !categoryButtonBg.IsMouseHovering) {
+                ArrangeCloseCategoryButtons();
+            }
+        };
+        // 当鼠标放上去时高亮
+        buttonToggleCategoryButtons.PreDrawSelf += spriteBatch => {
+            buttonToggleCategoryButtons.Color = buttonToggleCategoryButtons.IsMouseHovering ? Color.White : Color.Silver;
+        };
+        // 当鼠标放上去时同时也有说明文字
+        mouseOverTooltips.Add((buttonToggleCategoryButtons, () => _categoryButtonsOpen
+            ? ModFolder.Instance.GetLocalization("UI.Buttons.ToggleCategoryButtons.TooltipOff").Value
+            : ModFolder.Instance.GetLocalization("UI.Buttons.ToggleCategoryButtons.TooltipOn").Value));
+        // 添加到搜索过滤条上
+        upperMenuContainer.Append(buttonToggleCategoryButtons);
+    }
+    #endregion
+    #region 其余按钮的背景板
+    private UIElement categoryButtonBg = null!;
+    private void OnInitialize_CategoryButtonBg() {
+        categoryButtonBg = new() {
+            Left = { Pixels = 36 },
+            Height = { Pixels = 36 },
+        };
+        upperMenuContainer.Append(categoryButtonBg);
+    }
+    #endregion
+    #region 其余按钮
+    private readonly UICycleImage[] categoryButtons = new UICycleImage[5];
+    private void OnInitialize_CategoryButtons(Asset<Texture2D> texture) {
+        UICycleImage toggleImage;
+        for (int j = 0; j < _sortEnumData.Length; j++) {
+            toggleImage = new(texture, _sortEnumLengths[j], 32, 32, _sortEnumPositionInTexture[j].X * 34, _sortEnumPositionInTexture[j].Y * 34);
+            int currentIndex = j;
+            toggleImage.OnLeftClick += (_, _) => SwitchCategoryNext(currentIndex);
+            toggleImage.OnRightClick += (_, _) => SwitchCategoryPrevious(currentIndex);
+            toggleImage.OnMiddleClick += (_, _) => ResetCategory(currentIndex);
+            toggleImage.HAlign = (float)j / (_sortEnumData.Length - 1);
+            categoryButtons[j] = toggleImage;
+            mouseOverTooltips.Add((toggleImage, () => Language.GetTextValue(_sortEnumLocalizedKeys[currentIndex][_sortEnumData[currentIndex]])));
+        }
+    }
+    #region
+    #endregion 按钮切换
+    // 当切换 ShowType (index = 0) 时同时还要改变 CategoryButtons
+    // 同时 ShowType 为 AllMods (1) 时 SortMode (index = 2) 不能为 Custom (0)
 
+    private void SwitchCategoryNext(int index) {
+        if (index == 2 && ShowType == MenuShowType.AllMods) {
+            _sortEnumData[index] = _sortEnumData[index] % (_sortEnumLengths[index] - 1) + 1;
+            categoryButtons[index].SetCurrentState(_sortEnumData[index]);
+        }
+        else {
+            _sortEnumData[index] = (_sortEnumData[index] + 1) % _sortEnumLengths[index];
+        }
+        CheckShowTypeChanged(index);
+        ArrangeGenerate();
+    }
+    private void SwitchCategoryPrevious(int index) {
+        if (index == 2 && ShowType == MenuShowType.AllMods) {
+            if (_sortEnumData[index] <= 1) {
+                _sortEnumData[index] = _sortEnumLengths[index] - 1;
+                categoryButtons[index].SetCurrentState(_sortEnumData[index]);
+            }
+            else {
+                _sortEnumData[index] -= 1;
+            }
+        }
+        else {
+            if (_sortEnumData[index] == 0) {
+                _sortEnumData[index] = _sortEnumLengths[index] - 1;
+            }
+            else {
+                _sortEnumData[index] -= 1;
+            }
+        }
+        CheckShowTypeChanged(index);
+        ArrangeGenerate();
+    }
+    private void ResetCategory(int index) {
+        if (index == 2 && ShowType == MenuShowType.AllMods) {
+            if (_sortEnumData[index] == 1) {
+                return;
+            }
+            _sortEnumData[index] = 1;
+            categoryButtons[index].SetCurrentState(1);
+        }
+        else {
+            if (_sortEnumData[index] == 0) {
+                return;
+            }
+            _sortEnumData[index] = 0;
+            categoryButtons[index].SetCurrentState(0);
+        }
+        CheckShowTypeChanged(index);
+        ArrangeGenerate();
+    }
+    private void CheckShowTypeChanged(int index) {
+        if (index != 0) {
+            return;
+        }
+        if (_sortEnumData[2] == 0 && _sortEnumData[0] == 1) {
+            ResetCategory(2);
+        }
+        GenerateCategoryButtons();
+        ResettleVertical();
+    }
+    #endregion
+    #region 打开与关闭和按钮数量控制
+    private bool _categoryButtonsOpen;
+    private bool _toCloseCategoryButtons;
+    private void ArrangeCloseCategoryButtons() => _toCloseCategoryButtons = true;
+    private void OpenCategoryButtons() {
+        if (_categoryButtonsOpen) {
+            return;
+        }
+        _categoryButtonsOpen = true;
+        GenerateCategoryButtons();
+    }
+    private void CloseCategoryButtons() {
+        if (!_categoryButtonsOpen) {
+            return;
+        }
+        _categoryButtonsOpen = false;
+        GenerateCategoryButtons();
+    }
+    private void ToggleCategoryButtons() {
+        if (_categoryButtonsOpen) {
+            CloseCategoryButtons();
+        }
+        else {
+            OpenCategoryButtons();
+        }
+    }
+    private void GenerateCategoryButtons() {
+        categoryButtonBg.RemoveAllChildren();
+        int width;
+        if (!_categoryButtonsOpen) {
+            width = -4;
+            categoryButtonBg.Width.Pixels = 0;
+            goto ReadyToReturn;
+        }
+        if (ShowType == MenuShowType.FolderSystem) {
+            width = (32 + 4) * categoryButtons.Length - 4;
+            categoryButtonBg.Width.Pixels = width;
+            for (int i = 0; i < categoryButtons.Length; ++i) {
+                var button = categoryButtons[i];
+                button.HAlign = (float)i / (categoryButtons.Length - 1);
+                categoryButtonBg.Append(button);
+            }
+            goto ReadyToReturn;
+        }
+        width = (32 + 4) * (categoryButtons.Length - 1) - 4;
+        categoryButtonBg.Width.Pixels = width;
+        categoryButtonBg.Append(categoryButtons[0]);
+        for (int i = 2; i < categoryButtons.Length; ++i) {
+            var button = categoryButtons[i];
+            button.HAlign = (float)(i - 1) / (categoryButtons.Length - 2);
+            categoryButtonBg.Append(button);
+        }
+    ReadyToReturn:
+        filterTextBoxBackground.Left.Pixels = 40 + width;
+        filterTextBoxBackground.Width.Pixels = -width - 76;
+        upperMenuContainer.RecalculateChildren();
+    }
+    #endregion
+    #endregion
+    #region 搜索栏
+    private UIPanel filterTextBoxBackground = null!;
+    private UIInputTextField filterTextBox = null!;
+    private UICycleImage SearchFilterToggle = null!;
+    private void OnInitialize_SearchFilter(Asset<Texture2D> texture) {
+        filterTextBoxBackground = new UIPanel {
+            Top = { Percent = 0f },
+            Left = { Pixels = 36, },
+            Width = { Pixels = -36 - 36, Percent = 1 },
+            Height = { Percent = 1 }
+        };
+        filterTextBoxBackground.SetPadding(0);
+        filterTextBoxBackground.OnRightClick += ClearSearchField;
+        upperMenuContainer.Append(filterTextBoxBackground);
+        filterTextBox = new UIInputTextField(Language.GetTextValue("tModLoader.ModsTypeToSearch")) {
+            Height = { Percent = 1f },
+            Width = { Percent = 1f },
+            Left = { Pixels = 5 },
+            Top = { Pixels = 5 },
+        };
+        filterTextBox.OnTextChange += (_, _) => ArrangeGenerate();
+        filterTextBoxBackground.Append(filterTextBox);
+
+        #region 取消搜索按钮
+        UIImageButton clearSearchButton = new(Main.Assets.Request<Texture2D>("Images/UI/SearchCancel")) {
+            HAlign = 1f,
+            VAlign = 0.5f,
+            Left = { Pixels = -2 },
+        };
+
+        //clearSearchButton.OnMouseOver += searchCancelButton_OnMouseOver;
+        clearSearchButton.OnLeftClick += ClearSearchField;
+        filterTextBoxBackground.Append(clearSearchButton);
+        #endregion
+        #region 搜索过滤器按钮
+        // TODO: 添加一个是否过滤文件夹的按钮
+        SearchFilterToggle = new(texture, 2, 32, 32, 34 * 3, 0) {
+            Left = { Pixels = -32, Percent = 1 }
+        };
+        SearchFilterToggle.OnLeftClick += (_, _) => {
+            searchFilterMode = searchFilterMode.NextEnum();
+            if (Filter != string.Empty) {
+                ArrangeGenerate();
+            }
+        };
+        SearchFilterToggle.OnRightClick += (_, _) => {
+            searchFilterMode = searchFilterMode.PreviousEnum();
+            if (Filter != string.Empty) {
+                ArrangeGenerate();
+            }
+        };
+        upperMenuContainer.Append(SearchFilterToggle);
+        #endregion
+    }
     public SearchFilter searchFilterMode = SearchFilter.Name;
     public string Filter { get => filterTextBox.Text; set => filterTextBox.Text = value; }
+    private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => Filter = string.Empty;
+    #endregion
     #endregion
     #region 杂项
     public UIState? PreviousUIState { get; set; }
@@ -202,10 +470,17 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         _mouseTextureOffsetY = offsetY;
         _mouseTextureColor = color == default ? Color.White : color;
     }
-    public UIFolderItem? DraggingTarget { get; set; }
+    private UIFolderItem? _draggingTarget;
+    public UIFolderItem? DraggingTarget {
+        get => ShowType == MenuShowType.FolderSystem ? _draggingTarget : null;
+        set {
+            if (ShowType == MenuShowType.FolderSystem || value == null) {
+                _draggingTarget = value;
+            }
+        }
+    }
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
     private FolderNode? nodeToRename;
-    #endregion
     #endregion
 
     public override void OnInitialize() {
@@ -220,136 +495,18 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         #endregion
         #region 除开下面按钮之外的面板
-        uIPanel = new UIPanel {
+        uiPanel = new UIPanel {
             Width = { Percent = 1f },
             Height = { Pixels = -110, Percent = 1f }, // -110
             BackgroundColor = UICommon.MainPanelBackground,
             PaddingTop = 0f,
             HAlign = 0.5f,
         };
-        uIElement.Append(uIPanel);
+        uIElement.Append(uiPanel);
         #endregion
         OnInitialize_Loading(); // 正在加载时的循环图标
-        #region 排序与过滤按钮
-        int upperPixels = 10;
-        var texture = Textures.UI("SortIcons");
-        upperMenuContainer = new UIElement {
-            Width = { Percent = 1f },
-            Height = { Pixels = 32 },
-            Top = { Pixels = upperPixels }
-        };
-        upperPixels += 32;
-        OnLeftMouseDown += (_, _) => {
-            if (!upperMenuContainer.ContainsPoint(Main.MouseScreen)) {
-                ArrangeCloseCategoryButtons();
-            }
-        };
-        #region 设置 buttonToggleCategoryButtons
-        buttonToggleCategoryButtons = new(texture);
-        buttonToggleCategoryButtons.Width.Pixels = 32;
-        buttonToggleCategoryButtons.Height.Pixels = 32;
-        buttonToggleCategoryButtons.SourceRectangle = new(2 * 34, 5 * 34, 32, 32);
-        buttonToggleCategoryButtons.OnLeftClick += (_, _) => ToggleCategoryButtons();
-        buttonToggleCategoryButtons.OnMiddleClick += (_, _) => {
-            for (int i = 0; i < _sortEnumData.Length; ++i) {
-                _sortEnumData[i] = 0;
-            }
-            foreach (var button in categoryButtons) {
-                button.SetCurrentState(0);
-            }
-            Filter = string.Empty;
-            generateNeeded = true;
-        };
-        buttonToggleCategoryButtons.PreDrawSelf += spriteBatch => {
-            buttonToggleCategoryButtons.Color = buttonToggleCategoryButtons.IsMouseHovering ? Color.White : Color.Silver;
-        };
-        mouseOverTooltips.Add((buttonToggleCategoryButtons, () => _categoryButtonsOpen
-            ? ModFolder.Instance.GetLocalization("UI.Buttons.ToggleCategoryButtons.TooltipOff").Value
-            : ModFolder.Instance.GetLocalization("UI.Buttons.ToggleCategoryButtons.TooltipOn").Value));
-        upperMenuContainer.Append(buttonToggleCategoryButtons);
-        #endregion
-        #region 设置 categoryButtonBg
-        categoryButtonBg = new();
-        categoryButtonBg.Left.Pixels = 36;
-        categoryButtonBg.Height.Pixels = 36;
-        upperMenuContainer.Append(categoryButtonBg);
-        #endregion
-        #region 几个按钮
-        UICycleImage toggleImage;
-        for (int j = 0; j < _sortEnumData.Length; j++) {
-            toggleImage = new(texture, _sortEnumLengths[j], 32, 32, _sortEnumPositionInTexture[j].X * 34, _sortEnumPositionInTexture[j].Y * 34);
-            int currentIndex = j;
-            toggleImage.OnLeftClick += (_, _) => {
-                _sortEnumData[currentIndex] = (_sortEnumData[currentIndex] + 1) % _sortEnumLengths[currentIndex];
-                generateNeeded = true;
-            };
-            toggleImage.OnRightClick += (_, _) => {
-                if (_sortEnumData[currentIndex] == 0) {
-                    _sortEnumData[currentIndex] = _sortEnumLengths[currentIndex] - 1;
-                    return;
-                }
-                _sortEnumData[currentIndex] -= 1;
-                generateNeeded = true;
-            };
-            toggleImage.OnMiddleClick += (_, _) => {
-                if (_sortEnumData[currentIndex] == 0) {
-                    return;
-                }
-                _sortEnumData[currentIndex] = 0;
-                categoryButtons[currentIndex].SetCurrentState(0);
-                generateNeeded = true;
-            };
-            toggleImage.HAlign = (float)j / (_sortEnumData.Length - 1);
-            categoryButtons[j] = toggleImage;
-            mouseOverTooltips.Add((toggleImage, () => Language.GetTextValue(_sortEnumLocalizedKeys[currentIndex][_sortEnumData[currentIndex]])));
-        }
-        #endregion
-        #endregion
-        #region 搜索栏
-        filterTextBoxBackground = new UIPanel {
-            Top = { Percent = 0f },
-            Left = { Pixels = 36, },
-            Width = { Pixels = - 36 - 36, Percent = 1 },
-            Height = { Percent = 1 }
-        };
-        filterTextBoxBackground.SetPadding(0);
-        filterTextBoxBackground.OnRightClick += ClearSearchField;
-        upperMenuContainer.Append(filterTextBoxBackground);
-        filterTextBox = new UIInputTextField(Language.GetTextValue("tModLoader.ModsTypeToSearch")) {
-            Height = { Percent = 1f },
-            Width = { Percent = 1f },
-            Left = { Pixels = 5 },
-            Top = {Pixels = 5 },
-        };
-        filterTextBox.OnTextChange += (a, b) => generateNeeded = true;
-        filterTextBoxBackground.Append(filterTextBox);
-
-        #region 取消搜索按钮
-        UIImageButton clearSearchButton = new(Main.Assets.Request<Texture2D>("Images/UI/SearchCancel")) {
-            HAlign = 1f,
-            VAlign = 0.5f,
-            Left = { Pixels = -2 },
-        };
-
-        //clearSearchButton.OnMouseOver += searchCancelButton_OnMouseOver;
-        clearSearchButton.OnLeftClick += ClearSearchField;
-        filterTextBoxBackground.Append(clearSearchButton);
-        #endregion
-        #region 搜索过滤器按钮
-        SearchFilterToggle = new(texture, 2, 32, 32, 34 * 3, 0) {
-            Left = { Pixels = -32, Percent = 1 }
-        };
-        SearchFilterToggle.OnLeftClick += (_, _) => {
-            searchFilterMode = searchFilterMode.NextEnum();
-            generateNeeded = true;
-        };
-        SearchFilterToggle.OnRightClick += (_, _) => {
-            searchFilterMode = searchFilterMode.PreviousEnum();
-            generateNeeded = true;
-        };
-        upperMenuContainer.Append(SearchFilterToggle);
-        #endregion
-        #endregion
+        float upperPixels = 10;
+        OnInitialize_UpperMenuContainer(ref upperPixels);   // 排序与过滤的条
         #region 文件夹路径
         upperPixels += 2;
         folderPathList = new();
@@ -362,7 +519,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         folderPathList.OnDraw += sb => {
             sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
         };
-        uIPanel.Append(folderPathList);
+        uiPanel.Append(folderPathList);
         #endregion
         #region 刷新按钮
         #region refresh3 版
@@ -395,7 +552,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 refreshButton.SourceRectangle = new(30, 0, 30, 30);
             }
         };
-        uIPanel.Append(refreshButton);
+        uiPanel.Append(refreshButton);
         #endregion
         #region 单图标 + highlight 版
         /*
@@ -432,7 +589,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = { Pixels = upperPixels },
             ListPadding = 2f,
         };
-        uIPanel.Append(list);
+        uiPanel.Append(list);
         #endregion
         #region 内存占用 (禁用)
         /*
@@ -447,14 +604,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 滚条
         // TODO: 点按这个滚条会产生一个偏移的 bug
-        var uIScrollbar = new UIScrollbar {
+        uiScrollbar = new UIScrollbar {
             Height = { Pixels = -upperPixels, Percent = 1f },
             Top = { Pixels = upperPixels },
             HAlign = 1f
         }.WithView(100f, 1000f);
-        uIPanel.Append(uIScrollbar);
+        uiPanel.Append(uiScrollbar);
 
-        list.SetScrollbar(uIScrollbar);
+        list.SetScrollbar(uiScrollbar);
         #endregion
         #region 标题
         var uIHeaderTexTPanel = new UITextPanel<LocalizedText>(Language.GetText("tModLoader.ModsModsList"), 0.8f, true) {
@@ -464,6 +621,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }.WithPadding(15f);
         Append(uIHeaderTexTPanel);
         #endregion
+        #region 底下的按钮
         #region 启用与禁用按钮
         ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
         ButtonAllMods.OnLeftClick += EnableMods;
@@ -511,7 +669,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             CurrentFolderNode.Children.Insert(0, node);
             nodeToRename = node;
             list.ViewPosition = 0;
-            generateNeeded = true;
+            ArrangeGenerate();
         };
         #endregion
         #region 返回按钮
@@ -595,11 +753,29 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         */
         #endregion
+        #endregion
         #region 右键松开时尝试移动位置
         OnRightMouseUp += OnRightMouseUp_RightDrag;
         #endregion
-        uIPanel.Append(upperMenuContainer);
         Append(uIElement);
+    }
+
+    private void ResettleVertical() {
+        float upperPixels = folderPathList.Top.Pixels + 6;
+        if (ShowType == MenuShowType.AllMods) {
+            uiPanel.ReplaceChildren(folderPathList, folderPathListPlaceHolder, false);
+            uiPanel.ReplaceChildren(refreshButton, refreshButtonPlaceHolder, false);
+        }
+        else {
+            uiPanel.ReplaceChildren(folderPathListPlaceHolder, folderPathList, false);
+            uiPanel.ReplaceChildren(refreshButtonPlaceHolder, refreshButton, false);
+            upperPixels += 30;
+        }
+        list.Top.Pixels = upperPixels;
+        list.Height.Pixels = -upperPixels;
+        uiScrollbar.Top.Pixels = upperPixels;
+        uiScrollbar.Height.Pixels = -upperPixels;
+        uiPanel.RecalculateChildren();
     }
 
     #region 启用禁用与重置模组
@@ -703,48 +879,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Populate();
     }
 
-    #region 排序与过滤相关
-    private bool _categoryButtonsOpen;
-    private bool _toCloseCategoryButtons;
-    private void ArrangeCloseCategoryButtons() => _toCloseCategoryButtons = true;
-    private void OpenCategoryButtons() {
-        if (_categoryButtonsOpen) {
-            return;
-        }
-        _categoryButtonsOpen = true;
-        int width = (32 + 4) * categoryButtons.Length - 4;
-        categoryButtonBg.Width.Pixels = width;
-        foreach (var button in categoryButtons) {
-            categoryButtonBg.Append(button);
-        }
-        filterTextBoxBackground.Left.Pixels = 40 + width;
-        filterTextBoxBackground.Width.Pixels = - width - 76;
-        upperMenuContainer.RecalculateChildren();
-    }
-    private void CloseCategoryButtons() {
-        if (!_categoryButtonsOpen) {
-            return;
-        }
-        _categoryButtonsOpen = false;
-        categoryButtonBg.Width.Pixels = 0;
-        categoryButtonBg.RemoveAllChildren();
-        filterTextBoxBackground.Left.Pixels = 36;
-        filterTextBoxBackground.Width.Pixels = -72;
-        upperMenuContainer.RecalculateChildren();
-    }
-    private void ToggleCategoryButtons() {
-        if (_categoryButtonsOpen) {
-            CloseCategoryButtons();
-        }
-        else {
-            OpenCategoryButtons();
-        }
-    }
-    #endregion
-
     public static bool IsPreviousUIStateOfConfigList { get; set; }
-
-    private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => Filter = string.Empty;
 
     public UIModItemInFolder? FindUIModItem(string modName) {
         return ModItemDict.Values.SingleOrDefault(m => m.ModName == modName);
@@ -765,61 +900,20 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
 
     #region 生成 Generate
-    private bool generateNeeded;
-    public void ArrangeGenerate() => generateNeeded = true;
+    private bool _generateNeeded;
+    public void ArrangeGenerate() => _generateNeeded = true;
+    private void Update_Generate() {
+        if (_generateNeeded) {
+            _generateNeeded = false;
+            Generate();
+        }
+    }
     private void Generate() {
         list.Clear();
         list.StopMoving();
+        DraggingTarget = null;
         var filterResults = new UIModsFilterResults();
-        var visibleItems = CurrentFolderNode.Children.Select(UIElement? (n) => {
-            if (n is ModNode m) {
-                if (ModItemDict.TryGetValue(m.ModName, out var uiMod)) {
-                    if (uiMod.PassFilters(filterResults)) {
-                        uiMod.ModNode = m;
-                        return uiMod;
-                    }
-                    else {
-                        return null;
-                    }
-                }
-                else {
-                    return new UIModItemInFolderUnloaded(m);
-                }
-            }
-            else if (n is FolderNode f) {
-                var uf = new UIFolder(f);
-                if (f == nodeToRename){
-                    uf.DirectlyReplaceToRenameText();
-                    return uf;
-                }
-                if (uf.PassFilters(filterResults)){
-                    return uf;
-                }
-                return null;
-            }
-            return null;
-        }).WhereNotNull().ToList();
-        nodeToRename = null;
-        #region 在根目录下时将文件夹树未包含的 Mod 全部放进来
-        if (CurrentFolderNode == FolderDataSystem.Root) {
-            // TODO: 缓存此结果, 且在文件夹树发生变化时做出修改
-            HashSet<string> modsInFolder = [];
-            foreach (var m in FolderDataSystem.Root.ModNodesInTree) {
-                modsInFolder.Add(m.ModName);
-            }
-            foreach (var (key, value) in ModItemDict) {
-                if (modsInFolder.Contains(key)) {
-                    continue;
-                }
-                ModNode m = new(value.TheLocalMod);
-                FolderDataSystem.Root.Children.Add(m);
-                if (value.PassFilters(filterResults)) {
-                    value.ModNode = m;
-                    visibleItems.Add(value);
-                }
-            }
-        }
-        #endregion
+        var visibleItems = GetVisibleItems(filterResults);
         #region 若有任何被过滤的, 则在列表中添加一个元素提示过滤了多少东西
         if (filterResults.AnyFiltered) {
             var panel = new UIPanel();
@@ -844,14 +938,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
         #region 若不在根目录, 则添加一个返回上级的文件夹
-        if (CurrentFolderNode != FolderDataSystem.Root) {
+        if (ShowType == MenuShowType.FolderSystem && CurrentFolderNode != FolderDataSystem.Root) {
             UIFolder upperFolder = new("..");
             list.Add(upperFolder);
             upperFolder.RightDraggable = false;
             upperFolder.Activate();
         }
         #endregion
-        visibleItems = visibleItems.ToList().HeapSort((u1, u2) => u1.CompareTo(u2));
+        visibleItems = visibleItems.HeapSort((u1, u2) => u1.CompareTo(u2));
         list.AddRange(visibleItems);
         foreach (var item in visibleItems) {
             item.Activate();
@@ -862,11 +956,68 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _listViewPositionToSetAfterGenerated = null;
         }
     }
-    private void Update_Generate() {
-        if (generateNeeded) {
-            generateNeeded = false;
-            Generate();
+    private List<UIFolderItem> GetVisibleItems(UIModsFilterResults filterResults) {
+        List<UIFolderItem> result;
+        if (ShowType == MenuShowType.AllMods) {
+            result = [.. GetVisibleItems_AllMods(filterResults)];
         }
+        else {
+            result = [.. GetVisibleItems_InFolderSystem(filterResults)];
+        }
+        nodeToRename = null;
+        return result;
+    }
+    private IEnumerable<UIFolderItem> GetVisibleItems_AllMods(UIModsFilterResults filterResults) {
+        foreach (var item in ModItemDict.Values) {
+            if (item.PassFilters(filterResults)) {
+                yield return item;
+            }
+        }
+    }
+    private IEnumerable<UIFolderItem> GetVisibleItems_InFolderSystem(UIModsFilterResults filterResults) {
+        foreach (var node in CurrentFolderNode.Children) {
+            if (node is ModNode m) {
+                if (ModItemDict.TryGetValue(m.ModName, out var uiMod)) {
+                    if (uiMod.PassFilters(filterResults)) {
+                        uiMod.ModNode = m;
+                        yield return uiMod;
+                    }
+                    continue;
+                }
+                yield return new UIModItemInFolderUnloaded(m);
+            }
+            else if (node is FolderNode f) {
+                var uf = new UIFolder(f);
+                if (f == nodeToRename) {
+                    uf.DirectlyReplaceToRenameText();
+                    yield return uf;
+                }
+                else if (uf.PassFilters(filterResults)) {
+                    yield return uf;
+                }
+            }
+        }
+        #region 在根目录下时将文件夹树未包含的 Mod 全部放进来
+        if (CurrentFolderNode != FolderDataSystem.Root) {
+            yield break;
+        }
+        // TODO: 缓存此结果, 且在文件夹树发生变化时做出修改
+        HashSet<string> modsInFolder = [];
+        foreach (var m in FolderDataSystem.Root.ModNodesInTree) {
+            modsInFolder.Add(m.ModName);
+        }
+        foreach (var (key, value) in ModItemDict) {
+            if (modsInFolder.Contains(key)) {
+                continue;
+            }
+            ModNode m = new(value.TheLocalMod);
+            FolderDataSystem.Root.Children.Add(m);
+            if (value.PassFilters(filterResults)) {
+                value.ModNode = m;
+                yield return value;
+            }
+        }
+        #endregion
     }
     private float? _listViewPositionToSetAfterGenerated;
     private void SetListViewPositionAfterGenerated(float value) => _listViewPositionToSetAfterGenerated = value;
@@ -1034,7 +1185,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (_draggingTo is UIFolderItem fi) {
             aimNode = fi.Node;
         }
-        else if  (_draggingTo is UIFolderPathItem pi) {
+        else if (_draggingTo is UIFolderPathItem pi) {
             aimNode = pi.FolderNode;
         }
         if (aimNode == null) {
@@ -1080,13 +1231,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (node is ModNode modNode) {
                 foreach (var child in folder.Children) {
                     if (child is ModNode m && m.ModName == modNode.ModName) {
-                        generateNeeded = true;
+                        ArrangeGenerate();
                         return;
                     }
                 }
             }
             folder.Children.Add(node);
-            generateNeeded = true;
+            ArrangeGenerate();
         }
         void MoveNodeBeforeNode(Node node, Node node2) {
             if (node == node2) {
@@ -1105,7 +1256,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     else {
                         parent.Children.Insert(i, node);
                     }
-                    generateNeeded = true;
+                    ArrangeGenerate();
                     return;
                 }
             }
@@ -1128,7 +1279,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     else {
                         parent.Children.Insert(i + 1, node);
                     }
-                    generateNeeded = true;
+                    ArrangeGenerate();
                     return;
                 }
             }
@@ -1139,7 +1290,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (parent.Children.Count != 0 && parent.Children[0] == node) {
                 return;
             }
-            generateNeeded = true;
+            ArrangeGenerate();
             parent.Children.Remove(node);
             parent.Children.Insert(0, node);
         }
@@ -1148,7 +1299,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     public override void OnActivate() {
-        generateNeeded = true;
+        ArrangeGenerate();
         Main.clrInput();
         list.Clear();
         if (!loaded) {
@@ -1208,7 +1359,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
         loaded = true;
         needToRemoveLoading = true;
-        generateNeeded = true;
+        ArrangeGenerate();
         loading = false;
         modItemsTask = null;
     }
