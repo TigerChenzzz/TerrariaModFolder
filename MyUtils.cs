@@ -20,6 +20,8 @@ public static class MyUtils {
             Color.White, Color.Transparent, Color.White,
             Color.White, Color.White      , Color.White,
         ]);
+        public static readonly Asset<Texture2D> ButtonRename = ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonRename");
+        public static readonly Asset<Texture2D> ButtonDelete = ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
 
         public static Texture2D FromColors(int width, int height, Color[] colors) {
             Texture2D result = new(Main.instance.GraphicsDevice, width, height);
@@ -158,6 +160,95 @@ public static class MyUtils {
         foreach (var i in self) {
             if (i is not null && predicate(i)) {
                 yield return i;
+            }
+        }
+    }
+    #endregion
+
+    public static void SaveTexture(Asset<Texture2D> texture, string path = "C:\\Users\\Administrator\\Documents\\My Games\\Terraria\\tModLoader\\Assets") {
+        if (!texture.IsLoaded) {
+            return;
+        }
+        string fullPath = Path.Join(path, texture.Name.Replace(".", "\\") + ".png");
+        if (Path.Exists(fullPath)) {
+            return;
+        }
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (directory != null) {
+            Directory.CreateDirectory(directory);
+        }
+        using var file = File.Open(fullPath, FileMode.Create);
+        texture.Value.SaveAsPng(file, texture.Width(), texture.Height());
+    }
+    public static void SaveTextureExtra(Asset<Texture2D> texture, string path = "C:\\Users\\Administrator\\Documents\\My Games\\Terraria\\tModLoader\\AssetsExtra") {
+        SaveTexture(texture, path);
+    }
+
+    #region 堆排序
+    public static List<T> HeapSort<T>(this List<T> list, Func<T, T, int> comparer) {
+        HeapSortInner(list, comparer, 0, list.Count);
+        return list;
+    }
+    private static void HeapSortInner<T>(this List<T> list, Func<T, T, int> comparer, int left, int right) {
+        int length = right - left;
+        if (length <= 1) {
+            return;
+        }
+        if (length == 2) {
+            if (comparer(list[left], list[left + 1]) > 0) {
+                (list[left], list[left + 1]) = (list[left + 1], list[left]);
+            }
+            return;
+        }
+        if (length == 3) {
+            if (comparer(list[left], list[left + 1]) <= 0) {
+                if (comparer(list[left + 1], list[left + 2]) <= 0) {
+                    return;
+                }
+                if (comparer(list[left], list[left + 2]) <= 0) {
+                    (list[left + 2], list[left + 1]) = (list[left + 1], list[left + 2]);
+                    return;
+                }
+                (list[left], list[left + 1], list[left + 2]) = (list[left + 2], list[left], list[left + 1]);
+                return;
+            }
+            if (comparer(list[left], list[left + 2]) <= 0) {
+                (list[left], list[left + 1]) = (list[left + 1], list[left]);
+                return;
+            }
+            if (comparer(list[left + 1], list[left + 2]) > 0) {
+                (list[left], list[left + 2]) = (list[left + 2], list[left]);
+                return;
+            }
+            (list[left], list[left + 1], list[left + 2]) = (list[left + 1], list[left + 2], list[left]);
+            return;
+        }
+        int middle = (left + right) / 2;
+        HeapSortInner(list, comparer, left, middle);
+        HeapSortInner(list, comparer, middle, right);
+        T[] lefts = new T[middle - left];
+        list.CopyTo(left, lefts, 0, middle - left);
+        int indexLeft = 0, indexRight = middle;
+        bool rightMoved = false;
+        for (int index = left; index < right; ++index) {
+            if (comparer(lefts[indexLeft], list[indexRight]) <= 0) {
+                if (rightMoved) {
+                    list[index] = lefts[indexLeft];
+                }
+                indexLeft += 1;
+                if (indexLeft == middle - left) {
+                    return;
+                }
+                continue;
+            }
+            rightMoved = true;
+            list[index] = list[indexRight];
+            indexRight += 1;
+            if (indexRight == right) {
+                for (; indexLeft < middle - left; ++indexLeft) {
+                    list[++index] = lefts[indexLeft];
+                }
+                return;
             }
         }
     }

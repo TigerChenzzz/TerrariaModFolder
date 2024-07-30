@@ -1,26 +1,57 @@
 UI: {
-	HoverTextOnButtonMods: Rightclick to open the folder system.
+	Buttons: {
+		Mods.DescriptionToAdd: Rightclick to open the folder system.
+		CreateFolder.DisplayName: Create Folder
 
-	Menu: {
-		Buttons: {
-			CreateFolder.DisplayName: Create Folder
-
-			AllMods: {
-				DisplayName: Enable & Disable
-				Tooltip:
-					'''
-					leftclick to enable mods
-					rightclick to disable mods
-					middle click to reset mods to the previous enabled states
-					the mods are from the current folder by default
-					pressing Alt to also contains the subfolders
-					pressing Shift for all mods
-					pressing Ctrl to not ignore the favorite mods
-					(favorite mods cannot be diabled by default)
-					'''
-			}
+		AllMods: {
+			DisplayName: Enable & Disable
+			Tooltip:
+				'''
+				leftclick to enable mods
+				rightclick to disable mods
+				middle click to reset mods to the previous enabled states
+				the mods are from the current folder by default
+				pressing Alt to also contains the subfolders
+				pressing Shift for all mods
+				pressing Ctrl to not ignore the favorite mods
+				(favorite mods cannot be diabled by default)
+				'''
 		}
 
-		NewFolderDefaultName: New Folder
+		Back.Tooltip:
+			'''
+			change directory up one level by default
+			go back to the main menu if at the root directory
+			pressing Shift to directly go to the main menu
+			pressing Ctrl to force reload mods when go to the main menu
+			'''
+
+		ToggleCategoryButtons: {
+			TooltipOn:
+				'''
+				show category buttons
+				middle click to reset to default
+				'''
+			TooltipOff:
+				'''
+				hide category buttons
+				middle click to reset to default
+				'''
+		}
 	}
+
+	SortButtons: {
+		Custom.Tooltip: Custom order
+		ReverseRecently.Tooltip: Sort by oldest changed
+		CustomFM.Tooltip: Custom order for folders and mods
+		FolderFirst.Tooltip: Folder first
+		ModFirst.Tooltip: Mod first
+		ToBeEnabled.Tooltip: Show only mods to be enabled
+		ToBeDisabled.Tooltip: Show only mods to be disabled
+		ToBeToggled.Tooltip: Show only mods to be toggled
+		WouldBeEnabled.Tooltip: Show only mods that would be enabled
+		WouldBeDisabled.Tooltip: Show only mods that would be disabled
+	}
+
+	NewFolderDefaultName: New Folder
 }

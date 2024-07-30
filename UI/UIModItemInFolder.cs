@@ -21,6 +21,8 @@ public class UIModItemInFolder : UIFolderItem {
     public FolderDataSystem.ModNode? ModNode { get; set; }
     public LocalMod TheLocalMod => _mod;
     public bool Loaded => _loaded;
+    public override string NameToSort => _mod.DisplayNameClean;
+    public override DateTime LastModified => _mod.lastModified;
     // TODO: Favorite 的 显示与设置
     public bool Favorite {
         get => ModNode?.Favorite ?? false;
@@ -44,10 +46,9 @@ public class UIModItemInFolder : UIFolderItem {
     private UIImageFramed? updatedModDot;
     private Version? previousVersionHint;
     private UIHoverImage? _keyImage;
+    private UIHoverImage? _modDidNotFullyUnloadWarningImage;
     private UIImage? _configButton;
     private UIText _modName = null!;
-    private UIElement _uiModStateCheckBoxHitbox = null!;
-    private UIModStateCheckBox _uiModStateCheckBox = null!;
     internal UIAutoScaleTextTextPanel<string>? tMLUpdateRequired;
     private UIImage? _modReferenceIcon;
     private UIImage? _translationModIcon;
@@ -62,28 +63,12 @@ public class UIModItemInFolder : UIFolderItem {
 
     private bool _configChangesRequireReload;
     private bool _loaded;
-    private int _modIconAdjust;
     private string? _tooltip;
     private string[] _modReferences = null!;
     private string[] _modDependents = null!; // Note: Recursive
     private string[] _modDependencies = null!; // Note: Recursive
     private string _modRequiresTooltip = null!;
     public readonly string DisplayNameClean; // No chat tags: for search and sort functionality.
-
-    private string ToggleModStateText {
-        get {
-            if (_mod.Enabled) {
-                if (_modDependents.Length != 0)
-                    return Language.GetTextValue("tModLoader.ModsDisableAndDependents", _mod.DisplayName, _modDependents.Length);
-                return Language.GetTextValue("tModLoader.ModsDisable");
-            }
-            else {
-                if (_modDependencies.Length != 0)
-                    return Language.GetTextValue("tModLoader.ModsEnableAndDependencies", _mod.DisplayName, _modDependencies.Length);
-                return Language.GetTextValue("tModLoader.ModsEnable");
-            }
-        }
-    }
 
     public string ModName => _mod.Name;
     public bool NeedsReload => _mod.properties.side != ModSide.Server && (_mod.Enabled != _loaded || _configChangesRequireReload);
@@ -102,7 +87,6 @@ public class UIModItemInFolder : UIFolderItem {
         Asset<Texture2D>? modIcon = null;
         Asset<Texture2D>? smallIcon = null;
         Asset<Texture2D>? bigIcon = null;
-        _modIconAdjust = 30;
         if (_mod.modFile.HasFile("icon_small.rawimg")) {
             try {
                 using (_mod.modFile.Open()) {
@@ -136,6 +120,7 @@ public class UIModItemInFolder : UIFolderItem {
             ScaleToFit = true,
             AllowResizingDimensions = false,
         };
+        float leftOffset = 30 + PADDING;
         /*
         if (smallIcon != null && bigIcon != null) {
             _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
@@ -144,13 +129,34 @@ public class UIModItemInFolder : UIFolderItem {
         */
         Append(_modIcon);
         #endregion
+        #region 未完全卸载
+        // Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
+        // TODO: 测试它的位置
+        if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
+            _modDidNotFullyUnloadWarningImage = new(UICommon.ButtonErrorTexture, Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning")) {
+                Left = { Pixels = leftOffset },
+                VAlign = 0.5f,
+            };
+            leftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels + PADDING;
+            Append(_modDidNotFullyUnloadWarningImage);
+        }
+        #endregion
+        #region ModStableOnPreviewWarning
+        if (ModOrganizer.CheckStableBuildOnPreview(_mod)) {
+            _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name), Language.GetTextValue("tModLoader.ModStableOnPreviewWarning")) {
+                Left = { Pixels = leftOffset },
+                VAlign = 0.5f,
+            };
+            leftOffset += _keyImage.Width.Pixels + PADDING;
+            Append(_keyImage);
+        }
+        #endregion
         #region 名字
         // TODO: 名字太长怎么办 (UIHorizontalList?)
         string text = _mod.DisplayName + " v" + _mod.modFile.Version;
-        _modName = new UIText(text) {
-            Left = new StyleDimension(_modIconAdjust, 0f),
-            Top = { Pixels = 7, },
-        };
+        _modName = new(text);
+        _modName.Left.Pixels = leftOffset;
+        _modName.Top.Pixels = 7;
         Append(_modName);
         #endregion
         #region 已升级小点
@@ -167,21 +173,6 @@ public class UIModItemInFolder : UIFolderItem {
 
             Append(updatedModDot);
         }
-        #endregion
-        #region 启用 / 禁用
-        _uiModStateCheckBoxHitbox = new() {
-            Width = { Pixels = 10 },
-            Height = { Percent = 1 }
-        };
-        _uiModStateCheckBoxHitbox.OnLeftClick += ToggleEnabled;
-        _uiModStateCheckBox = new(_mod) {
-            Left = { Pixels = -4, Percent = 0.5f },
-            Top = { Pixels = -4, Percent = 0.5f },
-            Width = { Pixels = 8 },
-            Height = { Pixels = 8 },
-            IgnoresMouseInteraction = true,
-        };
-        _uiModStateCheckBoxHitbox.Append(_uiModStateCheckBox);
         #endregion
         #region 升级版本提示
         // TODO: 美化
@@ -220,10 +211,11 @@ public class UIModItemInFolder : UIFolderItem {
         }
         #endregion
         #region 删除
-        // TODO: 配置右边这堆按钮是否向右缩紧
+        // TODO: 配置右边这堆按钮是否向右缩紧 
+        bool leanToTheRight = true;
         int bottomRightRowOffset = -30;
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            _deleteModButton = new UIImage(TextureAssets.Trash) {
+            _deleteModButton = new UIImage(Textures.ButtonDelete) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = bottomRightRowOffset, Precent = 1 },
@@ -232,6 +224,9 @@ public class UIModItemInFolder : UIFolderItem {
             };
             _deleteModButton.OnLeftClick += QuickModDelete;
             Append(_deleteModButton);
+        }
+        else if (leanToTheRight) {
+            bottomRightRowOffset += 24;
         }
         #endregion
         #region 更多信息
@@ -263,6 +258,9 @@ public class UIModItemInFolder : UIFolderItem {
             if (ConfigManager.ModNeedsReload(loadedMod)) {
                 _configChangesRequireReload = true;
             }
+        }
+        else if (leanToTheRight) {
+            bottomRightRowOffset += 24;
         }
         #endregion
         #region 需求与引用
@@ -324,6 +322,9 @@ public class UIModItemInFolder : UIFolderItem {
 
             Append(_modReferenceIcon);
         }
+        else if (leanToTheRight) {
+            bottomRightRowOffset += 24;
+        }
         #endregion
         #region 翻译
         bottomRightRowOffset -= 24;
@@ -338,30 +339,8 @@ public class UIModItemInFolder : UIFolderItem {
             };
             Append(_translationModIcon);
         }
-        #endregion
-        #region 未完全卸载
-        // TODO: Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
-        // TODO: 测试它的位置
-        if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
-            _keyImage = new UIHoverImage(UICommon.ButtonErrorTexture, Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning")) {
-                Left = { Pixels = _modIconAdjust + PADDING },
-                Top = { Pixels = 3 }
-            };
-
-            Append(_keyImage);
-
-            _modName.Left.Pixels += _keyImage.Width.Pixels + PADDING * 2f;
-            _modName.Recalculate();
-        }
-        #endregion
-        #region ModStableOnPreviewWarning
-        if (ModOrganizer.CheckStableBuildOnPreview(_mod)) {
-            _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name), Language.GetTextValue("tModLoader.ModStableOnPreviewWarning")) {
-                Left = { Pixels = 4, Percent = 0.2f },
-                Top = { Pixels = 0, Percent = 0.5f }
-            };
-
-            Append(_keyImage);
+        else if (leanToTheRight) {
+            bottomRightRowOffset += 24;
         }
         #endregion
         #region Steam 标志
@@ -418,9 +397,8 @@ public class UIModItemInFolder : UIFolderItem {
         OnLeftDoubleClick += (e, el) => {
             if (tMLUpdateRequired != null)
                 return;
-            // Only trigger if we didn't target the ModStateText, otherwise we trigger this behavior twice
-            if (e.Target != _uiModStateCheckBoxHitbox && e.Target != _uiModStateCheckBox)
-                ToggleEnabled(e, el);
+            // TODO: 双击某些位置时不能切换
+            ToggleEnabled();
         };
         #endregion
         #region alt 左键收藏
@@ -530,10 +508,6 @@ public class UIModItemInFolder : UIFolderItem {
         else if (_modName?.IsMouseHovering == true && _mod.properties.author.Length > 0) {
             _tooltip = Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author);
         }
-        // 启用 / 禁用
-        else if (_uiModStateCheckBoxHitbox?.IsMouseHovering == true) {
-            _tooltip = ToggleModStateText;
-        }
         // 配置
         else if (_configButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("tModLoader.ModsOpenConfig");
@@ -567,7 +541,7 @@ public class UIModItemInFolder : UIFolderItem {
         #endregion
     }
 
-    private void ToggleEnabled(UIMouseEvent evt, UIElement listeningElement) {
+    private void ToggleEnabled() {
         SoundEngine.PlaySound(SoundID.MenuTick);
         _mod.Enabled = !_mod.Enabled;
 
@@ -637,53 +611,35 @@ public class UIModItemInFolder : UIFolderItem {
         UIModFolderMenu.IsPreviousUIStateOfConfigList = true;
     }
 
-    public override int CompareTo(object obj) {
-        if (obj is not UIModItemInFolder item)
-            return 1;
-        string name = DisplayNameClean;
-        string othername = item.DisplayNameClean;
-        return UIModFolderMenu.Instance.sortMode switch {
-            ModsMenuSortMode.RecentlyUpdated => -1 * _mod.lastModified.CompareTo(item._mod.lastModified),
-            ModsMenuSortMode.DisplayNameAtoZ => string.Compare(name, othername, StringComparison.Ordinal),
-            ModsMenuSortMode.DisplayNameZtoA => -1 * string.Compare(name, othername, StringComparison.Ordinal),
-            _ => base.CompareTo(obj),
-        };
-    }
-
-    public bool PassFilters(UIModsFilterResults filterResults) {
-        if (UIModFolderMenu.Instance.filter.Length > 0) {
+    public override int PassFiltersInner() {
+        var filter = UIModFolderMenu.Instance.Filter;
+        if (filter.Length > 0) {
             if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Author) {
-                if (!_mod.properties.author.Contains(UIModFolderMenu.Instance.filter, StringComparison.OrdinalIgnoreCase)) {
-                    filterResults.filteredBySearch++;
-                    return false;
+                if (!_mod.properties.author.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                    return 1;
                 }
             }
-            else {
-                if (!DisplayNameClean.Contains(UIModFolderMenu.Instance.filter, StringComparison.OrdinalIgnoreCase) && !ModName.Contains(UIModFolderMenu.Instance.filter, StringComparison.OrdinalIgnoreCase)) {
-                    filterResults.filteredBySearch++;
-                    return false;
-                }
+            else if (!DisplayNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase) && !ModName.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                return 1;
             }
         }
-        if (UIModFolderMenu.Instance.modSideFilterMode != ModSideFilter.All) {
-            if ((int)_mod.properties.side != (int)UIModFolderMenu.Instance.modSideFilterMode - 1) {
-                filterResults.filteredByModSide++;
-                return false;
+        if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
+            if ((int)_mod.properties.side != (int)UIModFolderMenu.Instance.ModSideFilterMode - 1) {
+                return 2;
             }
         }
-        switch (UIModFolderMenu.Instance.enabledFilterMode) {
-        default:
-        case EnabledFilter.All:
-            return true;
-        case EnabledFilter.EnabledOnly:
-            if (!_mod.Enabled)
-                filterResults.filteredByEnabled++;
-            return _mod.Enabled;
-        case EnabledFilter.DisabledOnly:
-            if (_mod.Enabled)
-                filterResults.filteredByEnabled++;
-            return !_mod.Enabled;
-        }
+        var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
+            FolderEnabledFilter.All => true,
+            FolderEnabledFilter.Enabled => Loaded,
+            FolderEnabledFilter.Disabled => !Loaded,
+            FolderEnabledFilter.ToBeEnabled => !Loaded && _mod.Enabled,
+            FolderEnabledFilter.ToBeDisabled => Loaded && !_mod.Enabled,
+            FolderEnabledFilter.ToToggle => Loaded ^ _mod.Enabled,
+            FolderEnabledFilter.WouldBeEnabled => _mod.Enabled,
+            FolderEnabledFilter.WouldBeDisabled => !_mod.Enabled,
+            _ => false,
+        };
+        return passed ? 0 : 3;
     }
 
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {

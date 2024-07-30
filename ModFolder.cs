@@ -18,20 +18,17 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// DOING: 测试启用禁用按钮
-// DOING: 只有在自定义顺序时才可以改变顺序, 否则只可以移动路径
 // DOING: 在拖拽时尝试移动视图
 // DOING: 添加 Parent 以及规范化节点创建与修改
-// DOING: 排序修复
-// DOING: 收藏的储存方式修改
+// DOING: 收藏和SteamID的储存方式修改
 
 // TODO: 在各处确认删除的界面中点击其它部分直接取消 (直接糊上一个 UIState)
 // TODO: 批量订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
 // TODO: Node 需要有父节点
 // TODO: 文件夹快捷方式
+// TODO: 大小图标的配置
 
-// TODO: 模组和文件夹的移动 (包括顺序和改变路径)
 // TODO: 右键拖动时禁用左键?
 
 // TODO: 排序: 自定义排序, 文件夹在模组上 / 下 / 任意
@@ -47,7 +44,7 @@ namespace ModFolder;
 // TODO: 配置是否将未安排位置的模组显示在根目录, 或显示在某个目录
 // TODO: 标记未安排位置的模组
 
-// TODO: 美化界面 (那几个按钮太丑了)
+// TODO: 在有文件夹和模组的排序时仍可以自定义顺序
 // TODO: 块状排列 (ConciseModList: ???)
 // TODO: Mouse4 和 Mouse5 撤回与回退
 // TODO: alt 收藏模组 (收藏的模组一般不会因禁用全部按钮而被禁用) (金光闪闪和粒子)
@@ -100,7 +97,7 @@ public class ModFolder : Mod {
         orig(self);
         var buttonMods = self._buttonMods;
         buttonMods.OnMouseOver += (_, _) => {
-            self._descriptionText.SetText(string.Join(' ', self._descriptionText.Text, Instance.GetLocalization("UI.HoverTextOnButtonMods").Value));
+            self._descriptionText.SetText(string.Join(' ', self._descriptionText.Text, Instance.GetLocalization("UI.Buttons.Mods.DescriptionToAdd").Value));
         };
         buttonMods.OnRightClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);

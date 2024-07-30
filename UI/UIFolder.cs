@@ -10,26 +10,13 @@ namespace ModFolder.UI;
 /// 文件夹系统列表中的一个文件夹
 /// </summary>
 public class UIFolder : UIFolderItem {
+    public override FolderItemTypeEnum FolderItemType => FolderItemTypeEnum.Folder;
     public FolderDataSystem.FolderNode? FolderNode;
     public override FolderDataSystem.Node? Node => FolderNode;
-    public string? Name { get; set; }
+    public string Name { get; set; }
+    public override string NameToSort => Name;
     // TODO
-    public DateTime LastModified { get; set; }
-    public override int CompareTo(object obj) {
-        if (obj is UIModItemInFolder) {
-            return -1;
-        }
-        if (obj is not UIFolder other) {
-            return 1;
-        }
-        return UIModFolderMenu.Instance.sortMode switch {
-            ModsMenuSortMode.RecentlyUpdated => other.LastModified.CompareTo(LastModified),
-            ModsMenuSortMode.DisplayNameAtoZ => string.Compare(Name, other.Name, StringComparison.Ordinal),
-            ModsMenuSortMode.DisplayNameZtoA => string.Compare(other.Name, Name, StringComparison.Ordinal),
-            _ => base.CompareTo(obj),
-        };
-    }
-
+    public override DateTime LastModified => base.LastModified;
     private UIImage _folderIcon = null!;
     private UIText _folderName = null!;
     private UIFocusInputTextFieldPro _renameText = null!;
@@ -60,6 +47,7 @@ public class UIFolder : UIFolderItem {
     }
     private bool replaceToFolderName;
     private bool replaceToRenameText;
+    private bool directlyReplaceToRenameText;
     public void SetReplaceToRenameText() => replaceToRenameText = true;
     private void CheckReplace() {
         if (replaceToFolderName) {
@@ -72,7 +60,14 @@ public class UIFolder : UIFolderItem {
             ReplaceChildren(_folderName, _renameText, false);
             _renameText.Focused = true;
         }
-    }
+        if (directlyReplaceToRenameText) {
+            directlyReplaceToRenameText = false;
+            _renameText.CurrentString = string.Empty;
+            ReplaceChildren(_folderName, _renameText, false);
+            _renameText.Focused = true;
+        }
+        }
+    public void DirectlyReplaceToRenameText() => directlyReplaceToRenameText = true;
     #endregion
     public override void OnInitialize() {
         #region 文件夹图标
@@ -96,7 +91,7 @@ public class UIFolder : UIFolderItem {
         #region 删除按钮
         int rightRowOffset = -30;
         if (FolderNode != null) {
-            _deleteButton = new UIImage(TextureAssets.Trash) {
+            _deleteButton = new UIImage(Textures.ButtonDelete) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = rightRowOffset, Precent = 1 },
@@ -110,7 +105,7 @@ public class UIFolder : UIFolderItem {
                 // TODO: 直接取消订阅所有内含模组, 三次确认
                 if (FolderNode != null) {
                     UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(FolderNode);
-                    UIModFolderMenu.Instance.SetUpdateNeeded();
+                    UIModFolderMenu.Instance.ArrangeGenerate();
                 }
             };
             Append(_deleteButton);
@@ -119,10 +114,10 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 重命名按钮
         if (FolderNode != null) {
-            _renameButton = new UIImage(TextureAssets.Star[2]) {
+            _renameButton = new UIImage(Textures.ButtonRename) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
-                Left = { Pixels = rightRowOffset - 2, Precent = 1 },
+                Left = { Pixels = rightRowOffset, Precent = 1 },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
@@ -135,41 +130,45 @@ public class UIFolder : UIFolderItem {
         rightRowOffset -= 24;
         #endregion
         #region 重命名输入框
-        // TODO: 本地化
-        _renameText = new(ModFolder.Instance.GetLocalization("UI.Menu.NewFolderDefaultName").Value);
-        _renameText.Left.Pixels = 30;
-        _renameText.Top.Pixels = 5;
-        _renameText.Height.Set(-5, 1);
-        _renameText.Width.Set(-30 + rightRowOffset, 1);
-        _renameText.OnUnfocus += (_, _) => {
-            var newName = _renameText.CurrentString;
-            // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
-            if (FolderNode == null || newName == ".." || newName == string.Empty) {
-                replaceToFolderName = true;
-                return;
-            }
-            FolderNode.FolderName = newName;
-            Name = newName;
-            _folderName.SetText(newName);
-            replaceToFolderName = true;
+        _renameText = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value) {
+            Left = { Pixels = 30 },
+            Top = { Pixels = 5 },
+            Height = { Pixels = -5, Percent = 1 },
+            Width = { Pixels = -30 + rightRowOffset, Percent = 1 },
+            UnfocusOnTab = true,
         };
-        _renameText.UnfocusOnTab = true;
+        _renameText.OnUnfocus += OnUnfocus_TryRename;
         #endregion
         #region 双击进入文件夹
         // TODO: 双击某些位置时不进入文件夹 / 测试
         OnLeftDoubleClick += (e, target) => {
-            if (Name == null) {
+            if (Name == "..") {
+                UIModFolderMenu.Instance.GotoUpperFolder();
+                return;
+            }
+            if (FolderNode == null) {
                 return;
             }
             if (e.Target == _renameText || e.Target == _deleteButton || e.Target == _renameButton) {
                 return;
             }
-            if (Name == "..") {
-                UIModFolderMenu.Instance.GotoUpperFolder();
-            }
-            UIModFolderMenu.Instance.EnterFolder(Name);
+            UIModFolderMenu.Instance.EnterFolder(FolderNode);
         };
         #endregion
+    }
+
+    private void OnUnfocus_TryRename(object sender, EventArgs e) {
+        var newName = _renameText.CurrentString;
+        // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
+        if (FolderNode == null || newName == ".." || newName == string.Empty) {
+            replaceToFolderName = true;
+            return;
+        }
+        FolderNode.FolderName = newName;
+        Name = newName;
+        _folderName.SetText(newName);
+        replaceToFolderName = true;
+        UIModFolderMenu.Instance.ArrangeGenerate();
     }
 
     private string? _tooltip;

@@ -9,6 +9,10 @@ public class UIFolderItemList : UIList {
         ManualSortMethod = _ => { };
     }
     #region 使滚轮更加顺滑
+    public void StopMoving() {
+        scrollbarAim = 0;
+    }
+    // TODO: 滚动太上或太下时的缓动
     public override void ScrollWheel(UIScrollWheelEvent evt) {
         var scrollbar = _scrollbar;
         _scrollbar = null;

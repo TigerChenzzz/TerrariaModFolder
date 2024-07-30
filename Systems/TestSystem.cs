@@ -1,3 +1,4 @@
+using ReLogic.Content;
 using ReLogic.Graphics;
 using System.Diagnostics.CodeAnalysis;
 using Terraria.GameContent;
@@ -60,6 +61,49 @@ public class TestSystem : ModSystem {
     private static bool doOnceFlag;
     private static void DoOnce() {
 
+    }
+    public static void SaveMainTextures() {
+        SaveTextureAsset(Main.Assets as AssetRepository, "C:\\Users\\Administrator\\Documents\\My Games\\Terraria\\tModLoader\\Assets");
+    }
+    public static void SaveTextureAsset(AssetRepository? repository, string path) {
+        if (repository == null) {
+            return;
+        }
+        foreach (var asset in repository.GetLoadedAssets()) {
+            if (asset == null) {
+                continue;
+            }
+            if (asset is not Asset<Texture2D> texture) {
+                continue;
+            }
+            string fullPath = Path.Join(path, asset.Name + ".png");
+            if (Path.Exists(fullPath)) {
+                continue;
+            }
+            var ass = texture;
+            if (!asset.IsLoaded) {
+                try {
+                    if (!ModContent.RequestIfExists(Path.Join("Terraria", asset.Name).Replace('\\', '/'), out ass, AssetRequestMode.ImmediateLoad)) {
+                        continue;
+                    }
+                    else {
+                        ;
+                    }
+                }
+                catch {
+                    continue;
+                }
+            }
+            if (!asset.IsLoaded) {
+                continue;
+            }
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (directory != null) {
+                Directory.CreateDirectory(directory);
+            }
+            using var file = File.Open(fullPath, FileMode.Create);
+            ass.Value.SaveAsPng(file, ass.Width(), ass.Height());
+        }
     }
     #endregion
 

@@ -20,10 +20,13 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
     // private bool modFromLocalModFolder;
     private string? _tooltip;
 
+    public override string NameToSort => ModName;
     public string ModName => _modNode.ModName;
     private readonly FolderDataSystem.ModNode _modNode = modNode;
     public FolderDataSystem.ModNode ModNode => _modNode;
     public override FolderDataSystem.Node? Node => ModNode;
+    // TODO
+    public override DateTime LastModified => base.LastModified;
 
     public override void OnInitialize() {
         #region 名字
@@ -35,7 +38,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
         #endregion
         #region 删除
         int bottomRightRowOffset = -30;
-        _deleteModButton = new UIImage(TextureAssets.Trash) {
+        _deleteModButton = new UIImage(Textures.ButtonDelete) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
             Left = { Pixels = bottomRightRowOffset, Precent = 1 },
@@ -79,19 +82,6 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         #endregion
-    }
-
-    public override int CompareTo(object obj) {
-        if (obj is not UIModItemInFolderUnloaded item)
-            return 1;
-        string name = ModName;
-        string othername = item.ModName;
-        return UIModFolderMenu.Instance.sortMode switch {
-            ModsMenuSortMode.RecentlyUpdated => 0,
-            ModsMenuSortMode.DisplayNameAtoZ => string.Compare(name, othername, StringComparison.Ordinal),
-            ModsMenuSortMode.DisplayNameZtoA => -1 * string.Compare(name, othername, StringComparison.Ordinal),
-            _ => base.CompareTo(obj),
-        };
     }
 
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {

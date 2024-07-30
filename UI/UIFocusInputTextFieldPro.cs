@@ -16,7 +16,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public event EventHandler? OnTextChange;
     public event EventHandler? OnUnfocus;
     public event EventHandler? OnTab;
-    public void SetText(string text) {
+    public void SetText(string? text) {
         text ??= "";
         if (CurrentString != text) {
             CurrentString = text;
@@ -81,11 +81,9 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
             text += "|";
         }
         CalculatedStyle dimensions = GetDimensions();
-        if (CurrentString.Length == 0 && !Focused) {
+        if (CurrentString.Length == 0) {
             Utils.DrawBorderString(spriteBatch, _hintText, new Vector2(dimensions.X, dimensions.Y), Color.Gray);
         }
-        else {
-            Utils.DrawBorderString(spriteBatch, text, new Vector2(dimensions.X, dimensions.Y), Color.White);
-        }
+        Utils.DrawBorderString(spriteBatch, text, new Vector2(dimensions.X, dimensions.Y), Color.White);
     }
 }
