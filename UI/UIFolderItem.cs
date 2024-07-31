@@ -26,6 +26,7 @@ public class UIFolderItem : UIElement {
     public virtual DateTime LastModified { get => default; }
     public virtual string NameToSort { get => string.Empty; }
     public virtual FolderItemTypeEnum FolderItemType => FolderItemTypeEnum.Mod;
+    public virtual bool Favorite { get => false; set { } }
     public virtual FolderDataSystem.Node? Node { get => null; }
     public bool RightDraggable { get; set; } = true;
     public override void DrawSelf(SpriteBatch spriteBatch) {
@@ -34,6 +35,21 @@ public class UIFolderItem : UIElement {
         #region 画分割线
         Rectangle dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4);
         spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
+        #endregion
+        #region 收藏
+        if (Favorite) {
+            // TODO: 金光闪闪冒粒子
+            var gold = Color.Gold;
+            int a = UIModFolderMenu.Instance.Timer % 180;
+            if (a < 0) {
+                a += 180;
+            }
+            if (a > 90) {
+                a = 180 - a;
+            }
+            gold *= (float)a / 450 + 0.05f;
+            spriteBatch.Draw(Textures.White, rectangle, gold);
+        }
         #endregion
         #region 鼠标在上面时高亮; 当为拖动对象时虚线显示, 为拖动目的地时显示高亮或上下
         if (UIModFolderMenu.Instance.DraggingTarget != null) {

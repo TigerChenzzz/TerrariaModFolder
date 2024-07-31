@@ -56,4 +56,24 @@ UI: {
 	}
 
 	NewFolderDefaultName: 新建文件夹
+	DeleteModItemCofirmTextToAdd:
+		'''
+		按住 Shift 以删除索引
+		按住 Ctrl 以取消订阅
+		同时按住以完全删除
+		'''
+	DeleteModItemUnloadedComfirmTextToAdd: 只是删除索引, 不会取消订阅
+	DeleteFolderConfirmText:
+		'''
+		确认要删除整个文件夹吗?
+		按住 Shift to 以删除索引
+		按住 Ctrl to 以取消订阅所有内含的模组
+		同时按住以一起做上面两件事
+		'''
+	DeleteFolderDoubleConfirmText: 确认要取消订阅所有内含的模组吗?
+	DeleteFolderUnloadedConfirmText:
+		'''
+		确认要删除整个文件夹吗?
+		现在还没加载完毕, 只会删除索引, 不会取消订阅
+		'''
 }

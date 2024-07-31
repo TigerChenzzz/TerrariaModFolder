@@ -25,10 +25,24 @@ public class UIFolderItemList : UIList {
     }
     private float scrollbarAim;
     private void Update_Scrollbar() {
-        if (_scrollbar == null) {
+        if (_scrollbar == null || _scrollbar._isDragging) {
             scrollbarAim = 0;
             return;
         }
+
+        if (UIModFolderMenu.Instance.DraggingTarget != null) {
+            float upDelta = _dimensions.Y + _dimensions.Height / 8 - Main.mouseY;
+            if (upDelta > 0) {
+                scrollbarAim -= upDelta / 5;
+            }
+            else {
+                float downDelta = Main.mouseY - _dimensions.Y - _dimensions.Height * 7 / 8;
+                if (downDelta > 0) {
+                    scrollbarAim += downDelta / 5;
+                }
+            }
+        }
+
         if (scrollbarAim == 0) {
             return;
         }

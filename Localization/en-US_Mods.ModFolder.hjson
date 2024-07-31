@@ -56,4 +56,24 @@ UI: {
 	}
 
 	NewFolderDefaultName: New Folder
+	DeleteModItemCofirmTextToAdd:
+		'''
+		pressing Shift to delete the index
+		pressing Ctrl to unsubscribe
+		pressing both to totally delete the mod
+		'''
+	DeleteModItemUnloadedComfirmTextToAdd: Only delete the index, not the mod
+	DeleteFolderConfirmText:
+		'''
+		Are you sure to delete the folder?
+		pressing Shift to delete the index
+		pressing Ctrl to unsubscribe all mods in the folder
+		pressing both to do both
+		'''
+	DeleteFolderDoubleConfirmText: Are you sure to unsubscribe all mods in the folder?
+	DeleteFolderUnloadedConfirmText:
+		'''
+		Are you sure to delete the folder?
+		the content are not loaded yet, so only the index would be deleted
+		'''
 }

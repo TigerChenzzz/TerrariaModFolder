@@ -21,11 +21,28 @@ public static class FolderDataSystem {
         private ModNode() : this(string.Empty) { }
         [JsonProperty]
         public string ModName { get; set; }
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public ulong PublishId { get; set; }
-        // TODO: Favorite 改用其它方式储存
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool Favorite { get; set; }
+        public ulong PublishId {
+            get => PublishIds.GetValueOrDefault(ModName);
+            set {
+                if (value == 0) {
+                    PublishIds.Remove(ModName);
+                }
+                else {
+                    PublishIds.TryAdd(ModName, value);
+                }
+            }
+        }
+        public bool Favorite {
+            get => Favorites.Contains(ModName);
+            set {
+                if (value) {
+                    Favorites.Add(ModName);
+                }
+                else {
+                   Favorites.Remove(ModName);
+                }
+            }
+        }
         public void ReceiveDataFrom(LocalMod mod) {
             ModName = mod.Name;
             if (WorkshopHelper.GetPublishIdLocal(mod.modFile, out ulong publishId)) {
@@ -57,15 +74,33 @@ public static class FolderDataSystem {
             }
         }
     }
+    [JsonObject(MemberSerialization.OptIn)]
+    public class RootNode : FolderNode {
+        [JsonConstructor]
+        public RootNode() : base("Root") { }
+        public RootNode(FolderNode folder) : base("Root") {
+            Children = folder.Children;
+        }
+#pragma warning disable CA1822 // 将成员标记为 static
+#pragma warning disable IDE0051 // 删除未使用的私有成员
+        [JsonProperty]
+        private HashSet<string> Favorites => FolderDataSystem.Favorites;
+        [JsonProperty]
+        private Dictionary<string, ulong> PublishIds => FolderDataSystem.PublishIds;
+#pragma warning restore CA1822 // 将成员标记为 static
+#pragma warning restore IDE0051 // 删除未使用的私有成员
+    }
+    public static HashSet<string> Favorites { get; private set; } = [];
+    public static Dictionary<string, ulong> PublishIds { get; private set; } = [];
     #endregion
-    private static FolderNode? _root;
-    public static FolderNode Root {
+    private static RootNode? _root;
+    public static RootNode Root {
         get {
             if (_root != null) {
                 return _root;
             }
             Reload_Inner();
-            return _root ??= new("Root");
+            return _root ??= new();
         }
     }
     private static string DataPath {
@@ -79,7 +114,7 @@ public static class FolderDataSystem {
     }
     public static void Reload() {
         Reload_Inner();
-        _root ??= new("Root");
+        _root ??= new();
     }
     private static void Reload_Inner() {
         string path = DataPath;
@@ -92,13 +127,28 @@ public static class FolderDataSystem {
             if (json is not JObject jsonData) {
                 return;
             }
-            var data = LoadNode(jsonData);
-            _root = data as FolderNode;
+            LoadRoot(jsonData);
         }
         catch (Exception e) when (e is JsonReaderException or JsonSerializationException) {
             ModFolder.Instance.Logger.Warn("Load folder data failed!", e);
+            // TODO: 备份
             // File.Delete(path);
         }
+    }
+    private static void LoadRoot(JObject data) {
+        if (data.TryGetValue(nameof(Favorites), out var favoritesToken)) {
+            var favorites = favoritesToken.ToObject<HashSet<string>>();
+            if (favorites != null) {
+                Favorites = favorites;
+            }
+        }
+        if (data.TryGetValue(nameof(PublishIds), out var publishIdsToken)) {
+            var publishIds = publishIdsToken.ToObject<Dictionary<string, ulong>>();
+            if (publishIds != null) {
+                PublishIds = publishIds;
+            }
+        }
+        _root = LoadNode(data) is not FolderNode node ? new() : new(node);
     }
     private static Node? LoadNode(JObject data) {
         if (data.TryGetValue("FolderName", out var folderNameToken) && folderNameToken is JValue folderNameValue && folderNameValue.Value?.ToString() is string folderNameString) {

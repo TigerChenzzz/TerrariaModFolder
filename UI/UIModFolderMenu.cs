@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using ModFolder.Systems;
 using ReLogic.Content;
+using System.Reflection.PortableExecutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -58,7 +59,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// <summary>
     /// 当找完模组后, 这里会存有所有的模组
     /// </summary>
-    private Dictionary<string, UIModItemInFolder> ModItemDict { get; set; } = [];
+    public Dictionary<string, UIModItemInFolder> ModItemDict { get; set; } = [];
     #endregion
     #region 文件夹路径
     /// <summary>
@@ -66,7 +67,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
     public UIHorizontalList folderPathList = null!;
-    private UIElement folderPathListPlaceHolder = new();
+    private readonly UIElement folderPathListPlaceHolder = new();
 
     private FolderPathClass? _folderPath;
     private FolderPathClass FolderPath {
@@ -115,7 +116,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIElement uIElement = null!;
     private UIPanel uiPanel = null!;
     private UIImagePro refreshButton = null!;
-    private UIElement refreshButtonPlaceHolder = new();
+    private readonly UIElement refreshButtonPlaceHolder = new();
     private UIFolderItemList list = null!;
     private UIScrollbar uiScrollbar = null!;
     #region 下面的一堆按钮
@@ -154,7 +155,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             "Mods.ModFolder.UI.SortButtons.AllMods.Tooltip",
         ],
         [
-            "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.CustomFM.Tooltip",
             "Mods.ModFolder.UI.SortButtons.FolderFirst.Tooltip",
             "Mods.ModFolder.UI.SortButtons.ModFirst.Tooltip",
         ],
@@ -196,7 +197,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         var texture = Textures.UI("SortIcons");
         OnInitialize_SortButtons(texture);
         OnInitialize_SearchFilter(texture);
-        uiPanel.Append(upperMenuContainer);
     }
     #endregion
     #region 排序与过滤的按钮
@@ -481,6 +481,61 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
     private FolderNode? nodeToRename;
+    private readonly List<UIElement> _confirmPanels = [];
+    private UIImage? _confirmPanelCover;
+    private UIImage ConfirmPanelCover {
+        get {
+            if (_confirmPanelCover != null) {
+                return _confirmPanelCover;
+            }
+            _confirmPanelCover = new(Textures.White) {
+                Width = { Percent = 1 },
+                Height = { Percent = 1 },
+                Color = Color.Black * 0.2f,
+                ScaleToFit = true
+            };
+            _confirmPanelCover.OnLeftClick += (_, _) => {
+                RemoveConfirmPanel();
+            };
+            return _confirmPanelCover;
+        }
+    }
+    public void AppendConfirmPanel(UIElement panel) {
+        _confirmPanels.Add(panel);
+        Append(ConfirmPanelCover);
+        Append(panel);
+    }
+    public void RemoveConfirmPanel(bool silence = false) {
+        if (!silence) {
+            SoundEngine.PlaySound(SoundID.MenuClose);
+        }
+        if (_confirmPanels.Count == 0) {
+            return;
+        }
+        _confirmPanels[^1].Remove();
+        _confirmPanels.RemoveAt(_confirmPanels.Count - 1);
+        for (int i = Elements.Count - 1; i >= 0; --i) {
+            if (Elements[i] == ConfirmPanelCover) {
+                Elements.RemoveAt(i);
+            }
+        }
+        if (_confirmPanels.Count == 0) {
+            ConfirmPanelCover.Parent = null;
+        }
+    }
+    public void ClearConfirmPanels(bool silence = false) {
+        if (_confirmPanels.Count == 0) {
+            return;
+        }
+        if (!silence) {
+            SoundEngine.PlaySound(SoundID.MenuClose);
+        }
+        for (int i = _confirmPanels.Count - 1; i >= 0; --i) {
+            _confirmPanels[i].Remove();
+            ConfirmPanelCover.Remove();
+        }
+        _confirmPanels.Clear();
+    }
     #endregion
 
     public override void OnInitialize() {
@@ -634,8 +689,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ButtonRM = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModsForceReload"));
         ButtonRM.OnLeftClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
-            if (ModItemDict.Count > 0)
-                ModLoader.Reload();
+            ModLoader.Reload();
         };
         #endregion
         #region 打开模组文件夹按钮
@@ -757,6 +811,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #region 右键松开时尝试移动位置
         OnRightMouseUp += OnRightMouseUp_RightDrag;
         #endregion
+        // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
+        uiPanel.Append(upperMenuContainer);
         Append(uIElement);
     }
 
@@ -912,6 +968,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         list.Clear();
         list.StopMoving();
         DraggingTarget = null;
+        ClearConfirmPanels(true);
         var filterResults = new UIModsFilterResults();
         var visibleItems = GetVisibleItems(filterResults);
         #region 若有任何被过滤的, 则在列表中添加一个元素提示过滤了多少东西
@@ -1338,6 +1395,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
     #region 异步寻找 Mod
+    public bool Loaded => loaded;
     private bool loaded;
     private void FindModsTask() {
         if (loaded) {

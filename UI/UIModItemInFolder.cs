@@ -23,8 +23,7 @@ public class UIModItemInFolder : UIFolderItem {
     public bool Loaded => _loaded;
     public override string NameToSort => _mod.DisplayNameClean;
     public override DateTime LastModified => _mod.lastModified;
-    // TODO: Favorite 的 显示与设置
-    public bool Favorite {
+    public override bool Favorite {
         get => ModNode?.Favorite ?? false;
         set {
             if (ModNode != null) {
@@ -53,11 +52,6 @@ public class UIModItemInFolder : UIFolderItem {
     private UIImage? _modReferenceIcon;
     private UIImage? _translationModIcon;
     private UIImage? _deleteModButton;
-    private UIAutoScaleTextTextPanel<string>? _dialogYesButton;
-    private UIAutoScaleTextTextPanel<string>? _dialogNoButton;
-    private UIText? _dialogText;
-    private UIImage? _blockInput;
-    private UIPanel? _deleteModDialog;
     private readonly LocalMod _mod;
     // private bool modFromLocalModFolder;
 
@@ -459,10 +453,6 @@ public class UIModItemInFolder : UIFolderItem {
         base.DrawSelf(spriteBatch);
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
-        if (Favorite) {
-            // TODO: 金光闪闪冒粒子
-            spriteBatch.Draw(Textures.White, rectangle, Color.Gold * 0.3f);
-        }
         #region 是否启用
         // TODO: 显示因配置而需要重载的状态?  _configChangesRequireReload
         if (_mod.Enabled && (_loaded || _mod.properties.side == ModSide.Server)) {
@@ -544,6 +534,9 @@ public class UIModItemInFolder : UIFolderItem {
     private void ToggleEnabled() {
         SoundEngine.PlaySound(SoundID.MenuTick);
         _mod.Enabled = !_mod.Enabled;
+        if (UIModFolderMenu.Instance.EnabledFilterMode != FolderEnabledFilter.All) {
+            UIModFolderMenu.Instance.ArrangeGenerate();
+        }
 
         if (!_mod.Enabled) {
             DisableDependents();
@@ -649,74 +642,81 @@ public class UIModItemInFolder : UIFolderItem {
         // TODO: 他们的提示
         bool shiftPressed = Main.keyState.PressingShift();
 
-        if (!shiftPressed) {
-            SoundEngine.PlaySound(SoundID.MenuOpen);
-            _blockInput = new UIImage(TextureAssets.Extra[190]) {
-                Width = { Percent = 1 },
-                Height = { Percent = 1 },
-                Color = new Color(0, 0, 0, 0),
-                ScaleToFit = true
-            };
-            _blockInput.OnLeftMouseDown += CloseDialog;
-            UIModFolderMenu.Instance.Append(_blockInput);
-
-            _deleteModDialog = new UIPanel() {
-                Width = { Percent = .30f },
-                Height = { Percent = .30f },
-                HAlign = .5f,
-                VAlign = .5f,
-                BackgroundColor = new Color(63, 82, 151),
-                BorderColor = Color.Black
-            };
-            _deleteModDialog.SetPadding(6f);
-            UIModFolderMenu.Instance.Append(_deleteModDialog);
-
-            _dialogYesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.104")) {
-                TextColor = Color.White,
-                Width = new StyleDimension(-10f, 1f / 3f),
-                Height = { Pixels = 40 },
-                VAlign = .85f,
-                HAlign = .15f
-            }.WithFadedMouseOver();
-            _dialogYesButton.OnLeftClick += DeleteMod;
-            _deleteModDialog.Append(_dialogYesButton);
-
-            _dialogNoButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
-                TextColor = Color.White,
-                Width = new StyleDimension(-10f, 1f / 3f),
-                Height = { Pixels = 40 },
-                VAlign = .85f,
-                HAlign = .85f
-            }.WithFadedMouseOver();
-            _dialogNoButton.OnLeftClick += CloseDialog;
-            _deleteModDialog.Append(_dialogNoButton);
-
-            _dialogText = new UIText(Language.GetTextValue("tModLoader.DeleteModConfirm")) {
-                Width = { Percent = .75f },
-                HAlign = .5f,
-                VAlign = .3f,
-                IsWrapped = true
-            };
-            _deleteModDialog.Append(_dialogText);
-
-            UIModFolderMenu.Instance.Recalculate();
-        }
-        else {
+        if (Main.keyState.PressingShift() || Main.keyState.PressingControl()) {
             DeleteMod(evt, listeningElement);
+            return;
         }
-    }
+        SoundEngine.PlaySound(SoundID.MenuOpen);
 
-    private void CloseDialog(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuClose);
-        _blockInput?.Remove();
-        _deleteModDialog?.Remove();
+        var _deleteModDialog = new UIPanel() {
+            Width = { Pixels = 440 },
+            Height = { Pixels = 300 },
+            HAlign = .5f,
+            VAlign = .5f,
+            BackgroundColor = new Color(63, 82, 151),
+            BorderColor = Color.Black
+        };
+        _deleteModDialog.SetPadding(6f);
+        UIModFolderMenu.Instance.Append(_deleteModDialog);
+        UIModFolderMenu.Instance.AppendConfirmPanel(_deleteModDialog);
+
+        #region 按钮是
+        var _dialogYesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
+            TextColor = Color.White,
+            Width = new StyleDimension(-10f, 1f / 3f),
+            Height = { Pixels = 40 },
+            VAlign = .85f,
+            HAlign = .15f
+        }.WithFadedMouseOver();
+        _dialogYesButton.OnUpdate += _ => {
+            if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods || Main.keyState.PressingControl() || Main.keyState.PressingShift()) {
+                _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.104"));
+            }
+            else {
+                _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.105"));
+            }
+        };
+        _dialogYesButton.OnLeftClick += DeleteMod;
+        _deleteModDialog.Append(_dialogYesButton);
+        #endregion
+        #region 按钮否
+        var _dialogNoButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
+            TextColor = Color.White,
+            Width = new StyleDimension(-10f, 1f / 3f),
+            Height = { Pixels = 40 },
+            VAlign = .85f,
+            HAlign = .85f
+        }.WithFadedMouseOver();
+        _dialogNoButton.OnLeftClick += (_, _) => UIModFolderMenu.Instance.RemoveConfirmPanel();
+        _deleteModDialog.Append(_dialogNoButton);
+        #endregion
+
+        string tip = Language.GetTextValue("tModLoader.DeleteModConfirm");
+        if (UIModFolderMenu.Instance.ShowType == MenuShowType.FolderSystem) {
+            tip = string.Join('\n', tip, ModFolder.Instance.GetLocalization("UI.DeleteModItemCofirmTextToAdd"));
+        }
+        var _dialogText = new UIText(tip) {
+            Width = { Percent = .85f },
+            HAlign = .5f,
+            VAlign = .3f,
+            IsWrapped = true,
+        };
+        _deleteModDialog.Append(_dialogText);
+
+        UIModFolderMenu.Instance.Recalculate();
     }
 
     private void DeleteMod(UIMouseEvent evt, UIElement listeningElement) {
-        ModOrganizer.DeleteMod(_mod);
-
-        CloseDialog(evt, listeningElement);
-        UIModFolderMenu.Instance.Activate();
+        if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods || Main.keyState.PressingControl()) {
+            ModOrganizer.DeleteMod(_mod);
+            UIModFolderMenu.Instance.ModItemDict.Remove(ModName);
+            UIModFolderMenu.Instance.ArrangeGenerate();
+        }
+        if (UIModFolderMenu.Instance.ShowType == MenuShowType.FolderSystem && Main.keyState.PressingShift() && ModNode != null) {
+            UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(ModNode);
+            UIModFolderMenu.Instance.ArrangeGenerate();
+        }
+        UIModFolderMenu.Instance.RemoveConfirmPanel();
     }
 
     private bool CheckIfPublishedForThisBrowserVersion(out string recommendedModBrowserVersion) {

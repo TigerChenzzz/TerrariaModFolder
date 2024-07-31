@@ -18,27 +18,27 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// DOING: 在拖拽时尝试移动视图
-// DOING: 添加 Parent 以及规范化节点创建与修改
-// DOING: 收藏和SteamID的储存方式修改
+// TESTING: 测试重名模组与整合包
+// DOING: 收藏的特效
 
-// TODO: 在各处确认删除的界面中点击其它部分直接取消 (直接糊上一个 UIState)
+// TODO: Ctrl 复制的提示
+// TODO: 复制文件夹
+// TODO: 添加 Parent 以及规范化节点创建与修改
 // TODO: 批量订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
 // TODO: Node 需要有父节点
 // TODO: 文件夹快捷方式
-// TODO: 大小图标的配置
+// TODO: 大小模组图标的配置
+// TODO: 新建文件夹排序问题
 
 // TODO: 右键拖动时禁用左键?
 
-// TODO: 排序: 自定义排序, 文件夹在模组上 / 下 / 任意
-// TODO: 分组与筛选: 按类型 (客户服务端文件夹), 按 Steam 还是本地文件, 按[是否启用 / 准备启用或禁用 / 修改了启禁用状态], 收藏
+// TODO: 分组与筛选: 按类型 (客户服务端文件夹), 按 Steam 还是本地文件, 按收藏
 
 // TODO: 文件夹的最近更新属性
 // TODO: ModNode 保存显示名? (配置)
 // TODO: 启用文件夹 / 禁用文件夹 / 显示文件夹的部分启用(背景为宽斜杠白条)
 
-// TODO: 查看全部模组的界面
 // TODO: 查看未安排位置的模组的界面
 // TODO: 配置是否将未安排位置的模组自动安排在根目录, 或安排到某个目录
 // TODO: 配置是否将未安排位置的模组显示在根目录, 或显示在某个目录
@@ -104,10 +104,12 @@ public class ModFolder : Mod {
             // !!!!! Test
 #if DEBUG
             UIModFolderMenu.TotallyReload();
+            // TODO: 做成选项
             FolderDataSystem.Reload();
 #endif
             UIModFolderMenu.EnterFrom(self);
         };
     }
     #endregion
+
 }
