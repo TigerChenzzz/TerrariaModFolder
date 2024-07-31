@@ -1,0 +1,31 @@
+CommonConfig: {
+	DisplayName: Config
+
+	LeftClickToEnterFolderSystem: {
+		Label: Left Click To Enter Folder System
+		Tooltip:
+			'''
+			when enabled, right click to enter the original mod manager
+			when disabled, right click to enter the folder system
+			'''
+	}
+
+	SeeChangelog: {
+		Label: See Changelog
+		Tooltip: ""
+	}
+
+	LogModLoading: {
+		Label: Log Mod Loading
+		Tooltip: Enabling it may cause lags when loading mods
+	}
+}
+
+SeeChangelogClass: {
+	Tooltip: ""
+
+	ChangelogDisplay: {
+		Label: Changelog Display
+		Tooltip: ""
+	}
+}

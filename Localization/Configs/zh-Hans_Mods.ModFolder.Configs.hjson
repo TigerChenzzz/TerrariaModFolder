@@ -1,0 +1,31 @@
+CommonConfig: {
+	DisplayName: 模组配置
+
+	LeftClickToEnterFolderSystem: {
+		Label: 左键打开文件夹系统
+		Tooltip:
+			'''
+			开启时, 右键以进入原版模组管理器
+			关闭时, 右键以进入文件夹系统
+			'''
+	}
+
+	SeeChangelog: {
+		Label: 查看更新日志
+		Tooltip: ""
+	}
+
+	LogModLoading: {
+		Label: 刷新时打印日志
+		Tooltip: 启用它可能会在加载模组时产生卡顿现象
+	}
+}
+
+SeeChangelogClass: {
+	// Tooltip: ""
+
+	ChangelogDisplay: {
+		// Label: Changelog Display
+		// Tooltip: ""
+	}
+}

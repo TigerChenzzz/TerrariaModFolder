@@ -1,7 +1,10 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.Xna.Framework.Input;
+using ModFolder.Configs;
 using ModFolder.Systems;
 using ReLogic.Content;
-using System.Reflection.PortableExecutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -814,6 +817,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         uiPanel.Append(upperMenuContainer);
         Append(uIElement);
+        OnInitialize_Debug();
     }
 
     private void ResettleVertical() {
@@ -861,7 +865,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void EnableMods(UIMouseEvent mouse, UIElement element) {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 未加载完成时给出(悬浮)提示
-        if (!loaded) {
+        if (!Loaded) {
             return;
         }
         HashSet<string> enabled = [];
@@ -882,7 +886,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 在同时取消收藏且全部取消时不用在乎是否加载完成, 可一键全部取消 (ModLoader.DisableAllMods();)
         // TODO: 未加载完成时给出(悬浮)提示
-        if (!loaded) {
+        if (!Loaded) {
             return;
         }
         HashSet<string> disabled = [];
@@ -903,7 +907,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void ResetMods(UIMouseEvent mouse, UIElement element) {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 未加载完成时给出(悬浮)提示
-        if (!loaded) {
+        if (!Loaded) {
             return;
         }
         HashSet<string> enabled = [];
@@ -929,7 +933,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     private void Refresh(UIMouseEvent mouse, UIElement element) {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        if (!loaded && modItemsTask != null) {
+        if (Loading) {
             return;
         }
         Populate();
@@ -945,14 +949,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Timer += 1;
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
-        // 当加载完成时做一些事情
-        if (modItemsTask is { IsCompleted: true, IsFaulted: true }) {
-            // TODO: 检查报错
-            ;
-        }
-        Update_TryRemoveLoading();  // 尝试移除加载动画
+        Update_HandleTask(); // 处理任务在添加或移除加载动画前
+        Update_AppendOrRemoveUILoader();  // 尝试移除加载动画
+        Update_DeleteMods(); // 尝试删除模组要在尝试生成之前
         Update_Generate();
-
     }
 
     #region 生成 Generate
@@ -1032,9 +1032,17 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     private IEnumerable<UIFolderItem> GetVisibleItems_InFolderSystem(UIModsFilterResults filterResults) {
+        HashSet<string> modsCurrent = [];
+        List<ModNode> nodesToRemove = []; 
         foreach (var node in CurrentFolderNode.Children) {
             if (node is ModNode m) {
+                if (modsCurrent.Contains(m.ModName)) {
+                    nodesToRemove.Add(m);
+                    continue;
+                }
+                modsCurrent.Add(m.ModName);
                 if (ModItemDict.TryGetValue(m.ModName, out var uiMod)) {
+                    m.ReceiveDataFrom(uiMod);
                     if (uiMod.PassFilters(filterResults)) {
                         uiMod.ModNode = m;
                         yield return uiMod;
@@ -1053,6 +1061,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     yield return uf;
                 }
             }
+        }
+        foreach (var nodeToRemove in nodesToRemove) {
+            CurrentFolderNode.Children.Remove(nodeToRemove);
         }
         #region 在根目录下时将文件夹树未包含的 Mod 全部放进来
         if (CurrentFolderNode != FolderDataSystem.Root) {
@@ -1359,81 +1370,140 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ArrangeGenerate();
         Main.clrInput();
         list.Clear();
-        if (!loaded) {
+        if (!_loaded) {
             ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
             Populate();
         }
     }
 
     public override void OnDeactivate() {
-        if (_cts != null) {
-            _cts.Cancel(false);
-            _cts.Dispose();
-            _cts = null;
-        }
-        modItemsTask = null;
+        OnDeactivate_Loading();
         SetListViewPositionAfterGenerated(list.ViewPosition);
         FolderDataSystem.Save();
     }
     #region 加载相关
-    #region loading
-    private Task? modItemsTask;
-    private CancellationTokenSource? _cts;
-    private bool needToRemoveLoading;
-    public bool loading;
+    #region 加载动画
     private UILoaderAnimatedImage uiLoader = null!;
-    private void Update_TryRemoveLoading() {
-        if (needToRemoveLoading) {
-            needToRemoveLoading = false;
-            RemoveChild(uiLoader);
-        }
-    }
+    private bool _uiLoaderAppended;
+    private bool _needToRemoveLoading;
+    private bool _needToAppendLoading;
+    private void ArrangeRemoveLoading() => _needToRemoveLoading = true;
+    private void ArrangeAppendLoading() => _needToAppendLoading = true;
     private void OnInitialize_Loading() {
         uiLoader = new(1, 1);
         uiLoader.Left.Pixels = -10;
         uiLoader.Top.Pixels = -10;
+        uiLoader.Activate();
+    }
+    private void Update_AppendOrRemoveUILoader() {
+        if (_needToAppendLoading) {
+            _needToAppendLoading = false;
+            if (!_uiLoaderAppended) {
+                Append(uiLoader);
+                _uiLoaderAppended = true;
+            }
+        }
+        if (_needToRemoveLoading) {
+            _needToRemoveLoading = false;
+            if (_uiLoaderAppended) {
+                RemoveChild(uiLoader);
+                _uiLoaderAppended = false;
+            }
+        }
     }
     #endregion
-    #region 异步寻找 Mod
-    public bool Loaded => loaded;
-    private bool loaded;
-    private void FindModsTask() {
-        if (loaded) {
-            needToRemoveLoading = true;
-            loading = false;
-            modItemsTask = null;
+    private Task? loadTask;
+    private CancellationTokenSource? _cts;
+    private bool _loaded;
+    public bool Loaded => _loaded;
+    public bool Loading => loadTask != null;
+    [Conditional("DEBUG")]
+    private void SetLoadingState(string state) => loadingState = state;
+    private string loadingState = string.Empty;
+    public void Populate() {
+        TryClearCts();
+        _cts = new();
+        loadTask = FindModsTask(_cts.Token);
+    }
+    private void Update_HandleTask() {
+        if (loadTask == null || !loadTask.IsCompleted) {
             return;
         }
-        var mods = ModOrganizer.FindMods(logDuplicates: true);
+        _loaded = true;
+        loadTask = null;
+        _cts = null;
+        ArrangeRemoveLoading();
+        ArrangeGenerate();
+    }
+    private void OnDeactivate_Loading() {
+        TryClearCts();
+        loadTask = null;
+    }
+    private void TryClearCts() {
+        if (_cts == null) {
+            return;
+        }
+        _cts.Cancel(false);
+        _cts.Dispose();
+        _cts = null;
+    }
+    #region 异步寻找 Mod
+    private async Task FindModsTask(CancellationToken token) {
+        _loaded = false;
+        ArrangeAppendLoading();
+        SetLoadingState("Start");
+        await Task.Yield();
+        if (_modsToDelete.Count != 0) {
+            SetLoadingState("Deleting Mod");
+            while (_modsToDelete.Count != 0) {
+                var modToDelete = _modsToDelete.First();
+                _modsToDelete.Remove(modToDelete);
+                ModOrganizer.DeleteMod(modToDelete);
+                await Task.Yield();
+            }
+        }
+        SetLoadingState("Ready To Find Mods");
+        // 删除模组的操作不能取消, 所以从这里开始才使用 token
+        await YieldWithToken(token);
+        var mods = ModOrganizer.FindMods(CommonConfig.Instance.LogModLoading);
+        SetLoadingState("Loading Mods");
+        await YieldWithToken(token);
         Dictionary<string, UIModItemInFolder> tempModItemDict = [];
         foreach (var mod in mods) {
             UIModItemInFolder modItem = new(mod);
             tempModItemDict.Add(modItem.ModName, modItem);
             modItem.Activate();
         }
+        // 以防在加载过程中安排了删除模组但实际上还没删除的情况, 从中排除待删除的模组
+        lock (_modsToDelete) {
+            foreach (var modToDelete in _modsToDelete) {
+                tempModItemDict.Remove(modToDelete.Name);
+            }
+        }
         ModItemDict = tempModItemDict;
+        SetLoadingState("Final Clean");
 
         // TODO: 遍历一遍 Root 来做各种事情
-
-        loaded = true;
-        needToRemoveLoading = true;
-        ArrangeGenerate();
-        loading = false;
-        modItemsTask = null;
+        
     }
-    public void Populate() {
-        if (_cts != null) {
-            _cts.Cancel(false);
-            _cts.Dispose();
-            _cts = null;
-        }
-        loaded = false;
-        loading = true;
-        Append(uiLoader);
-        _cts = new();
-        modItemsTask = Task.Run(FindModsTask, _cts.Token);
+    private static YieldAwaitable YieldWithToken(CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        return Task.Yield();
     }
     #endregion
+    #endregion
+    #region ArrangeDeleteMod
+    private readonly HashSet<LocalMod> _modsToDelete = [];
+    public void ArrangeDeleteMod(UIModItemInFolder uiMod) {
+        _modsToDelete.Add(uiMod.TheLocalMod);
+        ModItemDict.Remove(uiMod.ModName);
+        ArrangeGenerate();
+    }
+    private void Update_DeleteMods() {
+        if (_modsToDelete.Count != 0 && !Loading) {
+            Populate();
+        }
+    }
     #endregion
     #region Arrange Remove
     private readonly List<UIElement> toRemove = [];
@@ -1447,4 +1517,34 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     public void ArrangeRemove(UIElement child) => toRemove.Add(child);
     #endregion
+
+    [Conditional("DEBUG")]
+    private void OnInitialize_Debug() {
+        var debugTextPanel = new UIElementCustom {
+            Width = { Percent = 1f },
+            Height = { Percent = 1f },
+            IgnoresMouseInteraction = true,
+        };
+        var debugTextUI = new UIText(string.Empty) {
+            Left = { Pixels = 20 },
+            Top = { Pixels = 100 },
+            TextOriginX = 0,
+        };
+        debugTextPanel.Append(debugTextUI);
+        debugTextPanel.OnUpdate += _ => {
+            string text = $"Task is null: {loadTask == null}";
+            if (loadTask != null) {
+                text += $"""
+                ,
+                Task.IsCompleted: {loadTask.IsCompleted},
+                Task.IsCompletedSuccessfully: {loadTask.IsCompletedSuccessfully},
+                Task.IsFaulted: {loadTask.IsFaulted},
+                Task.IsCanceled: {loadTask.IsCanceled}
+                loadingState: {loadingState}
+                """;
+            }
+            debugTextUI.SetText(text);
+        };
+        Append(debugTextPanel);
+    }
 }

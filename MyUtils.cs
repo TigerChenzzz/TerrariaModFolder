@@ -1,5 +1,6 @@
 ﻿global using static ModFolder.MyUtils;
 using ReLogic.Content;
+using Terraria.ModLoader.Core;
 using Terraria.UI;
 
 namespace ModFolder;
@@ -270,4 +271,6 @@ public static class MyUtils {
             self.Append(to);
         }
     }
+    private static bool? _developerMode;
+    public static bool IsTMLDeveloperMode => _developerMode ??= ModCompile.DeveloperMode;
 }

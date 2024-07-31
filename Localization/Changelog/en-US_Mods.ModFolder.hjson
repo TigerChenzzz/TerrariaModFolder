@@ -1,0 +1,13 @@
+Changelog:
+	'''
+	v0.1.1
+	- add changelog
+	- config whether to use leftclick to enter the folder system (default rightclick)
+	- unloaded mods show display name instead of inner name
+	- resolve the lags when unsubscribing mods
+	- fill the description
+	- fix the misalignment when there're duplicated mods in the same folder
+
+	v0.1.0
+	- publish
+	'''

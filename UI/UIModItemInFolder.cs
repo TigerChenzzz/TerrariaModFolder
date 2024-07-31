@@ -9,6 +9,7 @@ using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Base;
+using Terraria.Social.Steam;
 using Terraria.UI;
 
 namespace ModFolder.UI;
@@ -38,6 +39,7 @@ public class UIModItemInFolder : UIFolderItem {
             UIModFolderMenu.Instance.CurrentFolderNode.Children.Add(ModNode);
         }
     }
+    public ulong PublishId { get; private set; }
 
     private const float PADDING = 5f;
     private UIImage _moreInfoButton = null!;
@@ -152,6 +154,11 @@ public class UIModItemInFolder : UIFolderItem {
         _modName.Left.Pixels = leftOffset;
         _modName.Top.Pixels = 7;
         Append(_modName);
+        #endregion
+        #region PublishId
+        if (WorkshopHelper.GetPublishIdLocal(_mod.modFile, out ulong publishId)) {
+            PublishId = publishId;
+        }
         #endregion
         #region 已升级小点
         var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
@@ -635,6 +642,7 @@ public class UIModItemInFolder : UIFolderItem {
         return passed ? 0 : 3;
     }
 
+    #region 删除
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {
         // TODO: 二次确认时选择删除索引还是取消订阅
         // TODO: shift 和 ctrl 控制删除索引和取消订阅 (在二次确认面板中提示这个操作)
@@ -708,9 +716,7 @@ public class UIModItemInFolder : UIFolderItem {
 
     private void DeleteMod(UIMouseEvent evt, UIElement listeningElement) {
         if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods || Main.keyState.PressingControl()) {
-            ModOrganizer.DeleteMod(_mod);
-            UIModFolderMenu.Instance.ModItemDict.Remove(ModName);
-            UIModFolderMenu.Instance.ArrangeGenerate();
+            UIModFolderMenu.Instance.ArrangeDeleteMod(this);
         }
         if (UIModFolderMenu.Instance.ShowType == MenuShowType.FolderSystem && Main.keyState.PressingShift() && ModNode != null) {
             UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(ModNode);
@@ -718,7 +724,7 @@ public class UIModItemInFolder : UIFolderItem {
         }
         UIModFolderMenu.Instance.RemoveConfirmPanel();
     }
-
+    #endregion
     private bool CheckIfPublishedForThisBrowserVersion(out string recommendedModBrowserVersion) {
         recommendedModBrowserVersion = SocialBrowserModule.GetBrowserVersionNumber(_mod.tModLoaderVersion);
         return recommendedModBrowserVersion == SocialBrowserModule.GetBrowserVersionNumber(BuildInfo.tMLVersion);

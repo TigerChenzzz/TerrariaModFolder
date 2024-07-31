@@ -284,10 +284,7 @@ public class UIFolder : UIFolderItem {
             if (!UIModFolderMenu.Instance.ModItemDict.TryGetValue(modNode.ModName, out var uimod)) {
                 continue;
             }
-            ModOrganizer.DeleteMod(uimod.TheLocalMod);
-            UIModFolderMenu.Instance.ModItemDict.Remove(modNode.ModName);
-            // 放在循环内, 如果没有取消订阅任何模组就不刷新了
-            UIModFolderMenu.Instance.ArrangeGenerate();
+            UIModFolderMenu.Instance.ArrangeDeleteMod(uimod);
         }
         if (shift) {
             DeleteFolderInner();

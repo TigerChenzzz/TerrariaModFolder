@@ -15,8 +15,11 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
     // private bool modFromLocalModFolder;
     private string? _tooltip;
 
-    public override string NameToSort => ModName;
+    public override string NameToSort => ModDisplayNameClean;
     public string ModName => _modNode.ModName;
+    public string ModDisplayName => _modNode.DisplayName;
+    private string? _modDisplayNameClean;
+    public string ModDisplayNameClean => _modDisplayNameClean ??= Utils.CleanChatTags(ModDisplayName);
     private readonly FolderDataSystem.ModNode _modNode = modNode;
     public FolderDataSystem.ModNode ModNode => _modNode;
     public override FolderDataSystem.Node? Node => ModNode;
@@ -31,7 +34,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
 
     public override void OnInitialize() {
         #region 名字
-        string text = ModName;
+        string text = ModDisplayName;
         _uiModName = new UIText(text) {
             Top = { Pixels = 7, },
         };
