@@ -213,7 +213,7 @@ public class UIFolder : UIFolderItem {
             UIModFolderMenu.Instance.RemoveConfirmPanel();
             return;
         }
-        if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods) {
+        if (UIModFolderMenu.Instance.ShowAllMods) {
             return;
         }
         if (Main.keyState.PressingControl()) {

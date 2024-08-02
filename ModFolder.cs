@@ -21,7 +21,10 @@ namespace ModFolder;
 
 // TESTING: 测试重名模组与整合包
 // DOING: 收藏的特效
+// DOING: 显示来自 Steam 还是本地还是整合包
 
+// TODO: 显示前置时的 "缺少" 字样显示条件?
+// TODO: 文件夹的名字和模组的名字没有对齐
 // TODO: 删除索引时同时删除收藏, publishId等信息 (根据引用计数)
 // TODO: 筛选最近更新与新添加
 // TODO: Ctrl 复制的提示
@@ -51,7 +54,7 @@ namespace ModFolder;
 
 // TODO: 在有文件夹和模组的排序时仍可以自定义顺序
 // TODO: 块状排列 (ConciseModList: ???)
-// TODO: Mouse4 和 Mouse5 撤回与回退
+// TODO: Mouse4 和 Mouse5 撤回与回退 返回上级 (Alt + ←→↑)
 // TODO: alt 收藏模组 (收藏的模组一般不会因禁用全部按钮而被禁用) (金光闪闪和粒子)
 // TODO: 启用某个玩家对应的模组
 
@@ -109,12 +112,6 @@ public class ModFolder : Mod {
         };
         buttonMods.OnRightClick += (e, el) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
-#if DEBUG
-            // !!!!! Test
-            UIModFolderMenu.TotallyReload();
-            // TODO: 做成选项
-            FolderDataSystem.Reload();
-#endif
             if (CommonConfig.Instance.LeftClickToEnterFolderSystem) {
                 _openOriginModsMenu = true;
                 self.Click_OpenModsMenu(e, el);

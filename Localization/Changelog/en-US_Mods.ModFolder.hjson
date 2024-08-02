@@ -1,5 +1,8 @@
 Changelog:
 	'''
+	v0.1.2
+	- add a button to show memory estimates
+
 	v0.1.1
 	- add changelog
 	- config whether to use leftclick to enter the folder system (default rightclick)

@@ -256,7 +256,7 @@ public static class MyUtils {
     }
     #endregion
 
-    public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd) {
+    public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd, Action? onReplace = null) {
         
         for (int i = 0; i < self.Elements.Count; ++i) {
             if (self.Elements[i] == from) {
@@ -264,6 +264,7 @@ public static class MyUtils {
                 self.Elements[i] = to;
                 to.Parent = self;
                 to.Recalculate();
+                onReplace?.Invoke();
                 return;
             }
         }
@@ -273,4 +274,6 @@ public static class MyUtils {
     }
     private static bool? _developerMode;
     public static bool IsTMLDeveloperMode => _developerMode ??= ModCompile.DeveloperMode;
+
+    public static bool ToBoolean(this int self) => self != 0;
 }

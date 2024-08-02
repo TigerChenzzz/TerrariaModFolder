@@ -26,15 +26,15 @@ UI: {
 			按住 Ctrl 以在返回主菜单时强制重新加载模组
 			'''
 
-		ToggleCategoryButtons: {
+		ToggleShowButtons: {
 			TooltipOn:
 				'''
-				显示排序与过滤按钮
+				显示按钮
 				中键以还原默认选项
 				'''
 			TooltipOff:
 				'''
-				隐藏排序与过滤按钮
+				隐藏按钮
 				中键以还原默认选项
 				'''
 		}

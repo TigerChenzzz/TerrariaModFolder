@@ -26,15 +26,15 @@ UI: {
 			pressing Ctrl to force reload mods when go to the main menu
 			'''
 
-		ToggleCategoryButtons: {
+		ToggleShowButtons: {
 			TooltipOn:
 				'''
-				show category buttons
+				show buttons
 				middle click to reset to default
 				'''
 			TooltipOff:
 				'''
-				hide category buttons
+				hide buttons
 				middle click to reset to default
 				'''
 		}

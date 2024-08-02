@@ -142,6 +142,7 @@ public class UIModItemInFolder : UIFolderItem {
             _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name), Language.GetTextValue("tModLoader.ModStableOnPreviewWarning")) {
                 Left = { Pixels = leftOffset },
                 VAlign = 0.5f,
+                UseTooltipMouseText = true,
             };
             leftOffset += _keyImage.Width.Pixels + PADDING;
             Append(_keyImage);
@@ -677,7 +678,7 @@ public class UIModItemInFolder : UIFolderItem {
             HAlign = .15f
         }.WithFadedMouseOver();
         _dialogYesButton.OnUpdate += _ => {
-            if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods || Main.keyState.PressingControl() || Main.keyState.PressingShift()) {
+            if (UIModFolderMenu.Instance.ShowAllMods || Main.keyState.PressingControl() || Main.keyState.PressingShift()) {
                 _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.104"));
             }
             else {
@@ -700,7 +701,7 @@ public class UIModItemInFolder : UIFolderItem {
         #endregion
 
         string tip = Language.GetTextValue("tModLoader.DeleteModConfirm");
-        if (UIModFolderMenu.Instance.ShowType == MenuShowType.FolderSystem) {
+        if (UIModFolderMenu.Instance.ShowFolderSystem) {
             tip = string.Join('\n', tip, ModFolder.Instance.GetLocalization("UI.DeleteModItemCofirmTextToAdd"));
         }
         var _dialogText = new UIText(tip) {
@@ -715,10 +716,11 @@ public class UIModItemInFolder : UIFolderItem {
     }
 
     private void DeleteMod(UIMouseEvent evt, UIElement listeningElement) {
-        if (UIModFolderMenu.Instance.ShowType == MenuShowType.AllMods || Main.keyState.PressingControl()) {
+        if (UIModFolderMenu.Instance.ShowAllMods || Main.keyState.PressingControl()) {
             UIModFolderMenu.Instance.ArrangeDeleteMod(this);
         }
-        if (UIModFolderMenu.Instance.ShowType == MenuShowType.FolderSystem && Main.keyState.PressingShift() && ModNode != null) {
+        // TODO: 在显示全部界面不可以删除索引的提示
+        if (UIModFolderMenu.Instance.ShowFolderSystem && Main.keyState.PressingShift() && ModNode != null) {
             UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(ModNode);
             UIModFolderMenu.Instance.ArrangeGenerate();
         }
