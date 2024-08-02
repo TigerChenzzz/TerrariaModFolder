@@ -19,11 +19,14 @@ using Terraria.UI;
 
 namespace ModFolder;
 
+// DOING: 启用禁用全部时检查前置
 // TESTING: 测试重名模组与整合包
 // DOING: 收藏的特效
 // DOING: 显示来自 Steam 还是本地还是整合包
-// DOING: 随时保存
+// DOING: 随时保存 (配置)
 
+// TODO: 配置删除文件夹是否必须二次确认
+// TODO: 配置在拖动时是否移动列表
 // TODO: 显示前置时的 "缺少" 字样显示条件?
 // TODO: 文件夹的名字和模组的名字没有对齐
 // TODO: 删除索引时同时删除收藏, publishId等信息 (根据引用计数)
@@ -42,6 +45,7 @@ namespace ModFolder;
 
 // TODO: 右键拖动时禁用左键?
 
+// TODO: 添加按钮是否筛选文件夹
 // TODO: 分组与筛选: 按类型 (客户端 / 服务端 / 文件夹), 按 Steam 还是本地文件, 按收藏, 筛选最近更新与新添加
 
 // TODO: 文件夹的最近更新属性
@@ -58,6 +62,11 @@ namespace ModFolder;
 // TODO: Mouse4 和 Mouse5 撤回与回退 返回上级 (Alt + ←→↑)
 // TODO: alt 收藏模组 (收藏的模组一般不会因禁用全部按钮而被禁用) (金光闪闪和粒子)
 // TODO: 启用某个玩家对应的模组
+
+// TODO: 更多按钮的按钮
+// TODO: 按钮: 将已启用的模组复制到此文件夹下 (按住 Shift 将此文件夹下的内容更新为已启用的模组 (二次确认)(不允许根目录执行此操作))
+// TODO: 按钮: 批量删除
+// TODO: 按钮: 批量重新订阅
 
 public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;

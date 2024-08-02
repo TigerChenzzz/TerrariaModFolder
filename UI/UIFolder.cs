@@ -111,10 +111,10 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 重命名输入框
         _renameText = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value) {
-            Left = { Pixels = 30 },
+            Left = { Pixels = 35 },
             Top = { Pixels = 5 },
             Height = { Pixels = -5, Percent = 1 },
-            Width = { Pixels = -30 + rightRowOffset, Percent = 1 },
+            Width = { Pixels = -35 + rightRowOffset, Percent = 1 },
             UnfocusOnTab = true,
         };
         _renameText.OnUnfocus += OnUnfocus_TryRename;
