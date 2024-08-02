@@ -22,6 +22,7 @@ namespace ModFolder;
 // TESTING: 测试重名模组与整合包
 // DOING: 收藏的特效
 // DOING: 显示来自 Steam 还是本地还是整合包
+// DOING: 随时保存
 
 // TODO: 显示前置时的 "缺少" 字样显示条件?
 // TODO: 文件夹的名字和模组的名字没有对齐

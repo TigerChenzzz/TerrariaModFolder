@@ -2,6 +2,7 @@ Changelog:
 	'''
 	v0.1.2
 	- add a button to show memory estimates
+	- show mod location (workshop / local / modpack), configurable
 
 	v0.1.1
 	- add changelog
