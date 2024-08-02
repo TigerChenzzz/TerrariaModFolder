@@ -487,6 +487,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #endregion
 
+    #region ShowModLocation
+    private bool _showModLocation = true;
+    private void Update_ShowModLocation() {
+        if (CommonConfig.Instance.ShowModLocation != _showModLocation) {
+            _showModLocation = CommonConfig.Instance.ShowModLocation;
+            Populate();
+        }
+    }
+    #endregion
     #region 杂项
     public UIState? PreviousUIState { get; set; }
     private Texture2D? _mouseTexture;
@@ -985,6 +994,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Timer += 1;
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
+        Update_ShowModLocation();
         Update_HandleTask(); // 处理任务在添加或移除加载动画前
         Update_AppendOrRemoveUILoader();  // 尝试移除加载动画
         Update_DeleteMods(); // 尝试删除模组要在尝试生成之前

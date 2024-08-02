@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Input;
+using ModFolder.Configs;
 using ModFolder.Systems;
 using ReLogic.Content;
 using Terraria.Audio;
@@ -80,6 +81,7 @@ public class UIModItemInFolder : UIFolderItem {
         base.OnInitialize();
 
         #region 图标
+        float leftOffset = 30;
         Asset<Texture2D>? modIcon = null;
         Asset<Texture2D>? smallIcon = null;
         Asset<Texture2D>? bigIcon = null;
@@ -108,15 +110,15 @@ public class UIModItemInFolder : UIFolderItem {
             }
         }
         modIcon = smallIcon ?? bigIcon ?? Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
-        _modIcon = new UIImage(modIcon) {
+        _modIcon = new(modIcon) {
             Left = { Pixels = 1 },
             Top = { Pixels = 1 },
             Width = { Pixels = 28 },
             Height = { Pixels = 28 },
             ScaleToFit = true,
             AllowResizingDimensions = false,
+            RemoveFloatingPointsFromDrawPosition = true,
         };
-        float leftOffset = 30 + PADDING;
         /*
         if (smallIcon != null && bigIcon != null) {
             _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
@@ -129,32 +131,63 @@ public class UIModItemInFolder : UIFolderItem {
         // Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
         // TODO: 测试它的位置
         if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
+            leftOffset += 2;
             _modDidNotFullyUnloadWarningImage = new(UICommon.ButtonErrorTexture, Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning")) {
                 Left = { Pixels = leftOffset },
                 VAlign = 0.5f,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
-            leftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels + PADDING;
+            leftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
             Append(_modDidNotFullyUnloadWarningImage);
         }
         #endregion
         #region ModStableOnPreviewWarning
         if (ModOrganizer.CheckStableBuildOnPreview(_mod)) {
+            leftOffset += 2;
             _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name), Language.GetTextValue("tModLoader.ModStableOnPreviewWarning")) {
                 Left = { Pixels = leftOffset },
                 VAlign = 0.5f,
                 UseTooltipMouseText = true,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
-            leftOffset += _keyImage.Width.Pixels + PADDING;
+            leftOffset += _keyImage.Width.Pixels;
             Append(_keyImage);
         }
         #endregion
         #region 名字
+        if (leftOffset == 30) {
+            leftOffset += 5;
+        }
+        else {
+            leftOffset += 2;
+        }
         // TODO: 名字太长怎么办 (UIHorizontalList?)
         string text = _mod.DisplayName + " v" + _mod.modFile.Version;
         _modName = new(text);
         _modName.Left.Pixels = leftOffset;
         _modName.Top.Pixels = 7;
+        leftOffset += _modName.MinWidth.Pixels;
         Append(_modName);
+        #endregion
+        #region 模组位置标志
+        if (CommonConfig.Instance.ShowModLocation) {
+            // 24x24
+		    var modLocationIconTexture = _mod.location switch {
+			    ModLocation.Workshop => TextureAssets.Extra[243],
+			    ModLocation.Modpack => UICommon.ModLocationModPackIcon,
+			    ModLocation.Local => UICommon.ModLocationLocalIcon,
+			    _ => throw new NotImplementedException(),
+		    };
+            leftOffset += 2;
+		    var modLocationIcon = new UIHoverImage(modLocationIconTexture, Language.GetTextValue("tModLoader.ModFrom" + _mod.location)) {
+			    RemoveFloatingPointsFromDrawPosition = true,
+			    UseTooltipMouseText = true,
+			    Left = { Pixels = leftOffset },
+                VAlign = 0.5f,
+		    };
+            leftOffset += modLocationIcon.Width.Pixels;
+		    Append(modLocationIcon);
+        }
         #endregion
         #region PublishId
         if (WorkshopHelper.GetPublishIdLocal(_mod.modFile, out ulong publishId)) {
@@ -166,10 +199,11 @@ public class UIModItemInFolder : UIFolderItem {
         if (oldModVersionData != default) {
             previousVersionHint = oldModVersionData.previousVersion;
             var toggleImage = Main.Assets.Request<Texture2D>("Images/UI/Settings_Toggle");   // 大小: 30 x 14
+            leftOffset += 8;
             updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
-                Left = { Pixels = _modName.GetInnerDimensions().ToRectangle().Right + 8 /* _modIconAdjust*/, Percent = 0f },
+                Left = { Pixels = leftOffset, Percent = 0f },
                 Top = { Pixels = 8, Percent = 0f },
-                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212)
+                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212),
             };
             //_modName.Left.Pixels += 18; // use these 2 for left of the modname
 
@@ -213,9 +247,11 @@ public class UIModItemInFolder : UIFolderItem {
         }
         #endregion
         #region 删除
-        // TODO: 配置右边这堆按钮是否向右缩紧 
+        // TODO: 配置右边这堆按钮是否向右缩紧
         bool leanToTheRight = true;
-        int bottomRightRowOffset = -30;
+        int bottomRightRowOffset = -6;
+
+        bottomRightRowOffset -= 24;
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
             _deleteModButton = new UIImage(Textures.ButtonDelete) {
                 Width = { Pixels = 24 },
@@ -223,6 +259,7 @@ public class UIModItemInFolder : UIFolderItem {
                 Left = { Pixels = bottomRightRowOffset, Precent = 1 },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
             _deleteModButton.OnLeftClick += QuickModDelete;
             Append(_deleteModButton);
@@ -239,6 +276,7 @@ public class UIModItemInFolder : UIFolderItem {
             Left = { Pixels = bottomRightRowOffset, Percent = 1 },
             Top = { Pixels = -12, Percent = 0.5f },
             ScaleToFit = true,
+            RemoveFloatingPointsFromDrawPosition = true,
         };
         _moreInfoButton.OnLeftClick += ShowMoreInfo;
         Append(_moreInfoButton);
@@ -252,6 +290,7 @@ public class UIModItemInFolder : UIFolderItem {
                 Left = { Pixels = bottomRightRowOffset, Percent = 1f },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
             _configButton.OnLeftClick += OpenConfig;
             Append(_configButton);
@@ -319,6 +358,7 @@ public class UIModItemInFolder : UIFolderItem {
                 Left = new(bottomRightRowOffset, 1),
                 Top = new(-12, 0.5f),
                 ScaleToFit = true,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
             // _modReferenceIcon.OnLeftClick += EnableDependencies;
 
@@ -338,30 +378,12 @@ public class UIModItemInFolder : UIFolderItem {
                 Left = new(bottomRightRowOffset, 1),
                 Top = new(-12, 0.5f),
                 ScaleToFit = true,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
             Append(_translationModIcon);
         }
         else if (leanToTheRight) {
             bottomRightRowOffset += 24;
-        }
-        #endregion
-        #region Steam 标志
-        // TODO:  Steam 标志和整合包标志放在何处
-        if (_mod.location == ModLocation.Workshop && false) {
-            var steamIcon = new UIImage(TextureAssets.Extra[243])
-            {
-                Left = { Pixels = -22, Percent = 1f }
-            };
-            Append(steamIcon);
-        }
-        #endregion
-        #region 整合包标志
-        else if (_mod.location == ModLocation.Modpack) {
-            var modpackIcon = new UIImage(UICommon.ModLocationModPackIcon)
-            {
-                Left = { Pixels = -22, Percent = 1f }
-            };
-            Append(modpackIcon);
         }
         #endregion
         #region 加载的物品 / NPC / ...
@@ -386,7 +408,8 @@ public class UIModItemInFolder : UIFolderItem {
             for (int i = 0; i < values.Length; i++) {
                 if (values[i] > 0) {
                     _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.InfoIcon[i].Name), Language.GetTextValue($"tModLoader.{localizationKeys[i]}", values[i])) {
-                        Left = { Pixels = xOffset, Percent = 1f }
+                        Left = { Pixels = xOffset, Percent = 1f },
+                        RemoveFloatingPointsFromDrawPosition = true,
                     };
 
                     Append(_keyImage);
@@ -418,7 +441,7 @@ public class UIModItemInFolder : UIFolderItem {
                 Width = new StyleDimension(0, 1f),
                 Height = new StyleDimension(30, 0f),
                 BackgroundColor = Color.Orange,
-                // Top = { Pixels = 82 }
+                // Top = { Pixels = 82 },
             };
             Append(serverDiffMessage);
 

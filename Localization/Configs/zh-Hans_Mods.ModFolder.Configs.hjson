@@ -10,6 +10,11 @@ CommonConfig: {
 			'''
 	}
 
+	ShowModLocation: {
+		Label: 显示模组来源
+		Tooltip: 显示模组来自创意工坊, 本地还是整合包
+	}
+
 	SeeChangelog: {
 		Label: 查看更新日志
 		Tooltip: ""

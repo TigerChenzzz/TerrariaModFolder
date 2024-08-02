@@ -71,7 +71,7 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 名称
         _folderName = new(Name ?? string.Empty);
-        _folderName.Left.Pixels = 30;
+        _folderName.Left.Pixels = 35;
         // _folderName.Top.Pixels = 7;
         _folderName.VAlign = 0.5f;
         Append(_folderName);

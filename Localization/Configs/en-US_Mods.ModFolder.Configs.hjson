@@ -10,6 +10,11 @@ CommonConfig: {
 			'''
 	}
 
+	ShowModLocation: {
+		Label: Show Mod Location
+		Tooltip: show if mod is from steam workshop, local or modpack
+	}
+
 	SeeChangelog: {
 		Label: See Changelog
 		Tooltip: ""

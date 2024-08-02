@@ -1,5 +1,7 @@
-﻿using ReLogic.Content;
+﻿using ModFolder.UI;
+using ReLogic.Content;
 using ReLogic.Graphics;
+using System.ComponentModel;
 using Terraria.GameContent;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Config.UI;
@@ -13,6 +15,10 @@ public class CommonConfig : ModConfig {
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
     public bool LeftClickToEnterFolderSystem { get; set; }
+    #region 显示模组来源
+    [DefaultValue(true)]
+    public bool ShowModLocation { get; set; }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]
@@ -87,4 +93,7 @@ public class CommonConfig : ModConfig {
         Instance = this;
     }
 
+    public override void OnChanged() {
+        ;
+    }
 }
