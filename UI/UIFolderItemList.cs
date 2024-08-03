@@ -1,4 +1,5 @@
-﻿using Terraria.GameContent.UI.Elements;
+﻿using ModFolder.Configs;
+using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
 namespace ModFolder.UI;
@@ -30,15 +31,17 @@ public class UIFolderItemList : UIList {
             return;
         }
 
-        if (UIModFolderMenu.Instance.DraggingTarget != null) {
+        if (CommonConfig.Instance.AutoMoveListWhenDragging && UIModFolderMenu.Instance.DraggingTarget != null) {
             float upDelta = _dimensions.Y + _dimensions.Height / 8 - Main.mouseY;
             if (upDelta > 0) {
                 scrollbarAim -= upDelta / 5;
+                Main.mouseY += (int)MathF.Round(upDelta / 5);
             }
             else {
                 float downDelta = Main.mouseY - _dimensions.Y - _dimensions.Height * 7 / 8;
                 if (downDelta > 0) {
                     scrollbarAim += downDelta / 5;
+                    Main.mouseY -= (int)MathF.Round(downDelta / 5);
                 }
             }
         }

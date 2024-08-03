@@ -20,8 +20,17 @@ CommonConfig: {
 		Tooltip: if false, data would only be saved when go back
 	}
 
-	SeeChangelog: {
-		Label: See Changelog
+	AlwaysNeedConfirmWhenDeletingFolder: {
+		Label: Always Need Confirm When Deleting Folder
+		Tooltip:
+			'''
+			when disabled, pressing Shift or Alt and click delete button would directly delete the folder's index,
+			but you still need to comfirm unsubscribe all when pressing Ctrl
+			'''
+	}
+
+	AutoMoveListWhenDragging: {
+		Label: Auto Move List When Dragging
 		Tooltip: ""
 	}
 
@@ -30,8 +39,8 @@ CommonConfig: {
 		Tooltip: Enabling it may cause lags when loading mods
 	}
 
-	AlwaysNeedConfirmWhenDeletingFolder: {
-		Label: Always Need Confirm When Deleting Folder
+	SeeChangelog: {
+		Label: See Changelog
 		Tooltip: ""
 	}
 }

@@ -27,6 +27,10 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool AlwaysNeedConfirmWhenDeletingFolder { get; set; }
     #endregion
+    #region 在拖动时自动移动列表
+    [DefaultValue(true)]
+    public bool AutoMoveListWhenDragging { get; set; }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]
