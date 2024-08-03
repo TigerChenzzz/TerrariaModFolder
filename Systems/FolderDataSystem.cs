@@ -235,10 +235,10 @@ public static class FolderDataSystem {
 #pragma warning restore CA1822 // 将成员标记为 static
 #pragma warning restore IDE0051 // 删除未使用的私有成员
     }
+    #endregion
     public static HashSet<string> Favorites { get; private set; } = [];
     public static Dictionary<string, ulong> PublishIds { get; private set; } = [];
     public static Dictionary<string, string> DisplayNames { get; private set; } = [];
-    #endregion
     private static RootNode? _root;
     public static RootNode Root {
         get {
@@ -266,6 +266,7 @@ public static class FolderDataSystem {
             return Path.Combine(ModOrganizer.modPath, "ModFolderData.json");
         }
     }
+    #region 保存
     public static void Save() {
         File.WriteAllText(DataPath, JsonConvert.SerializeObject(_root));
     }
@@ -274,6 +275,8 @@ public static class FolderDataSystem {
             Save();
         }
     }
+    #endregion
+    #region 加载
     public static void Reload() {
         Reload_Inner();
         _root ??= new();
@@ -342,5 +345,51 @@ public static class FolderDataSystem {
                 childNode.Parent = folder;
             }
         }
+    }
+    #endregion
+    public static bool RemoveRedundantData() {
+        // TODO: 算法优化
+        bool anyRemoved = false;
+        HashSet<string> mods = [];
+        foreach (var modNode in Root.ModNodesInTree) {
+            mods.Add(modNode.ModName);
+        }
+        List<string> toRemoves = [];
+        foreach (var mod in Favorites) {
+            if (!mods.Contains(mod)) {
+                toRemoves.Add(mod);
+            }
+        }
+        if (toRemoves.Count != 0) {
+            anyRemoved = true;
+            foreach (var toRemove in toRemoves) {
+                Favorites.Remove(toRemove);
+            }
+            toRemoves.Clear();
+        }
+        foreach (var mod in PublishIds.Keys) {
+            if (!mods.Contains(mod)) {
+                toRemoves.Add(mod);
+            }
+        }
+        if (toRemoves.Count != 0) {
+            anyRemoved = true;
+            foreach (var toRemove in toRemoves) {
+                PublishIds.Remove(toRemove);
+            }
+            toRemoves.Clear();
+        }
+        foreach (var mod in DisplayNames.Keys) {
+            if (!mods.Contains(mod)) {
+                toRemoves.Add(mod);
+            }
+        }
+        if (toRemoves.Count != 0) {
+            anyRemoved = true;
+            foreach (var toRemove in toRemoves) {
+                DisplayNames.Remove(toRemove);
+            }
+        }
+        return anyRemoved;
     }
 }

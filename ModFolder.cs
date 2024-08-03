@@ -19,11 +19,6 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// TODO: 显示前置时的 "缺少" 字样显示条件?
-// TODO: 文件夹的名字和模组的名字没有对齐
-// TODO: 删除索引时同时删除收藏, publishId等信息 (根据引用计数)
-// TODO: 筛选最近更新与新添加
-// TODO: Ctrl 复制的提示
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
 // TODO: 添加 Parent 以及规范化节点创建与修改

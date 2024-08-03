@@ -33,7 +33,7 @@ CommonConfig: {
 		Label: 拖动时自动移动列表
 		Tooltip: ""
 	}
-	
+
 	DataSavePath: {
 		Label: 数据保存路径
 		Tooltip:

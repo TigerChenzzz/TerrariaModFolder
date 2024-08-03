@@ -1535,6 +1535,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         foreach (var modItem in ModItemDict.Values) {
             modItem.SetModReferences(availableMods);
         }
+
+        FolderDataSystem.RemoveRedundantData();
         // TODO: 遍历一遍 Root 来做各种事情
         ;
     }
