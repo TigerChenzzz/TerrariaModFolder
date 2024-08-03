@@ -19,11 +19,8 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// DOING: 删除文件夹时选择是否让文件回到上一级目录
-
-// TODO: 禁用模组时按住 Shift 禁用其不被其它模组依赖的引用
-// TODO: 配置删除文件夹是否必须二次确认
 // TODO: 配置在拖动时是否移动列表
+// TODO: 配置保存位置
 // TODO: 显示前置时的 "缺少" 字样显示条件?
 // TODO: 文件夹的名字和模组的名字没有对齐
 // TODO: 删除索引时同时删除收藏, publishId等信息 (根据引用计数)

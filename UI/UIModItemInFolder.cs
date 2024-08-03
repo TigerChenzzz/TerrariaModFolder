@@ -522,7 +522,7 @@ public class UIModItemInFolder : UIFolderItem {
         }
     }
     
-    public bool AnyDependentsOn() {
+    public bool AnyDependentOn() {
         foreach (var dependent in _modDependents) {
             if (ModLoader.EnabledMods.Contains(dependent)) {
                 return true;
@@ -714,19 +714,35 @@ public class UIModItemInFolder : UIFolderItem {
 
         if (!_mod.Enabled) {
             DisableDependents();
+            if (Main.keyState.PressingShift()) {
+                DisableRedundantDependencies();
+            }
             return;
         }
 
         EnableDependencies();
     }
+    void DisableRedundantDependencies() {
+        foreach (var dependency in _modReferences) {
+            if (!ModLoader.EnabledMods.Contains(dependency)) {
+                continue;
+            }
+            if (!UIModFolderMenu.Instance.ModItemDict.TryGetValue(dependency, out var dep) || dep.AnyDependentOn()) {
+                continue;
+            }
+            dep.Disable();
+            dep.DisableRedundantDependencies();
+        }
+    }
+    public bool IsRedundantDependency() {
+        return _modDependents.Length != 0 && !AnyDependentOn();
+    }
 
     internal void Enable() {
-        if (_mod.Enabled) { return; }
         _mod.Enabled = true;
     }
 
     internal void Disable() {
-        if (!_mod.Enabled) { return; }
         _mod.Enabled = false;
     }
 
