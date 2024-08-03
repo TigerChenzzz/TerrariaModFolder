@@ -251,6 +251,17 @@ public static class FolderDataSystem {
     }
     private static string DataPath {
         get {
+            string? pathFromConfig = CommonConfig.Instance.DataSavePath;
+            if (!string.IsNullOrWhiteSpace(pathFromConfig)) {
+                try {
+                    Directory.CreateDirectory(pathFromConfig);
+                    return Path.Combine(pathFromConfig, "ModFolderData.json");
+                }
+                catch {
+                    CommonConfig.Instance.DataSavePath = string.Empty;
+                    CommonConfig.Instance.Save();
+                }
+            }
             Directory.CreateDirectory(ModOrganizer.modPath);
             return Path.Combine(ModOrganizer.modPath, "ModFolderData.json");
         }

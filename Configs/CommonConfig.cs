@@ -31,6 +31,9 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool AutoMoveListWhenDragging { get; set; }
     #endregion
+    #region 数据保存位置
+    public string? DataSavePath { get; set; }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]
@@ -100,6 +103,10 @@ public class CommonConfig : ModConfig {
         }
     }
     #endregion
+
+    public void Save() {
+        ConfigManager.Save(this);
+    }
 
     public override void OnLoaded() {
         Instance = this;

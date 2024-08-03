@@ -19,8 +19,6 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// TODO: 配置在拖动时是否移动列表
-// TODO: 配置保存位置
 // TODO: 显示前置时的 "缺少" 字样显示条件?
 // TODO: 文件夹的名字和模组的名字没有对齐
 // TODO: 删除索引时同时删除收藏, publishId等信息 (根据引用计数)

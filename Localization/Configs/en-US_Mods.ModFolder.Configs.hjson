@@ -34,6 +34,15 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
+	DataSavePath: {
+		Label: Data Save Path
+		Tooltip:
+			'''
+			data would be saved at the "ModFolderData.json" at the path
+			if empty, data would be saved at the mod folder (where tml puts mods)
+			'''
+	}
+
 	LogModLoading: {
 		Label: Log Mod Loading
 		Tooltip: Enabling it may cause lags when loading mods

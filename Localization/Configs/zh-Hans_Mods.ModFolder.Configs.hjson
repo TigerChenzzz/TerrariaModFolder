@@ -19,7 +19,7 @@ CommonConfig: {
 		Label: 在有改动时保存
 		Tooltip: 如果关闭, 则只会在回到主界面时保存
 	}
-	
+
 	AlwaysNeedConfirmWhenDeletingFolder: {
 		Label: 删除文件夹总是需要二次确认
 		Tooltip:
@@ -33,12 +33,21 @@ CommonConfig: {
 		Label: 拖动时自动移动列表
 		Tooltip: ""
 	}
+	
+	DataSavePath: {
+		Label: 数据保存路径
+		Tooltip:
+			'''
+			数据会被保存在此路径的 "ModFolderData.json" 中
+			若为空, 则会保存在模组文件夹的 "ModFolderData.json" 中
+			'''
+	}
 
 	LogModLoading: {
 		Label: 刷新时打印日志
 		Tooltip: 启用它可能会在加载模组时产生卡顿现象
 	}
-	
+
 	SeeChangelog: {
 		Label: 查看更新日志
 		Tooltip: ""
