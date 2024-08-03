@@ -21,10 +21,8 @@ namespace ModFolder;
 
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
-// TODO: 添加 Parent 以及规范化节点创建与修改
 // TODO: 批量 重新订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
-// TODO: Node 需要有父节点
 // TODO: 大小模组图标的配置
 // TODO: 新建文件夹排序问题
 // TODO: description 的本地化支持?
@@ -38,7 +36,6 @@ namespace ModFolder;
 // TODO: 分组与筛选: 按类型 (客户端 / 服务端 / 文件夹), 按 Steam 还是本地文件, 按收藏, 筛选最近更新与新添加
 
 // TODO: 文件夹的最近更新属性
-// TODO: ModNode 保存显示名? (配置)
 // TODO: 启用文件夹 / 禁用文件夹 / 显示文件夹的部分启用(背景为宽斜杠白条)
 
 // TODO: 查看未安排位置的模组的界面
@@ -49,7 +46,6 @@ namespace ModFolder;
 // TODO: 在有文件夹和模组的排序时仍可以自定义顺序
 // TODO: 块状排列 (ConciseModList: ???)
 // TODO: Mouse4 和 Mouse5 撤回与回退 返回上级 (Alt + ←→↑)
-// TODO: alt 收藏模组 (收藏的模组一般不会因禁用全部按钮而被禁用) (金光闪闪和粒子)
 // TODO: 启用某个玩家对应的模组
 // TODO: 收藏的特效
 // TOTEST: 测试整合包

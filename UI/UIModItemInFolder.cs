@@ -545,7 +545,7 @@ public class UIModItemInFolder : UIFolderItem {
             dep.EnableQuick(enabled, missingRefs);
         }
     }
-    public void DisableQuick(HashSet<string> disabled) {
+    public void DisableQuick(HashSet<string> disabled, bool disableRedundantDependencies = false) {
         if (!ModLoader.EnabledMods.Remove(_mod.Name)) {
             return;
         }
@@ -555,7 +555,17 @@ public class UIModItemInFolder : UIFolderItem {
             if (dep == null) {
                 continue;
             }
-            dep.DisableQuick(disabled);
+            dep.DisableQuick(disabled, disableRedundantDependencies);
+        }
+        if (!disableRedundantDependencies) {
+            return;
+        }
+        foreach (var dependency in _modReferences) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(dependency);
+            if (dep == null || dep.AnyDependentOn()) {
+                continue;
+            }
+            dep.DisableQuick(disabled, disableRedundantDependencies);
         }
     }
 

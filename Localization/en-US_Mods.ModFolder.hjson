@@ -14,6 +14,8 @@ UI: {
 				pressing Alt to also contains the subfolders
 				pressing Shift for all mods
 				pressing Ctrl to not ignore the favorite mods
+				specially, pressing Ctrl and right click is regarded as right click but not pressing Ctrl, and disable the redundant dependencies
+				pressing Ctrl and middle click is regarded as right click with pressing Ctrl, and disable the redundant dependencies
 				(favorite mods cannot be diabled by default)
 				'''
 		}

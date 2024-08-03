@@ -728,9 +728,23 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #region 底下的按钮
         #region 启用与禁用按钮
         ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
-        ButtonAllMods.OnLeftClick += EnableMods;
-        ButtonAllMods.OnRightClick += DisableMods;
-        ButtonAllMods.OnMiddleClick += ResetMods;
+        ButtonAllMods.OnLeftClick += (_, _) => {
+            if (!Main.keyState.PressingControl()) {
+                EnableMods();
+            }
+            else {
+                DisableMods(true, true);
+            }
+        };
+        ButtonAllMods.OnRightClick += (_, _) => DisableMods(false, !Main.keyState.PressingControl());
+        ButtonAllMods.OnMiddleClick += (_, _) => {
+            if (!Main.keyState.PressingControl()) {
+                ResetMods();
+            }
+            else {
+                DisableMods(true, false);
+            }
+        };
         mouseOverTooltips.Add((ButtonAllMods, () => ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.Tooltip").Value));
         #endregion
         #region 重新加载按钮
@@ -906,7 +920,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     // 按住 alt 同时包含子文件夹
     // 按住 ctrl 在禁用时同时禁用收藏
     // 使用悬浮文字以提示这些操作
-    private IEnumerable<UIModItemInFolder> GetAffectedMods(bool tryIgnoreFavorite = false) {
+    private IEnumerable<UIModItemInFolder> GetAffectedMods(bool ignoreFavorite = false) {
         IEnumerable<UIModItemInFolder> result;
         if (Main.keyState.PressingShift()) {
             result = ModItemDict.Values;
@@ -920,12 +934,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         else {
             result = CurrentFolderNode.ModNodesInTree.ToHashSet().Select(m => ModItemDict.TryGetValue(m.ModName, out var mod) ? mod : null).WhereNotNull();
         }
-        if (tryIgnoreFavorite && !Main.keyState.PressingControl()) {
+        if (ignoreFavorite) {
             result = result.Where(i => !i.Favorite);
         }
         return result;
     }
-    private void EnableMods(UIMouseEvent mouse, UIElement element) {
+    private void EnableMods() {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
@@ -950,7 +964,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
         ModOrganizer.SaveEnabledMods();
     }
-    private void DisableMods(UIMouseEvent mouse, UIElement element) {
+    private void DisableMods(bool disableRedundantDependencies, bool ignoreFavorite) {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 在同时取消收藏且全部取消时不用在乎是否加载完成, 可一键全部取消 (ModLoader.DisableAllMods();)
         // TODO: 未加载完成时给出(悬浮)提示
@@ -958,8 +972,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         HashSet<string> disabled = [];
-        foreach (var modItem in GetAffectedMods(true)) {
-            modItem?.DisableQuick(disabled);
+        foreach (var modItem in GetAffectedMods(ignoreFavorite)) {
+            modItem?.DisableQuick(disabled, disableRedundantDependencies);
         }
         if (disabled.Count == 0) {
             return;
@@ -971,7 +985,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
         ModOrganizer.SaveEnabledMods();
     }
-    private void ResetMods(UIMouseEvent mouse, UIElement element) {
+    private void ResetMods() {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
