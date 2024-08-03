@@ -15,6 +15,11 @@ CommonConfig: {
 		Tooltip: 显示模组来自创意工坊, 本地还是整合包
 	}
 
+	SaveWhenChanged: {
+		Label: 在有改动时保存
+		Tooltip: 如果关闭, 则只会在回到主界面时保存
+	}
+
 	SeeChangelog: {
 		Label: 查看更新日志
 		Tooltip: ""

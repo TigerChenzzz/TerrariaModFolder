@@ -11,13 +11,17 @@ using Terraria.UI.Chat;
 namespace ModFolder.Configs;
 
 public class CommonConfig : ModConfig {
-    public static CommonConfig Instance = null!;
+    public static CommonConfig Instance { get; set; } = null!;
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
     public bool LeftClickToEnterFolderSystem { get; set; }
     #region 显示模组来源
     [DefaultValue(true)]
     public bool ShowModLocation { get; set; }
+    #endregion
+    #region 更经常的保存
+    [DefaultValue(true)]
+    public bool SaveWhenChanged { get; set; }
     #endregion
 
     #region 是否在模组加载时打印日志

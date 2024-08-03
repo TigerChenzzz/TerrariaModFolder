@@ -15,6 +15,11 @@ CommonConfig: {
 		Tooltip: show if mod is from steam workshop, local or modpack
 	}
 
+	SaveWhenChanged: {
+		Label: Save When Changed
+		Tooltip: if false, data would only be saved when go back
+	}
+
 	SeeChangelog: {
 		Label: See Changelog
 		Tooltip: ""

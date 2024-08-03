@@ -30,16 +30,20 @@ public class UIModItemInFolder : UIFolderItem {
     public override bool Favorite {
         get => ModNode?.Favorite ?? false;
         set {
-            if (ModNode != null) {
+            bool changed = false;
+            if (ModNode == null) {
+                ModNode = new(_mod) {
+                    Parent = UIModFolderMenu.Instance.CurrentFolderNode
+                };
+                changed = true;
+            }
+            if (ModNode.Favorite != value) {
                 ModNode.Favorite = value;
+                changed = true;
             }
-            if (!value) {
-                return;
+            if (changed) {
+                FolderDataSystem.TrySaveWhenChanged();
             }
-            ModNode = new(_mod) {
-                Favorite = true
-            };
-            UIModFolderMenu.Instance.CurrentFolderNode.Children.Add(ModNode);
         }
     }
     private ulong? _publishId;
@@ -813,8 +817,9 @@ public class UIModItemInFolder : UIFolderItem {
         }
         // TODO: 在显示全部界面不可以删除索引的提示
         if (UIModFolderMenu.Instance.ShowFolderSystem && Main.keyState.PressingShift() && ModNode != null) {
-            UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(ModNode);
+            ModNode.Parent = null;
             UIModFolderMenu.Instance.ArrangeGenerate();
+            FolderDataSystem.TrySaveWhenChanged();
         }
         UIModFolderMenu.Instance.RemoveConfirmPanel();
     }

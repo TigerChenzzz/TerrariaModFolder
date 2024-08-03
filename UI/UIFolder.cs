@@ -227,7 +227,8 @@ public class UIFolder : UIFolderItem {
     }
     private void DeleteFolderInner() {
         if (FolderNode != null) {
-            UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(FolderNode);
+            FolderNode.Parent = null;
+            FolderDataSystem.TrySaveWhenChanged();
             UIModFolderMenu.Instance.ArrangeGenerate();
         }
     }
@@ -300,11 +301,15 @@ public class UIFolder : UIFolderItem {
             replaceToFolderName = true;
             return;
         }
+        if (Name == newName) {
+            return;
+        }
         FolderNode.FolderName = newName;
         Name = newName;
         _folderName.SetText(newName);
         replaceToFolderName = true;
         UIModFolderMenu.Instance.ArrangeGenerate();
+        FolderDataSystem.TrySaveWhenChanged();
     }
 
     private string? _tooltip;

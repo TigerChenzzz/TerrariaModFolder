@@ -255,6 +255,12 @@ public static class MyUtils {
         }
     }
     #endregion
+    public static void Reverse<T>(this IList<T> list) {
+        int m = list.Count / 2;
+        for (int i = 0; i < m; ++i) {
+            (list[i], list[list.Count - i - 1]) = (list[list.Count - i - 1], list[i]);
+        }
+    }
 
     public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd, Action? onReplace = null) {
         

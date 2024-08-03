@@ -142,8 +142,9 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
     }
 
     private void DeleteModNode(UIMouseEvent evt, UIElement listeningElement) {
-        UIModFolderMenu.Instance.CurrentFolderNode.Children.Remove(_modNode);
+        _modNode.Parent = null;
         UIModFolderMenu.Instance.ArrangeGenerate();
         UIModFolderMenu.Instance.RemoveConfirmPanel();
+        FolderDataSystem.TrySaveWhenChanged();
     }
 }

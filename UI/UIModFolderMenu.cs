@@ -83,13 +83,22 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #region 文件夹跳转
-    public void EnterFolder(FolderNode folder) {
+    public void EnterFolder(FolderNode? folder) {
+        folder ??= FolderDataSystem.Root;
         bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
         // TODO: 换成 Parent 检测
-        if (!CurrentFolderNode.Children.Contains(folder)) {
-            return;
+        if (folder.Parent == CurrentFolderNode) {
+            FolderPath.Add(folder);
+            goto ReadyToReturn;
         }
-        FolderPath.Add(folder);
+        _folderPath!.Clear();
+        while (folder != null) {
+            _folderPath.Add(folder);
+            folder = folder.Parent;
+        }
+        _folderPath.Reverse();
+
+    ReadyToReturn:
         ArrangeGenerate();
         if (max) {
             folderPathList.ViewPosition = folderPathList.MaxViewPosition;
@@ -755,10 +764,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ButtonCreateFolder.OnLeftClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuTick);
             FolderNode node = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value);
-            CurrentFolderNode.Children.Insert(0, node);
+            CurrentFolderNode.SetChildAtTheTop(node);
             nodeToRename = node;
             list.ViewPosition = 0;
             ArrangeGenerate();
+            FolderDataSystem.TrySaveWhenChanged();
         };
         #endregion
         #region 返回按钮
@@ -1118,8 +1128,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 }
             }
         }
-        foreach (var nodeToRemove in nodesToRemove) {
-            CurrentFolderNode.Children.Remove(nodeToRemove);
+        if (nodesToRemove.Count != 0) {
+            foreach (var nodeToRemove in nodesToRemove) {
+                nodeToRemove.Parent = null;
+            }
+            FolderDataSystem.TrySaveWhenChanged();
         }
         #region 在根目录下时将文件夹树未包含的 Mod 全部放进来
         if (CurrentFolderNode != FolderDataSystem.Root) {
@@ -1130,16 +1143,22 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         foreach (var m in FolderDataSystem.Root.ModNodesInTree) {
             modsInFolder.Add(m.ModName);
         }
+        bool created = false;
         foreach (var (key, value) in ModItemDict) {
             if (modsInFolder.Contains(key)) {
                 continue;
             }
-            ModNode m = new(value.TheLocalMod);
-            FolderDataSystem.Root.Children.Add(m);
+            created = true;
+            ModNode m = new(value.TheLocalMod) {
+                Parent = FolderDataSystem.Root
+            };
             if (value.PassFilters(filterResults)) {
                 value.ModNode = m;
                 yield return value;
             }
+        }
+        if (created) {
+            FolderDataSystem.TrySaveWhenChanged();
         }
         #endregion
     }
@@ -1338,15 +1357,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (node == folder) {
                 return;
             }
-            var parent = CurrentFolderNode;
+            if (node.Parent != CurrentFolderNode) {
+                ModFolder.Instance.Logger.Error("node's parent should be the current folder at MoveNodeIntoFolder");
+                // return;
+            }
             if (Main.keyState.PressingControl() && node is ModNode mn) {
-                node = new ModNode(mn.ModName) {
-                    PublishId = mn.PublishId,
-                    Favorite = mn.Favorite
-                };
+                node = new ModNode(mn);
             }
             else {
-                parent.Children.Remove(node);
+                node.Parent = null;
             }
 
             if (node is ModNode modNode) {
@@ -1357,63 +1376,27 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     }
                 }
             }
-            folder.Children.Add(node);
+            node.Parent = folder;
             ArrangeGenerate();
+            FolderDataSystem.TrySaveWhenChanged();
         }
-        void MoveNodeBeforeNode(Node node, Node node2) {
-            if (node == node2) {
-                return;
+        void MoveNodeBeforeNode(Node node, Node target) {
+            if (CurrentFolderNode.MoveChildBeforeChild(node, target)) {
+                ArrangeGenerate();
+                FolderDataSystem.TrySaveWhenChanged();
             }
-            var parent = CurrentFolderNode;
-            for (int i = 0; i < parent.Children.Count; ++i) {
-                if (parent.Children[i] == node2) {
-                    if (i > 0 && parent.Children[i - 1] == node) {
-                        return;
-                    }
-                    parent.Children.Remove(node);
-                    if (i > 0 && parent.Children[i - 1] == node2) {
-                        parent.Children.Insert(i - 1, node);
-                    }
-                    else {
-                        parent.Children.Insert(i, node);
-                    }
-                    ArrangeGenerate();
-                    return;
-                }
-            }
-            MoveNodeToTheStart(node);
         }
-        void MoveNodeAfterNode(Node node, Node node2) {
-            if (node == node2) {
-                return;
+        void MoveNodeAfterNode(Node node, Node target) {
+            if (CurrentFolderNode.MoveChildAfterChild(node, target)) {
+                ArrangeGenerate();
+                FolderDataSystem.TrySaveWhenChanged();
             }
-            var parent = CurrentFolderNode;
-            for (int i = 0; i < parent.Children.Count; ++i) {
-                if (parent.Children[i] == node2) {
-                    if (i + 1 < parent.Children.Count && parent.Children[i + 1] == node) {
-                        return;
-                    }
-                    parent.Children.Remove(node);
-                    if (i > 0 && parent.Children[i - 1] == node2) {
-                        parent.Children.Insert(i, node);
-                    }
-                    else {
-                        parent.Children.Insert(i + 1, node);
-                    }
-                    ArrangeGenerate();
-                    return;
-                }
-            }
-            MoveNodeToTheStart(node);
         }
         void MoveNodeToTheStart(Node node) {
-            var parent = CurrentFolderNode;
-            if (parent.Children.Count != 0 && parent.Children[0] == node) {
-                return;
+            if (node.MoveToTheTop()) {
+                ArrangeGenerate();
+                FolderDataSystem.TrySaveWhenChanged();
             }
-            ArrangeGenerate();
-            parent.Children.Remove(node);
-            parent.Children.Insert(0, node);
         }
         #endregion
     }

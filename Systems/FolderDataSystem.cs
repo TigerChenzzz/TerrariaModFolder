@@ -1,4 +1,5 @@
-﻿using ModFolder.UI;
+﻿using ModFolder.Configs;
+using ModFolder.UI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Terraria.ModLoader.Core;
@@ -9,7 +10,47 @@ namespace ModFolder.Systems;
 public static class FolderDataSystem {
     #region 类型
     [JsonObject(MemberSerialization.OptIn)]
-    public class Node { }
+    public class Node {
+        protected FolderNode? _parent;
+        public FolderNode? Parent {
+            get => _parent;
+            set {
+                if (_parent == value) {
+                    return;
+                }
+                _parent?.ChildrenPublic.Remove(this);
+                _parent = value;
+                value?.ChildrenPublic.Add(this);
+            }
+        }
+        /// <summary>
+        /// 危险! 不要随意修改它的值
+        /// </summary>
+        public FolderNode? ParentPublic { get => _parent; set => _parent = value; }
+        /// <summary>
+        /// 返回是否有改变 (如果 <see cref="Parent"/> 为空或者本来就是第一位那么就不改变)
+        /// </summary>
+        /// <returns></returns>
+        public bool MoveToTheTop() {
+            if (Parent == null) {
+                return false;
+            }
+            var children = Parent.ChildrenPublic;
+            if (children.Count == 0 || children[0] == this) {
+                return false;
+            }
+            Node node = this;
+            for (int i = 0; i < children.Count; ++i) {
+                (node, children[i]) = (children[i], node);
+                if (node == this) {
+                    return true;
+                }
+            }
+            children.Add(node);
+            ModFolder.Instance.Logger.Error("parent should contain the child at MoveToTheTop");
+            return true;
+        }
+    }
     public class ModNode : Node {
         public ModNode(LocalMod mod) {
             ModName = mod.Name;
@@ -21,6 +62,7 @@ public static class FolderDataSystem {
         public ModNode(string modName) => ModName = modName;
         [JsonConstructor]
         private ModNode() : this(string.Empty) { }
+        public ModNode(ModNode other) : this(other.ModName) { }
         [JsonProperty]
         public string ModName { get; set; }
         public ulong PublishId {
@@ -65,8 +107,13 @@ public static class FolderDataSystem {
         [JsonProperty]
         public string FolderName { get; set; } = folderName;
         // TODO: 优化: 在 Children.Count == 0 时不序列化 Children 字段
-        [JsonProperty]
-        public List<Node> Children { get; set; } = [];
+        /// <summary>
+        /// 危险! 不要随意修改它的值
+        /// </summary>
+        [JsonProperty(PropertyName = "Children")]
+        public List<Node> ChildrenPublic { get => _children; set => _children = value; }
+        public IReadOnlyList<Node> Children => _children;
+        protected List<Node> _children = [];
         public IEnumerable<ModNode> ModNodesInTree {
             get {
                 foreach (var child in Children) {
@@ -81,12 +128,81 @@ public static class FolderDataSystem {
                 }
             }
         }
+        public void SetChildAtTheTop(Node child) {
+            child.Parent = null;
+            child.ParentPublic = this;
+            _children.Insert(0, child);
+        }
+        /// <summary>
+        /// 返回是否有改变
+        /// </summary>
+        public bool MoveChildBeforeChild(Node child, Node target) {
+            if (child.Parent != this || target.Parent != this) {
+                ModFolder.Instance.Logger.Error("child's parent sould be self at MoveChildAfterChild");
+                return false;
+            }
+            if (child == target) {
+                return false;
+            }
+            for (int i = 0; i < _children.Count; ++i) {
+                if (_children[i] == target) {
+                    if (i > 0 && _children[i - 1] == child) {
+                        return false;
+                    }
+                    if (!_children.Remove(child)) {
+                        ModFolder.Instance.Logger.Error("parent should contain the child at MoveChildAfterChild");
+                        return false;
+                    }
+                    if (i > 0 && _children[i - 1] == target) {
+                        _children.Insert(i - 1, child);
+                    }
+                    else {
+                        _children.Insert(i, child);
+                    }
+                    return true;
+                }
+            }
+            ModFolder.Instance.Logger.Error("parent should contain the target child at MoveChildAfterChild");
+            return false;
+        }
+        public bool MoveChildAfterChild(Node child, Node target) {
+            if (child.Parent != this || target.Parent != this) {
+                ModFolder.Instance.Logger.Error("child's parent sould be self at MoveChildAfterChild");
+                return false;
+            }
+            if (child == target) {
+                return false;
+            }
+            for (int i = 0; i < _children.Count; ++i) {
+                if (_children[i] == target) {
+                    if (i + 1 < _children.Count && _children[i + 1] == child) {
+                        return false;
+                    }
+                    if (!_children.Remove(child)) {
+                        ModFolder.Instance.Logger.Error("parent should contain the child at MoveChildAfterChild");
+                        return false;
+                    }
+                    if (i > 0 && _children[i - 1] == target) {
+                        _children.Insert(i, child);
+                    }
+                    else {
+                        _children.Insert(i + 1, child);
+                    }
+                    return true;
+                }
+            }
+            ModFolder.Instance.Logger.Error("parent should contain the target child at MoveChildAfterChild");
+            return false;
+        }
     }
     public class RootNode : FolderNode {
         [JsonConstructor]
         public RootNode() : base("Root") { }
         public RootNode(FolderNode folder) : base("Root") {
-            Children = folder.Children;
+            _children = folder.ChildrenPublic;
+            foreach (var child in folder.ChildrenPublic) {
+                child.ParentPublic = this;
+            }
         }
 #pragma warning disable CA1822 // 将成员标记为 static
 #pragma warning disable IDE0051 // 删除未使用的私有成员
@@ -121,6 +237,11 @@ public static class FolderDataSystem {
     }
     public static void Save() {
         File.WriteAllText(DataPath, JsonConvert.SerializeObject(_root));
+    }
+    public static void TrySaveWhenChanged() {
+        if (CommonConfig.Instance.SaveWhenChanged) {
+            Save();
+        }
     }
     public static void Reload() {
         Reload_Inner();
@@ -187,7 +308,7 @@ public static class FolderDataSystem {
         foreach (var child in children.Children<JObject>()) {
             var childNode = LoadNode(child);
             if (childNode != null) {
-                folder.Children.Add(childNode);
+                childNode.Parent = folder;
             }
         }
     }
