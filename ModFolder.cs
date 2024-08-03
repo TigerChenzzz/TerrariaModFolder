@@ -20,10 +20,8 @@ using Terraria.UI;
 namespace ModFolder;
 
 // DOING: 启用禁用全部时检查前置
-// TESTING: 测试重名模组与整合包
+// TESTING: 测试整合包
 // DOING: 收藏的特效
-// DOING: 显示来自 Steam 还是本地还是整合包
-// DOING: 随时保存 (配置)
 // DOING: 删除文件夹时选择是否让文件回到上一级目录
 
 // TODO: 禁用模组时按住 Shift 禁用其不被其它模组依赖的引用

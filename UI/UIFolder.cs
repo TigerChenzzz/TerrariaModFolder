@@ -281,7 +281,7 @@ public class UIFolder : UIFolderItem {
         if (FolderNode == null) {
             return;
         }
-        foreach (var modNode in FolderNode.ModNodesInTree) {
+        foreach (var modNode in FolderNode.ModNodesInTree.ToHashSet()) {
             if (!UIModFolderMenu.Instance.ModItemDict.TryGetValue(modNode.ModName, out var uimod)) {
                 continue;
             }

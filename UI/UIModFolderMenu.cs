@@ -910,7 +910,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             result = ModItemDict.Values;
         }
         else {
-            result = CurrentFolderNode.ModNodesInTree.Select(m => ModItemDict.TryGetValue(m.ModName, out var mod) ? mod : null).WhereNotNull();
+            result = CurrentFolderNode.ModNodesInTree.ToHashSet().Select(m => ModItemDict.TryGetValue(m.ModName, out var mod) ? mod : null).WhereNotNull();
         }
         if (tryIgnoreFavorite && !Main.keyState.PressingControl()) {
             result = result.Where(i => !i.Favorite);
@@ -924,15 +924,17 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         HashSet<string> enabled = [];
+        HashSet<string> missingRefs = [];
         foreach (var modItem in GetAffectedMods()) {
             if (modItem == null || modItem.tMLUpdateRequired != null)
                 continue;
-            if (ModLoader.EnabledMods.Add(modItem.ModName)) {
-                enabled.Add(modItem.ModName);
-            }
+            modItem.EnableQuick(enabled, missingRefs);
         }
         if (enabled.Count == 0)
             return;
+        if (missingRefs.Count != 0) {
+            Interface.infoMessage.Show(Language.GetTextValue("tModLoader.ModDependencyModsNotFound", string.Join(", ", missingRefs)), MyMenuMode);
+        }
         if (EnabledFilterMode != FolderEnabledFilter.All) {
             ArrangeGenerate();
         }
@@ -949,11 +951,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         HashSet<string> disabled = [];
         foreach (var modItem in GetAffectedMods(true)) {
-            if (modItem == null)
-                continue;
-            if (ModLoader.EnabledMods.Remove(modItem.ModName)) {
-                disabled.Add(modItem.ModName);
-            }
+            modItem?.DisableQuick(disabled);
         }
         if (disabled.Count == 0) {
             return;
@@ -1138,7 +1136,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (CurrentFolderNode != FolderDataSystem.Root) {
             yield break;
         }
-        // TODO: 缓存此结果, 且在文件夹树发生变化时做出修改
         HashSet<string> modsInFolder = [];
         foreach (var m in FolderDataSystem.Root.ModNodesInTree) {
             modsInFolder.Add(m.ModName);

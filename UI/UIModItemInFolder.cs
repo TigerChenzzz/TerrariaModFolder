@@ -521,6 +521,66 @@ public class UIModItemInFolder : UIFolderItem {
                 GetDependents(dependent, allDependents, availableMods);
         }
     }
+    
+    public void EnableQuick(HashSet<string> enabled, HashSet<string> missingRefs) {
+        if (!ModLoader.EnabledMods.Add(_mod.Name)) {
+            return;
+        }
+        enabled.Add(_mod.Name);
+        foreach (var name in _modReferences) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
+            if (dep == null) {
+                missingRefs.Add(name);
+                continue;
+            }
+            dep.EnableQuick(enabled, missingRefs);
+        }
+    }
+    public void DisableQuick(HashSet<string> disabled) {
+        if (!ModLoader.EnabledMods.Remove(_mod.Name)) {
+            return;
+        }
+        disabled.Add(_mod.Name);
+        foreach (var name in _modDependents) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
+            if (dep == null) {
+                continue;
+            }
+            dep.DisableQuick(disabled);
+        }
+    }
+    internal void EnableDependencies() {
+        var missingRefs = new List<string>();
+        EnableDepsRecursive(missingRefs);
+
+        if (missingRefs.Count != 0) {
+            Interface.infoMessage.Show(Language.GetTextValue("tModLoader.ModDependencyModsNotFound", string.Join(", ", missingRefs)), UIModFolderMenu.MyMenuMode);
+        }
+    }
+    private void EnableDepsRecursive(List<string> missingRefs) {
+        foreach (var name in _modReferences) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
+            if (dep == null) {
+                missingRefs.Add(name);
+                continue;
+            }
+            dep.EnableDepsRecursive(missingRefs);
+            dep.Enable();
+        }
+    }
+    private void DisableDependents() {
+        DisableDependentsRecursive();
+    }
+    private void DisableDependentsRecursive() {
+        foreach (var name in _modDependents) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
+            if (dep == null) {
+                continue;
+            }
+            dep.DisableDependentsRecursive();
+            dep.Disable();
+        }
+    }
     #endregion
 
     // TODO: "Generate Language File Template" button in upcoming "Miscellaneous Tools" menu.
@@ -658,42 +718,6 @@ public class UIModItemInFolder : UIFolderItem {
     internal void Disable() {
         if (!_mod.Enabled) { return; }
         _mod.Enabled = false;
-    }
-
-    internal void EnableDependencies() {
-        var missingRefs = new List<string>();
-        EnableDepsRecursive(missingRefs);
-
-        if (missingRefs.Count != 0) {
-            Interface.infoMessage.Show(Language.GetTextValue("tModLoader.ModDependencyModsNotFound", string.Join(", ", missingRefs)), UIModFolderMenu.MyMenuMode);
-        }
-    }
-
-    private void EnableDepsRecursive(List<string> missingRefs) {
-        foreach (var name in _modReferences) {
-            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
-            if (dep == null) {
-                missingRefs.Add(name);
-                continue;
-            }
-            dep.EnableDepsRecursive(missingRefs);
-            dep.Enable();
-        }
-    }
-
-    private void DisableDependents() {
-        DisableDependentsRecursive();
-    }
-
-    private void DisableDependentsRecursive() {
-        foreach (var name in _modDependents) {
-            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
-            if (dep == null) {
-                continue;
-            }
-            dep.DisableDependentsRecursive();
-            dep.Disable();
-        }
     }
 
     internal void ShowMoreInfo(UIMouseEvent evt, UIElement listeningElement) {
