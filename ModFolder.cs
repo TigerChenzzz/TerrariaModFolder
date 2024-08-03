@@ -19,9 +19,6 @@ using Terraria.UI;
 
 namespace ModFolder;
 
-// DOING: 启用禁用全部时检查前置
-// TESTING: 测试整合包
-// DOING: 收藏的特效
 // DOING: 删除文件夹时选择是否让文件回到上一级目录
 
 // TODO: 禁用模组时按住 Shift 禁用其不被其它模组依赖的引用
@@ -64,13 +61,15 @@ namespace ModFolder;
 // TODO: Mouse4 和 Mouse5 撤回与回退 返回上级 (Alt + ←→↑)
 // TODO: alt 收藏模组 (收藏的模组一般不会因禁用全部按钮而被禁用) (金光闪闪和粒子)
 // TODO: 启用某个玩家对应的模组
+// TODO: 收藏的特效
+// TOTEST: 测试整合包
 
 // TODO: 更多按钮的按钮
 // TODO: 按钮: 将已启用的模组复制到此文件夹下 (按住 Shift 将此文件夹下的内容更新为已启用的模组 (二次确认)(不允许根目录执行此操作))
 // TODO: 按钮: 批量删除
 // TODO: 按钮: 批量重新订阅
 // TODO: 按钮: 复制与粘贴
-// TODO: 按钮: 禁用没有被其它模组依赖的模组
+// TODO: 按钮: 禁用多余前置(有被依赖的模组且这些模组都没有启用的模组)
 
 public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;

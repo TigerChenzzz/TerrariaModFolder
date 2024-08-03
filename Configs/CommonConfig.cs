@@ -23,6 +23,10 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool SaveWhenChanged { get; set; }
     #endregion
+    #region 删除文件夹需要二次确认
+    [DefaultValue(true)]
+    public bool AlwaysNeedConfirmWhenDeletingFolder { get; set; }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]

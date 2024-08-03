@@ -1,4 +1,5 @@
 ﻿global using static ModFolder.MyUtils;
+using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
 using Terraria.ModLoader.Core;
 using Terraria.UI;
@@ -280,6 +281,10 @@ public static class MyUtils {
     }
     private static bool? _developerMode;
     public static bool IsTMLDeveloperMode => _developerMode ??= ModCompile.DeveloperMode;
+
+    public static bool PressingAlt(this KeyboardState state) {
+        return state.IsKeyDown(Keys.LeftAlt) || state.IsKeyDown(Keys.RightAlt);
+    }
 
     public static bool ToBoolean(this int self) => self != 0;
 }

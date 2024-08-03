@@ -1,4 +1,5 @@
-﻿using ModFolder.Systems;
+﻿using ModFolder.Configs;
+using ModFolder.Systems;
 using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -137,17 +138,14 @@ public class UIFolder : UIFolderItem {
         #endregion
     }
     #region 删除
-    // TODO: 未加载完时...
     private void QuickFolderDelete(UIMouseEvent evt, UIElement listeningElement) {
-        bool shiftPressed = Main.keyState.PressingShift();
+        bool loaded = UIModFolderMenu.Instance.Loaded;
 
-        /*
-        // 删除文件夹必须二次确认
-        if (Main.keyState.PressingShift() || Main.keyState.PressingControl()) {
-            DeleteFolder(evt, listeningElement);
+        if (!CommonConfig.Instance.AlwaysNeedConfirmWhenDeletingFolder && (Main.keyState.PressingShift() || Main.keyState.PressingControl() || Main.keyState.PressingAlt())) {
+            DeleteFolder(loaded, true);
             return;
         }
-        */
+
         SoundEngine.PlaySound(SoundID.MenuOpen);
         var _deleteModDialog = new UIPanel() {
             Width = { Pixels = 440 },
@@ -160,24 +158,24 @@ public class UIFolder : UIFolderItem {
         _deleteModDialog.SetPadding(6f);
         UIModFolderMenu.Instance.AppendConfirmPanel(_deleteModDialog);
 
-        bool loaded = UIModFolderMenu.Instance.Loaded;
-
         #region 按钮是
-        var _dialogYesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
+        var _dialogYesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue(loaded ? "LegacyMenu.105" : "LegacyMenu.104")) {
             TextColor = Color.White,
             Width = new StyleDimension(-10f, 1f / 3f),
             Height = { Pixels = 40 },
             VAlign = .85f,
             HAlign = .15f
         }.WithFadedMouseOver();
-        _dialogYesButton.OnUpdate += _ => {
-            if (!loaded || Main.keyState.PressingControl() || Main.keyState.PressingShift()) {
-                _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.104"));
-            }
-            else {
-                _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.105"));
-            }
-        };
+        if (loaded) {
+            _dialogYesButton.OnUpdate += _ => {
+                if (Main.keyState.PressingControl() || Main.keyState.PressingShift() || Main.keyState.PressingAlt()) {
+                    _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.104"));
+                }
+                else {
+                    _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.105"));
+                }
+            };
+        }
         _dialogYesButton.OnLeftClick += (_, _) => DeleteFolder(loaded);
         _deleteModDialog.Append(_dialogYesButton);
         #endregion
@@ -207,10 +205,12 @@ public class UIFolder : UIFolderItem {
         UIModFolderMenu.Instance.Recalculate();
     }
     
-    private void DeleteFolder(bool loaded) {
+    private void DeleteFolder(bool loaded, bool quick = false) {
         if (!loaded) {
-            DeleteFolderInner();
-            UIModFolderMenu.Instance.RemoveConfirmPanel();
+            DeleteFolderInner(Main.keyState.PressingAlt());
+            if (!quick) {
+                UIModFolderMenu.Instance.RemoveConfirmPanel();
+            }
             return;
         }
         if (UIModFolderMenu.Instance.ShowAllMods) {
@@ -220,20 +220,29 @@ public class UIFolder : UIFolderItem {
             UnsubscribeAllDoubleConfirm();
             return;
         }
-        if (Main.keyState.PressingShift()) {
-            DeleteFolderInner();
+        bool alt = Main.keyState.PressingAlt();
+        if (Main.keyState.PressingShift() || alt) {
+            DeleteFolderInner(alt);
         }
-        UIModFolderMenu.Instance.RemoveConfirmPanel();
+        if (!quick) {
+            UIModFolderMenu.Instance.RemoveConfirmPanel();
+        }
     }
-    private void DeleteFolderInner() {
+    private void DeleteFolderInner(bool alt) {
         if (FolderNode != null) {
-            FolderNode.Parent = null;
+            if (alt) {
+                FolderNode.Crash();
+            }
+            else {
+                FolderNode.Parent = null;
+            }
             FolderDataSystem.TrySaveWhenChanged();
             UIModFolderMenu.Instance.ArrangeGenerate();
         }
     }
     private void UnsubscribeAllDoubleConfirm() {
         bool shift = Main.keyState.PressingShift();
+        bool alt = Main.keyState.PressingAlt();
         var doubleConfirmDialog = new UIPanel() {
             Width = { Pixels = 400 },
             Height = { Pixels = 280 },
@@ -252,7 +261,7 @@ public class UIFolder : UIFolderItem {
             VAlign = .85f,
             HAlign = .85f
         }.WithFadedMouseOver();
-        _dialogYesButton.OnLeftClick += (_, _) => UnsubscribeAll(shift);
+        _dialogYesButton.OnLeftClick += (_, _) => UnsubscribeAll(shift, alt);
         doubleConfirmDialog.Append(_dialogYesButton);
         #endregion
         #region 按钮否
@@ -277,7 +286,7 @@ public class UIFolder : UIFolderItem {
 
         UIModFolderMenu.Instance.Recalculate();
     }
-    private void UnsubscribeAll(bool shift) {
+    private void UnsubscribeAll(bool shift, bool alt) {
         if (FolderNode == null) {
             return;
         }
@@ -287,8 +296,8 @@ public class UIFolder : UIFolderItem {
             }
             UIModFolderMenu.Instance.ArrangeDeleteMod(uimod);
         }
-        if (shift) {
-            DeleteFolderInner();
+        if (shift || alt) {
+            DeleteFolderInner(alt);
         }
         UIModFolderMenu.Instance.ClearConfirmPanels();
     }

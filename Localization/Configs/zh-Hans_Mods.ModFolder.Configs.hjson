@@ -29,6 +29,11 @@ CommonConfig: {
 		Label: 刷新时打印日志
 		Tooltip: 启用它可能会在加载模组时产生卡顿现象
 	}
+
+	AlwaysNeedConfirmWhenDeletingFolder: {
+		// Label: Always Need Confirm When Deleting Folder
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {

@@ -194,6 +194,26 @@ public static class FolderDataSystem {
             ModFolder.Instance.Logger.Error("parent should contain the target child at MoveChildAfterChild");
             return false;
         }
+        /// <summary>
+        /// 将自己删除, 而将所有子节点放入父节点的相应位置
+        /// </summary>
+        public void Crash() {
+            if (Parent == null) {
+                ModFolder.Instance.Logger.Error("root should not be crash at " + nameof(Crash));
+                return;
+            }
+            var index = Parent._children.FindIndex(n => n == this);
+            if (index == -1) {
+                ModFolder.Instance.Logger.Error("parent should contain the child at " + nameof(Crash));
+                return;
+            }
+            foreach (var child in _children) {
+                child.ParentPublic = Parent;
+            }
+            Parent._children.RemoveAt(index);
+            Parent._children.InsertRange(index, _children);
+            _parent = null;
+        }
     }
     public class RootNode : FolderNode {
         [JsonConstructor]

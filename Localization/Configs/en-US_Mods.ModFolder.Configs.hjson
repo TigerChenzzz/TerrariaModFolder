@@ -29,6 +29,11 @@ CommonConfig: {
 		Label: Log Mod Loading
 		Tooltip: Enabling it may cause lags when loading mods
 	}
+
+	AlwaysNeedConfirmWhenDeletingFolder: {
+		Label: Always Need Confirm When Deleting Folder
+		Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {

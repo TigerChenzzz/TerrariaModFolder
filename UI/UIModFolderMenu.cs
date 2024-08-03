@@ -545,9 +545,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 Color = Color.Black * 0.2f,
                 ScaleToFit = true
             };
-            _confirmPanelCover.OnLeftClick += (_, _) => {
+            void RemoveConfirmPanelForMouseEvent(UIMouseEvent mouse, UIElement element) {
                 RemoveConfirmPanel();
-            };
+            }
+            _confirmPanelCover.OnLeftMouseDown += RemoveConfirmPanelForMouseEvent;
+            _confirmPanelCover.OnRightMouseDown += RemoveConfirmPanelForMouseEvent;
+            _confirmPanelCover.OnMiddleMouseDown += RemoveConfirmPanelForMouseEvent;
+            _confirmPanelCover.OnXButton1MouseDown += RemoveConfirmPanelForMouseEvent;
+            _confirmPanelCover.OnXButton2MouseDown += RemoveConfirmPanelForMouseEvent;
             return _confirmPanelCover;
         }
     }
@@ -856,6 +861,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #region 右键松开时尝试移动位置
         OnRightMouseUp += OnRightMouseUp_RightDrag;
         #endregion
+        #region 鼠标 4 键返回
+        OnXButton1MouseDown += (_, _) => GotoUpperFolder();
+        #endregion
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         uiPanel.Append(upperMenuContainer);
         Append(uIElement);
@@ -903,7 +911,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (Main.keyState.PressingShift()) {
             result = ModItemDict.Values;
         }
-        else if (!Main.keyState.IsKeyDown(Keys.LeftAlt) && !Main.keyState.IsKeyDown(Keys.RightAlt)) {
+        else if (!Main.keyState.PressingAlt()) {
             result = list._items.Select(i => i as UIModItemInFolder).WhereNotNull();
         }
         else if (CurrentFolderNode == FolderDataSystem.Root) {
@@ -1168,12 +1176,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Draw_TryCloseButtons();
         SetDraggingPosition();
         base.Draw(spriteBatch);
+        /*
+        // 鼠标 4 键返回
         if (Main.mouseXButton1 && Main.mouseXButton1Release) {
             if (FolderPath.Count > 1) {
                 GotoUpperFolder();
                 Main.mouseXButton1Release = false;
             }
         }
+        */
         #region DrawMouseTexture
         if (_mouseTexture != null) {
 

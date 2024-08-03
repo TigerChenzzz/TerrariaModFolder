@@ -75,10 +75,6 @@ public class UIModItemInFolder : UIFolderItem {
     private bool _configChangesRequireReload;
     private bool _loaded;
     private string? _tooltip;
-    private string[] _modReferences = null!;
-    private string[] _modDependencies = null!; // Note: Recursive
-    private string[] _modDependents = null!; // Note: Recursive
-    private string _modRequiresTooltip = null!;
     public readonly string DisplayNameClean; // No chat tags: for search and sort functionality.
 
     public string ModName => _mod.Name;
@@ -427,6 +423,10 @@ public class UIModItemInFolder : UIFolderItem {
     }
     #endregion
     #region 引用相关
+    private string[] _modReferences = null!;
+    private string[] _modDependencies = null!; // Note: 递归的
+    private string[] _modDependents = null!; // Note: 递归的
+    private string _modRequiresTooltip = null!;
     public void SetModReferences(IEnumerable<LocalMod>? availableMods) {
         _modReferences = [.. _mod.properties.modReferences.Select(x => x.mod)];
 
@@ -522,6 +522,15 @@ public class UIModItemInFolder : UIFolderItem {
         }
     }
     
+    public bool AnyDependentsOn() {
+        foreach (var dependent in _modDependents) {
+            if (ModLoader.EnabledMods.Contains(dependent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void EnableQuick(HashSet<string> enabled, HashSet<string> missingRefs) {
         if (!ModLoader.EnabledMods.Add(_mod.Name)) {
             return;
@@ -549,6 +558,7 @@ public class UIModItemInFolder : UIFolderItem {
             dep.DisableQuick(disabled);
         }
     }
+
     internal void EnableDependencies() {
         var missingRefs = new List<string>();
         EnableDepsRecursive(missingRefs);
