@@ -24,7 +24,9 @@ namespace ModFolder;
 // DOING: 收藏的特效
 // DOING: 显示来自 Steam 还是本地还是整合包
 // DOING: 随时保存 (配置)
+// DOING: 删除文件夹时选择是否让文件回到上一级目录
 
+// TODO: 禁用模组时按住 Shift 禁用其不被其它模组依赖的引用
 // TODO: 配置删除文件夹是否必须二次确认
 // TODO: 配置在拖动时是否移动列表
 // TODO: 显示前置时的 "缺少" 字样显示条件?
@@ -42,6 +44,8 @@ namespace ModFolder;
 // TODO: 新建文件夹排序问题
 // TODO: description 的本地化支持?
 // TODO: 模组的内部名如何查看?
+// TODO: 模组名称备注
+// TODO: 选中, 选中多个
 
 // TODO: 右键拖动时禁用左键?
 
@@ -67,6 +71,8 @@ namespace ModFolder;
 // TODO: 按钮: 将已启用的模组复制到此文件夹下 (按住 Shift 将此文件夹下的内容更新为已启用的模组 (二次确认)(不允许根目录执行此操作))
 // TODO: 按钮: 批量删除
 // TODO: 按钮: 批量重新订阅
+// TODO: 按钮: 复制与粘贴
+// TODO: 按钮: 禁用没有被其它模组依赖的模组
 
 public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;
@@ -118,6 +124,7 @@ public class ModFolder : Mod {
         orig(self);
         var buttonMods = self._buttonMods;
         buttonMods.OnMouseOver += (_, _) => {
+            // TODO: 这里的文字按照配置修改
             self._descriptionText.SetText(string.Join(' ', self._descriptionText.Text, Instance.GetLocalization("UI.Buttons.Mods.DescriptionToAdd").Value));
         };
         buttonMods.OnRightClick += (e, el) => {

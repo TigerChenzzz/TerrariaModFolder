@@ -66,8 +66,8 @@ UI: {
 	DeleteFolderConfirmText:
 		'''
 		确认要删除整个文件夹吗?
-		按住 Shift to 以删除索引
-		按住 Ctrl to 以取消订阅所有内含的模组
+		按住 Shift 以删除索引
+		按住 Ctrl 以取消订阅所有内含的模组
 		同时按住以一起做上面两件事
 		'''
 	DeleteFolderDoubleConfirmText: 确认要取消订阅所有内含的模组吗?

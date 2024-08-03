@@ -923,6 +923,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         if (enabled.Count == 0)
             return;
+        if (EnabledFilterMode != FolderEnabledFilter.All) {
+            ArrangeGenerate();
+        }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
         ModOrganizer.SaveEnabledMods();
@@ -944,6 +947,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         if (disabled.Count == 0) {
             return;
+        }
+        if (EnabledFilterMode != FolderEnabledFilter.All) {
+            ArrangeGenerate();
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
@@ -971,8 +977,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
         if (disabled.Count != 0)
             ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
-        if (enabled.Count != 0 || disabled.Count != 0)
+        if (enabled.Count != 0 || disabled.Count != 0) {
+            if (EnabledFilterMode != FolderEnabledFilter.All) {
+                ArrangeGenerate();
+            }
             ModOrganizer.SaveEnabledMods();
+        }
     }
     #endregion
 
@@ -987,7 +997,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public static bool IsPreviousUIStateOfConfigList { get; set; }
 
     public UIModItemInFolder? FindUIModItem(string modName) {
-        return ModItemDict.Values.SingleOrDefault(m => m.ModName == modName);
+        return ModItemDict.GetValueOrDefault(modName);
     }
 
     public override void Update(GameTime gameTime) {
@@ -1517,6 +1527,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             UIModItemInFolder modItem = new(mod);
             tempModItemDict.Add(modItem.ModName, modItem);
             modItem.Activate();
+            await YieldWithToken(token);
         }
         // 以防在加载过程中安排了删除模组但实际上还没删除的情况, 从中排除待删除的模组
         lock (_modsToDelete) {
@@ -1526,9 +1537,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         ModItemDict = tempModItemDict;
         SetLoadingState("Final Clean");
-
+        ArrangeGenerate();
+        await YieldWithToken(token);
+        var availableMods = ModOrganizer.RecheckVersionsToLoad().ToArray();
+        // TODO: 算法优化 (虽然不是很有必要)
+        foreach (var modItem in ModItemDict.Values) {
+            modItem.SetModReferences(availableMods);
+        }
         // TODO: 遍历一遍 Root 来做各种事情
-        
+        ;
     }
     private static YieldAwaitable YieldWithToken(CancellationToken token) {
         token.ThrowIfCancellationRequested();

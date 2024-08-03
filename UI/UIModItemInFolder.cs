@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
 using ModFolder.Systems;
 using ReLogic.Content;
+using System.Text;
+using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -40,30 +42,38 @@ public class UIModItemInFolder : UIFolderItem {
             UIModFolderMenu.Instance.CurrentFolderNode.Children.Add(ModNode);
         }
     }
-    public ulong PublishId { get; private set; }
+    private ulong? _publishId;
+    public ulong PublishId {
+        get {
+            _publishId ??= WorkshopHelper.GetPublishIdLocal(_mod.modFile, out ulong publishId) ? publishId : (ulong?)0;
+            return _publishId.Value;
+        }
+    }
 
-    private const float PADDING = 5f;
-    private UIImage _moreInfoButton = null!;
     private UIImage _modIcon = null!;
     private UIImageFramed? updatedModDot;
     private Version? previousVersionHint;
     private UIHoverImage? _keyImage;
     private UIHoverImage? _modDidNotFullyUnloadWarningImage;
-    private UIImage? _configButton;
     private UIText _modName = null!;
     internal UIAutoScaleTextTextPanel<string>? tMLUpdateRequired;
-    private UIImage? _modReferenceIcon;
-    private UIImage? _translationModIcon;
-    private UIImage? _deleteModButton;
     private readonly LocalMod _mod;
+    #region 右边的按钮
+    private readonly UIImageWithVisible?[] rightButtons = new UIImageWithVisible[5];
+    private UIImageWithVisible? DeleteButton       { get => rightButtons[0] ; set => rightButtons[0] = value; }
+    private UIImageWithVisible  MoreInfoButton     { get => rightButtons[1]!; set => rightButtons[1] = value; }
+    private UIImageWithVisible? ConfigButton       { get => rightButtons[2] ; set => rightButtons[2] = value; }
+    private UIImageWithVisible  ModReferenceIcon   { get => rightButtons[3]!; set => rightButtons[3] = value; }
+    private UIImageWithVisible? TranslationModIcon { get => rightButtons[4] ; set => rightButtons[4] = value; }
+    #endregion
     // private bool modFromLocalModFolder;
 
     private bool _configChangesRequireReload;
     private bool _loaded;
     private string? _tooltip;
     private string[] _modReferences = null!;
-    private string[] _modDependents = null!; // Note: Recursive
     private string[] _modDependencies = null!; // Note: Recursive
+    private string[] _modDependents = null!; // Note: Recursive
     private string _modRequiresTooltip = null!;
     public readonly string DisplayNameClean; // No chat tags: for search and sort functionality.
 
@@ -82,35 +92,7 @@ public class UIModItemInFolder : UIFolderItem {
 
         #region 图标
         float leftOffset = 30;
-        Asset<Texture2D>? modIcon = null;
-        Asset<Texture2D>? smallIcon = null;
-        Asset<Texture2D>? bigIcon = null;
-        if (_mod.modFile.HasFile("icon_small.rawimg")) {
-            try {
-                using (_mod.modFile.Open()) {
-                    using var s = _mod.modFile.GetStream("icon_small.rawimg");
-                    smallIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".rawimg");
-                }
-            }
-            catch (Exception e) {
-                Logging.tML.Error("Unknown error", e);
-            }
-        }
-        if (_mod.modFile.HasFile("icon.png")) {
-            try {
-                using (_mod.modFile.Open()) {
-                    using var s = _mod.modFile.GetStream("icon.png");
-                    // if (bigIcon.Width() == 80 && bigIcon.Height() == 80)
-                    bigIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".png");
-                    hoverIcon = bigIcon;
-                }
-            }
-            catch (Exception e) {
-                Logging.tML.Error("Unknown error", e);
-            }
-        }
-        modIcon = smallIcon ?? bigIcon ?? Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
-        _modIcon = new(modIcon) {
+        _modIcon = new(Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon")) {
             Left = { Pixels = 1 },
             Top = { Pixels = 1 },
             Width = { Pixels = 28 },
@@ -119,12 +101,6 @@ public class UIModItemInFolder : UIFolderItem {
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
         };
-        /*
-        if (smallIcon != null && bigIcon != null) {
-            _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
-            _modIcon.OnMouseOut += (_, _) => _modIcon.SetImage(smallIcon);
-        }
-        */
         Append(_modIcon);
         #endregion
         #region 未完全卸载
@@ -189,11 +165,6 @@ public class UIModItemInFolder : UIFolderItem {
 		    Append(modLocationIcon);
         }
         #endregion
-        #region PublishId
-        if (WorkshopHelper.GetPublishIdLocal(_mod.modFile, out ulong publishId)) {
-            PublishId = publishId;
-        }
-        #endregion
         #region 已升级小点
         var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
         if (oldModVersionData != default) {
@@ -246,146 +217,83 @@ public class UIModItemInFolder : UIFolderItem {
             // Append(_uiModStateCheckBoxHitbox);
         }
         #endregion
-        #region 删除
-        // TODO: 配置右边这堆按钮是否向右缩紧
-        bool leanToTheRight = true;
-        int bottomRightRowOffset = -6;
 
-        bottomRightRowOffset -= 24;
+        #region 右边的按钮
+        #region 删除
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            _deleteModButton = new UIImage(Textures.ButtonDelete) {
+            DeleteButton = new(Textures.ButtonDelete) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
-                Left = { Pixels = bottomRightRowOffset, Precent = 1 },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
+                AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
             };
-            _deleteModButton.OnLeftClick += QuickModDelete;
-            Append(_deleteModButton);
-        }
-        else if (leanToTheRight) {
-            bottomRightRowOffset += 24;
+            DeleteButton.OnLeftClick += QuickModDelete;
+            Append(DeleteButton);
         }
         #endregion
         #region 更多信息
-        bottomRightRowOffset -= 24;
-        _moreInfoButton = new UIImage(UICommon.ButtonModInfoTexture) {
+        MoreInfoButton = new(UICommon.ButtonModInfoTexture) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
-            Left = { Pixels = bottomRightRowOffset, Percent = 1 },
             Top = { Pixels = -12, Percent = 0.5f },
             ScaleToFit = true,
+            AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
         };
-        _moreInfoButton.OnLeftClick += ShowMoreInfo;
-        Append(_moreInfoButton);
+        MoreInfoButton.OnLeftClick += ShowMoreInfo;
+        Append(MoreInfoButton);
         #endregion
         #region 配置按钮
-        bottomRightRowOffset -= 24;
         if (ModLoader.TryGetMod(ModName, out var loadedMod) && ConfigManager.Configs.ContainsKey(loadedMod)) {
-            _configButton = new UIImage(UICommon.ButtonModConfigTexture) {
+            ConfigButton = new(UICommon.ButtonModConfigTexture) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
-                Left = { Pixels = bottomRightRowOffset, Percent = 1f },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
+                AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
             };
-            _configButton.OnLeftClick += OpenConfig;
-            Append(_configButton);
+            ConfigButton.OnLeftClick += OpenConfig;
+            Append(ConfigButton);
             // TODO: 在合适的情况下更新此值
             // TODO: 看看这个类中还有没有这种可能会发生变化的值
             if (ConfigManager.ModNeedsReload(loadedMod)) {
                 _configChangesRequireReload = true;
             }
         }
-        else if (leanToTheRight) {
-            bottomRightRowOffset += 24;
-        }
         #endregion
         #region 需求与引用
-        // TODO: 显示引用了它的目前启用了的模组的数量
-        _modReferences = _mod.properties.modReferences.Select(x => x.mod).ToArray();
-
-        var availableMods = ModOrganizer.RecheckVersionsToLoad();
-        _modRequiresTooltip = "";
-        HashSet<string> allDependencies = [];
-        GetDependencies(_mod.Name, allDependencies);
-        _modDependencies = [.. allDependencies];
-        if (_modDependencies.Length != 0) {
-            string refs = string.Join("\n", _modDependencies.Select(x => "- " + (UIModFolderMenu.Instance.FindUIModItem(x)?._mod.DisplayName ?? x + Language.GetTextValue("tModLoader.ModPackMissing"))));
-            _modRequiresTooltip += Language.GetTextValue("tModLoader.ModDependencyTooltip", refs);
-        }
-        void GetDependencies(string modName, HashSet<string> allDependencies) {
-            var modItem = UIModFolderMenu.Instance.FindUIModItem(modName);
-            if (modItem == null)
-                return; // Mod isn't downloaded, can't determine further recursive dependencies
-
-            var dependencies = modItem._mod.properties.modReferences.Select(x => x.mod).ToArray();
-            foreach (var dependency in dependencies) {
-                if (allDependencies.Add(dependency)) {
-                    GetDependencies(dependency, allDependencies);
-                }
-            }
-        }
-
-        HashSet<string> allDependents = [];
-        GetDependents(_mod.Name, allDependents);
-        _modDependents = [.. allDependents];
-        if (_modDependents.Length != 0) {
-            if (!string.IsNullOrWhiteSpace(_modRequiresTooltip))
-                _modRequiresTooltip += "\n\n";
-            string refs = string.Join("\n", _modDependents.Select(x => "- " + (UIModFolderMenu.Instance.FindUIModItem(x)?._mod.DisplayName ?? x + Language.GetTextValue("tModLoader.ModPackMissing"))));
-            _modRequiresTooltip += Language.GetTextValue("tModLoader.ModDependentsTooltip", refs);
-        }
-        void GetDependents(string modName, HashSet<string> allDependents) {
-            var dependents = availableMods
-                .Where(m => m.properties.RefNames(includeWeak: false).Any(refName => refName.Equals(modName)))
-                .Select(m => m.Name).ToArray();
-            foreach (var dependent in dependents) {
-                if (allDependents.Add(dependent))
-                    GetDependents(dependent, allDependents);
-            }
-        }
-
-        bottomRightRowOffset -= 24;
-        if (!string.IsNullOrWhiteSpace(_modRequiresTooltip)) {
-            var icon = UICommon.ButtonDepsTexture;
-            _modReferenceIcon = new UIImage(icon) {
-                Width = new(24, 0),
-                Height = new(24, 0),
-                Left = new(bottomRightRowOffset, 1),
-                Top = new(-12, 0.5f),
-                ScaleToFit = true,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
-            // _modReferenceIcon.OnLeftClick += EnableDependencies;
-
-            Append(_modReferenceIcon);
-        }
-        else if (leanToTheRight) {
-            bottomRightRowOffset += 24;
-        }
+        ModReferenceIcon = new(UICommon.ButtonDepsTexture) {
+            Width = new(24, 0),
+            Height = new(24, 0),
+            Top = new(-12, 0.5f),
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
+            RemoveFloatingPointsFromDrawPosition = true,
+            Visible = false,
+        };
+        Append(ModReferenceIcon);
         #endregion
         #region 翻译
-        bottomRightRowOffset -= 24;
-        if (_mod.properties.RefNames(true).Any() && _mod.properties.translationMod) {
+        // if (_mod.properties.RefNames(true).Any() && _mod.properties.translationMod)
+        if (_mod.properties.translationMod) {
             var icon = UICommon.ButtonTranslationModTexture;
-            _translationModIcon = new UIImage(icon) {
+            TranslationModIcon = new(icon) {
                 Width = new(24, 0),
                 Height = new(24, 0),
-                Left = new(bottomRightRowOffset, 1),
                 Top = new(-12, 0.5f),
                 ScaleToFit = true,
+                AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
             };
-            Append(_translationModIcon);
-        }
-        else if (leanToTheRight) {
-            bottomRightRowOffset += 24;
+            Append(TranslationModIcon);
         }
         #endregion
+        SettleRightButtons();
+        #endregion
+
         #region 加载的物品 / NPC / ...
         if (loadedMod != null) {
             _loaded = true;
@@ -448,7 +356,168 @@ public class UIModItemInFolder : UIFolderItem {
             // Height.Pixels = 130;
         }
         #endregion
+        generateTask = GenerateAsync();
     }
+
+    private void SettleRightButtons() {
+        // TODO: 配置右边这堆按钮是否向右缩紧
+        bool leanToTheRight = true;
+        int rightOffset = -6;
+        for (int i = 0; i < rightButtons.Length; ++i) {
+            var button = rightButtons[i];
+            if (button != null && button.Visible) {
+                rightOffset -= 24;
+                button.Left = new(rightOffset, 1);
+            }
+            else if (!leanToTheRight) {
+                rightOffset -= 24;
+            }
+        }
+        RecalculateChildren();
+    }
+
+    #region 异步加载
+    public bool Generated => generateTask == null;
+    Task? generateTask;
+    private async Task GenerateAsync() {
+        await Task.Yield();
+        #region 加载图标
+        Asset<Texture2D>? smallIcon = null;
+        Asset<Texture2D>? bigIcon = null;
+        if (_mod.modFile.HasFile("icon_small.rawimg")) {
+            try {
+                using (_mod.modFile.Open()) {
+                    using var s = _mod.modFile.GetStream("icon_small.rawimg");
+                    smallIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".rawimg");
+                }
+            }
+            catch (Exception e) {
+                Logging.tML.Error("Unknown error", e);
+            }
+        }
+        if (_mod.modFile.HasFile("icon.png")) {
+            try {
+                using (_mod.modFile.Open()) {
+                    using var s = _mod.modFile.GetStream("icon.png");
+                    // if (bigIcon.Width() == 80 && bigIcon.Height() == 80)
+                    bigIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".png");
+                    hoverIcon = bigIcon;
+                }
+            }
+            catch (Exception e) {
+                Logging.tML.Error("Unknown error", e);
+            }
+        }
+        Asset<Texture2D>? modIcon = smallIcon ?? bigIcon;
+        if (modIcon != null) {
+            _modIcon.SetImage(modIcon);
+        }
+        /*
+        if (smallIcon != null && bigIcon != null) {
+            _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
+            _modIcon.OnMouseOut += (_, _) => _modIcon.SetImage(smallIcon);
+        }
+        */
+        #endregion
+        generateTask = null;
+    }
+    #endregion
+    #region 引用相关
+    public void SetModReferences(IEnumerable<LocalMod>? availableMods) {
+        _modReferences = [.. _mod.properties.modReferences.Select(x => x.mod)];
+
+        StringBuilder tooltip = new();
+
+        _modDependencies = [.. GetDependencies()];
+        if (_modDependencies.Length != 0) {
+            StringBuilder dependenciesBuilder = new();
+            int i = 0;
+        StartOfModDependencies:
+            var dependency = _modDependencies[i];
+            dependenciesBuilder.Append("- ");
+            var uiModItem = UIModFolderMenu.Instance.FindUIModItem(dependency);
+            if (uiModItem != null) {
+                dependenciesBuilder.Append(uiModItem._mod.DisplayName);
+            }
+            else {
+                dependenciesBuilder.Append(dependency);
+                dependenciesBuilder.Append(Language.GetTextValue("tModLoader.ModPackMissing"));
+            }
+            if (i < _modDependencies.Length - 1) {
+                dependenciesBuilder.Append('\n');
+                i += 1;
+                goto StartOfModDependencies;
+            }
+            tooltip.Append(Language.GetTextValue("tModLoader.ModDependencyTooltip", dependenciesBuilder.ToString()));
+        }
+
+        _modDependents = [.. GetDependents(availableMods)];
+        if (_modDependents.Length != 0) {
+            if (tooltip.Length != 0)
+                tooltip.Append('\n', 2);
+            StringBuilder dependentsBuilder = new();
+            int i = 0;
+        StartOfModDependents:
+            var dependent = _modDependents[i];
+            dependentsBuilder.Append("- ");
+            var uiModItem = UIModFolderMenu.Instance.FindUIModItem(dependent);
+            if (uiModItem != null) {
+                dependentsBuilder.Append(uiModItem._mod.DisplayName);
+            }
+            else {
+                dependentsBuilder.Append(dependent);
+                dependentsBuilder.Append(Language.GetTextValue("tModLoader.ModPackMissing"));
+            }
+            if (i < _modDependents.Length - 1) {
+                dependentsBuilder.Append('\n');
+                i += 1;
+                goto StartOfModDependents;
+            }
+            tooltip.Append(Language.GetTextValue("tModLoader.ModDependentsTooltip", dependentsBuilder.ToString()));
+        }
+
+        _modRequiresTooltip = tooltip.ToString();
+        bool visibleToSet = !string.IsNullOrWhiteSpace(_modRequiresTooltip);
+        if (ModReferenceIcon.Visible != visibleToSet) {
+            ModReferenceIcon.Visible = visibleToSet;
+            SettleRightButtons();
+        }
+    }
+    public void SetDependents(IEnumerable<LocalMod> availableMods) {
+        _modDependents = [.. GetDependents(availableMods)];
+
+    }
+    private HashSet<string> GetDependencies() {
+        HashSet<string> result = [];
+        GetDependencies(ModName, result);
+        return result;
+    }
+    private static void GetDependencies(string modName, HashSet<string> allDependencies) {
+        var modItem = UIModFolderMenu.Instance.FindUIModItem(modName);
+        if (modItem == null) {
+            return; // Mod isn't downloaded, can't determine further recursive dependencies
+        }
+        foreach (var dependency in modItem._mod.properties.modReferences.Select(x => x.mod)) {
+            if (allDependencies.Add(dependency)) {
+                GetDependencies(dependency, allDependencies);
+            }
+        }
+    }
+    private HashSet<string> GetDependents(IEnumerable<LocalMod>? availableMods) {
+        HashSet<string> result = [];
+        GetDependents(ModName, result, availableMods ?? ModOrganizer.RecheckVersionsToLoad());
+        return result;
+    }
+    private static void GetDependents(string modName, HashSet<string> allDependents, IEnumerable<LocalMod> availableMods) {
+        var dependents = availableMods
+            .Where(m => m.properties.RefNames(includeWeak: false).Any(refName => refName.Equals(modName)))
+            .Select(m => m.Name);
+        foreach (var dependent in dependents) {
+            if (allDependents.Add(dependent))
+                GetDependents(dependent, allDependents, availableMods);
+        }
+    }
+    #endregion
 
     // TODO: "Generate Language File Template" button in upcoming "Miscellaneous Tools" menu.
     /*private void GenerateLangTemplate_OnClick(UIMouseEvent evt, UIElement listeningElement) {
@@ -518,11 +587,11 @@ public class UIModItemInFolder : UIFolderItem {
         #endregion
         #region 当鼠标在某些东西上时显示些东西
         // 更多信息按钮
-        if (_moreInfoButton?.IsMouseHovering == true) {
+        if (MoreInfoButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("tModLoader.ModsMoreInfo");
         }
         // 删除按钮
-        else if (_deleteModButton?.IsMouseHovering == true) {
+        else if (DeleteButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         // 模组名
@@ -530,7 +599,7 @@ public class UIModItemInFolder : UIFolderItem {
             _tooltip = Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author);
         }
         // 配置
-        else if (_configButton?.IsMouseHovering == true) {
+        else if (ConfigButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("tModLoader.ModsOpenConfig");
         }
         // 已升级小点
@@ -545,11 +614,11 @@ public class UIModItemInFolder : UIFolderItem {
             _tooltip = Language.GetTextValue("tModLoader.SwitchVersionInfoButton");
         }
         // 引用
-        else if (_modReferenceIcon?.IsMouseHovering == true) {
+        else if (ModReferenceIcon?.IsMouseHovering == true) {
             _tooltip = _modRequiresTooltip;
         }
         // 翻译
-        else if (_translationModIcon?.IsMouseHovering == true) {
+        else if (TranslationModIcon?.IsMouseHovering == true) {
             string refs = string.Join(", ", _mod.properties.RefNames(true)); // Translation mods can be strong or weak references.
             _tooltip = Language.GetTextValue("tModLoader.TranslationModTooltip", refs);
         }
