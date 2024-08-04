@@ -568,6 +568,43 @@ public class UIModItemInFolder : UIFolderItem {
             dep.DisableQuick(disabled, disableRedundantDependencies);
         }
     }
+    /// <summary>
+    /// 返回最终自己是否是禁用状态
+    /// </summary>
+    public bool DisableWhenRedundant(HashSet<string> disabled, HashSet<string> toSearch, bool includeDependents) {
+        if (!ModLoader.EnabledMods.Contains(ModName)) {
+            return true;
+        }
+        if (_modDependents.Length == 0) {
+            return false;
+        }
+        if (!includeDependents && _modReferences.Length != 0) {
+            return false;
+        }
+        foreach (var dependent in _modDependents) {
+            if (!ModLoader.EnabledMods.Contains(dependent)) {
+                continue;
+            }
+            if (!includeDependents) {
+                return false;
+            }
+            if (!toSearch.Contains(dependent)) {
+                return false;
+            }
+            var modItem = UIModFolderMenu.Instance.FindUIModItem(dependent);
+            if (modItem == null) {
+                ModFolder.Instance.Logger.Error("enabled mods should have a corresponding UIModItem at " + nameof(DisableWhenRedundant));
+                return false;
+            }
+            if (!modItem.DisableWhenRedundant(disabled, toSearch, includeDependents)) {
+                return false;
+            }
+        }
+        if (ModLoader.EnabledMods.Remove(ModName)) {
+            disabled.Add(ModName);
+        }
+        return true;
+    }
 
     internal void EnableDependencies() {
         var missingRefs = new List<string>();

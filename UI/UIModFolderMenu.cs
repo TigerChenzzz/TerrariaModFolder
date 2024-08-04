@@ -125,20 +125,31 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     #region 子元素
-    private UIElement uIElement = null!;
+    private UIElement uiElement = null!;
     private UIPanel uiPanel = null!;
     private UIImagePro refreshButton = null!;
     private readonly UIElement refreshButtonPlaceHolder = new();
     private UIFolderItemList list = null!;
     private UIScrollbar uiScrollbar = null!;
     #region 下面的一堆按钮
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonAllMods { get => buttons[0]; set => buttons[0] = value; }
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonRM { get => buttons[1]; set => buttons[1] = value; }
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonOMF { get => buttons[2]; set => buttons[2] = value; }
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonCL { get => buttons[3]; set => buttons[3] = value; }
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonCreateFolder { get => buttons[4]; set => buttons[4] = value; }
-    private UIAutoScaleTextTextPanel<LocalizedText> ButtonB { get => buttons[5]; set => buttons[5] = value; }
-    private readonly UIAutoScaleTextTextPanel<LocalizedText>[] buttons = new UIAutoScaleTextTextPanel<LocalizedText>[6];
+    public class UIAutoScaleTextTextPanelWithFadedMouseOver<T> : UIAutoScaleTextTextPanel<T> {
+        public UIAutoScaleTextTextPanelWithFadedMouseOver(T text) : base(text) {
+            this.WithFadedMouseOver();
+        }
+    }
+    private UIElement buttonsBg = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonAllMods          { get => buttons[0]; set => buttons[0] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonOMF              { get => buttons[1]; set => buttons[1] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCL               { get => buttons[2]; set => buttons[2] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonB                { get => buttons[3]; set => buttons[3] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCreateFolder     { get => buttons[4]; set => buttons[4] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonMore             { get => buttons[5]; set => buttons[5] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyEnabled      { get => buttons[6]; set => buttons[6] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get => buttons[7]; set => buttons[7] = value; }
+    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[8];
+    private readonly UIAutoScaleTextTextPanel<string>[] buttonPlaceHolders = new UIAutoScaleTextTextPanel<string>[6];
+    int buttonPage;
+    readonly int buttonPageMax = 2;
     #endregion
     #endregion
 
@@ -597,7 +608,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public override void OnInitialize() {
         #region 全部元素的容器
         // UICommon.MaxPanelWidth  // 600
-        uIElement = new UIElement {
+        uiElement = new UIElement {
             Width = { Percent = 0.8f },
             MaxWidth = UICommon.MaxPanelWidth,
             Top = { Pixels = 220 },
@@ -613,7 +624,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             PaddingTop = 0f,
             HAlign = 0.5f,
         };
-        uIElement.Append(uiPanel);
+        uiElement.Append(uiPanel);
         #endregion
         OnInitialize_Loading(); // 正在加载时的循环图标
         float upperPixels = 10;
@@ -726,6 +737,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Append(uIHeaderTexTPanel);
         #endregion
         #region 底下的按钮
+        #region 背景
+        buttonsBg = new() {
+            Width = { Percent = 1 },
+            Height = { Pixels = 85 },
+            Top = { Pixels = -105, Percent = 1 },
+        };
+        uiElement.Append(buttonsBg);
+        #endregion
         #region 启用与禁用按钮
         ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
         ButtonAllMods.OnLeftClick += (_, _) => {
@@ -747,16 +766,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         mouseOverTooltips.Add((ButtonAllMods, () => ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.Tooltip").Value));
         #endregion
-        #region 重新加载按钮
-        // 被返回按钮替代了, 可以换成其它按钮
-        ButtonRM = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModsForceReload"));
-        ButtonRM.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuOpen);
-            ModLoader.Reload();
-        };
-        #endregion
         #region 打开模组文件夹按钮
-        ButtonOMF = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModsOpenModsFolders"));
+        ButtonOMF = new(Language.GetText("tModLoader.ModsOpenModsFolders"));
         ButtonOMF.OnLeftClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
             Directory.CreateDirectory(ModLoader.ModPath);
@@ -771,11 +782,18 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         mouseOverTooltips.Add((ButtonOMF, () => Language.GetTextValue("tModLoader.ModsOpenModsFoldersTooltip")));
         #endregion
         #region 模组配置按钮
-        ButtonCL = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("tModLoader.ModConfiguration"));
+        ButtonCL = new(Language.GetText("tModLoader.ModConfiguration"));
         ButtonCL.OnLeftClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);
             Main.menuMode = Interface.modConfigListID;
             IsPreviousUIStateOfConfigList = true;
+        };
+        #endregion
+        #region 更多按钮按钮
+        ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
+        ButtonMore.OnLeftClick += (_, _) => {
+            buttonPage = (buttonPage + 1) % buttonPageMax;
+            SettleBottomButtons();
         };
         #endregion
         #region 新建文件夹按钮
@@ -791,7 +809,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         #endregion
         #region 返回按钮
-        ButtonB = new UIAutoScaleTextTextPanel<LocalizedText>(Language.GetText("UI.Back"));
+        ButtonB = new(Language.GetText("UI.Back"));
         ButtonB.OnLeftClick += (_, _) => {
             if (ShowFolderSystem && FolderPath.Count > 1 && !Main.keyState.PressingShift()) {
                 GotoUpperFolder();
@@ -824,52 +842,62 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         mouseOverTooltips.Add((ButtonB, () => ModFolder.Instance.GetLocalization("UI.Buttons.Back.Tooltip").Value));
         #endregion
+        #region 复制已启用模组到此处
+        ButtonCopyEnabled = new(ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.DisplayName"));
+        ButtonCopyEnabled.OnLeftClick += (_, _) => {
+            if (CurrentFolderNode == FolderDataSystem.Root || ShowAllMods) {
+                SoundEngine.PlaySound(SoundID.MenuClose);
+                return;
+            }
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            if (Main.keyState.PressingControl()) {
+                CurrentFolderNode.ClearChildren();
+            }
+            if (Main.keyState.PressingShift()) {
+                foreach (var mod in ModItemDict.Values) {
+                    if (mod.TheLocalMod.Enabled) {
+                        _ = new ModNode(mod.ModName) {
+                            Parent = CurrentFolderNode
+                        };
+                    }
+                }
+            }
+            else {
+                foreach (var mod in ModItemDict.Values) {
+                    if (mod.Loaded) {
+                        _ = new ModNode(mod.ModName) {
+                            Parent = CurrentFolderNode
+                        };
+                    }
+                }
+            }
+            ArrangeGenerate();
+            FolderDataSystem.TrySaveWhenChanged();
+        };
+        mouseOverTooltips.Add((ButtonCopyEnabled, () => ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.Tooltip").Value));
+        #endregion
+        #region 禁用冗余前置
+        ButtonDisableRedundant = new(ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.DisplayName"));
+        ButtonDisableRedundant.OnLeftClick += (_, _) => DisableRedundant(false);
+        ButtonDisableRedundant.OnRightClick += (_, _) => DisableRedundant(true);
+        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.Tooltip").Value));
+        #endregion
+
+        #region 按钮占位符
+        for (int i = 0; i < buttonPlaceHolders.Length; ++i) {
+            buttonPlaceHolders[i] = new(string.Empty);
+            buttonPlaceHolders[i].BackgroundColor *= 0.5f;
+            // buttonPlaceHolders[i].BackgroundColor.A *= 2;
+        }
+        #endregion
         #region 按钮处理位置
-        /*
-        for (int i = 0; i < buttons.Length; ++i) {
-            var button = buttons[i];
-            button.Width.Pixels = 200;
-            button.Height.Pixels = 40;
-            button.Left.Pixels = 20;
-            button.Top.Pixels = 220 + 45 * i;
-            button.WithFadedMouseOver();
-            Append(button);
-        }
-        */
-        int row1 = buttons.Length / 2;
-        for (int i = 0; i < row1; ++i) {
-            var button = buttons[i];
-            button.Width.Set(-10, 1f / row1);
-            button.Height.Pixels = 40;
-            button.HAlign = i * (1f / Math.Max(1, row1 - 1));
-            button.VAlign = 1;
-            button.Top.Pixels = -65;
-            button.WithFadedMouseOver();
-            uIElement.Append(button);
-        }
-        int row2 = buttons.Length - row1;
-        for (int i = row1; i < buttons.Length; ++i) {
-            var button = buttons[i];
-            button.Width.Set(-10, 1f / row2);
-            button.Height.Pixels = 40;
-            button.HAlign = (buttons.Length - i - 1) * (1f / Math.Max(1, row2 - 1));
-            button.VAlign = 1;
-            button.Top.Pixels = -20;
-            button.WithFadedMouseOver();
-            uIElement.Append(button);
-        }
-        /*
-        for (int i = 0; i < buttons.Length; ++i) {
-            var button = buttons[i];
-            button.Width.Pixels = 200;
-            button.Height.Pixels = 40;
-            button.Left.Set(-550, 0.5f);
-            button.Left.Set(20, 0);
-            button.Top.Pixels = 220 + 45 * i;
-            button.WithFadedMouseOver();
-            Append(button);
-        }
-        */
+        SettleBottomButtons(false);
+        OnLeftMouseDown += (_, _) => {
+            if (!buttonsBg.ContainsPoint(Main.MouseScreen)) {
+                buttonPage = 0;
+                SettleBottomButtons();
+            }
+        };
         #endregion
         #endregion
         #region 右键松开时尝试移动位置
@@ -880,7 +908,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         uiPanel.Append(upperMenuContainer);
-        Append(uIElement);
+        Append(uiElement);
         OnInitialize_Debug();
     }
 
@@ -913,6 +941,27 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         uiScrollbar.Top.Pixels = upperPixels;
         uiScrollbar.Height.Pixels = -upperPixels;
         uiPanel.RecalculateChildren();
+    }
+    private void SettleBottomButtons(bool recalculate = true) {
+        buttonPage = Math.Clamp(buttonPage, 0, buttonPageMax - 1);
+        buttonsBg.RemoveAllChildren();
+        for (int i = buttonPage * 6; i < (buttonPage + 1) * 6; ++i) {
+            UIElement button;
+            if (i < buttons.Length) {
+                button = buttons[i];
+            }
+            else {
+                button = buttonPlaceHolders[i % 6];
+            }
+            button.Width.Set(-10, 1f / 3);
+            button.Height.Pixels = 40;
+            button.HAlign = i % 3 * 0.5f;
+            button.VAlign = i % 6 / 3;
+            buttonsBg.Append(button);
+        }
+        if (recalculate) {
+            buttonsBg.RecalculateChildren();
+        }
     }
 
     #region 启用禁用与重置模组
@@ -1013,6 +1062,29 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
             ModOrganizer.SaveEnabledMods();
         }
+    }
+    private void DisableRedundant(bool rightclick) {
+        // TODO: 未加载完成时给出(悬浮)提示
+        if (!Loaded) {
+            return;
+        }
+        HashSet<string> disabled = [];
+        HashSet<string> affectedMods = [];
+        foreach (var mod in GetAffectedMods(!Main.keyState.PressingControl())) {
+            affectedMods.Add(mod.ModName);
+        }
+        foreach (var mod in affectedMods) {
+            FindUIModItem(mod)?.DisableWhenRedundant(disabled, affectedMods, rightclick);
+        }
+        if (disabled.Count == 0) {
+            return;
+        }
+        if (EnabledFilterMode != FolderEnabledFilter.All) {
+            ArrangeGenerate();
+        }
+        // Logging.tML.Info
+        ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
+        ModOrganizer.SaveEnabledMods();
     }
     #endregion
 
@@ -1440,6 +1512,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         SetListViewPositionAfterGenerated(list.ViewPosition);
         FolderDataSystem.Save();
     }
+
     #region 加载相关
     #region 加载动画
     private UILoaderAnimatedImage uiLoader = null!;
@@ -1560,6 +1633,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
     #endregion
+
     #region ArrangeDeleteMod
     private readonly HashSet<LocalMod> _modsToDelete = [];
     public void ArrangeDeleteMod(UIModItemInFolder uiMod) {

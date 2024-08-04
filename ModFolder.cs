@@ -16,6 +16,7 @@ using Terraria.Audio;
 using Terraria.GameContent.UI.States;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
+using Terraria.Utilities.FileBrowser;
 
 namespace ModFolder;
 
@@ -51,7 +52,6 @@ namespace ModFolder;
 // TOTEST: 测试整合包
 
 // TODO: 更多按钮的按钮
-// TODO: 按钮: 将已启用的模组复制到此文件夹下 (按住 Shift 将此文件夹下的内容更新为已启用的模组 (二次确认)(不允许根目录执行此操作))
 // TODO: 按钮: 批量删除
 // TODO: 按钮: 批量重新订阅
 // TODO: 按钮: 复制与粘贴

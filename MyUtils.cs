@@ -1,6 +1,7 @@
 ﻿global using static ModFolder.MyUtils;
 using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
+using System.Runtime.InteropServices;
 using Terraria.ModLoader.Core;
 using Terraria.UI;
 
@@ -287,4 +288,23 @@ public static class MyUtils {
     }
 
     public static bool ToBoolean(this int self) => self != 0;
+
+    public static unsafe string? OpenExplorerToGetFolderPath(string? defaultPath) {
+        byte* intPtr = nativefiledialog.Utf8EncodeNullable(defaultPath);
+        nativefiledialog.nfdresult_t result = nativefiledialog.INTERNAL_NFD_PickFolder(intPtr, out var outPath2);
+        Marshal.FreeHGlobal((IntPtr)intPtr);
+        // freePtr 由 true 改为 false, 不然要崩
+        // 虽然说 nativefiledialog.NFD_OpenDialog 是这么用的, 而且那个可以用
+        // 就是不知道有没有内存泄漏的问题...
+        string outPath = nativefiledialog.UTF8_ToManaged(outPath2, freePtr: false);
+        if (result == nativefiledialog.nfdresult_t.NFD_OKAY)
+            return outPath;
+        return null;
+    }
+    public static string? OpenExplorerToGetFilePath(string filterList, string? defaultPath) {
+		if (nativefiledialog.NFD_OpenDialog(filterList, defaultPath, out var outPath) == nativefiledialog.nfdresult_t.NFD_OKAY)
+			return outPath;
+
+		return null;
+    }
 }

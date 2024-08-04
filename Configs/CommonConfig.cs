@@ -3,8 +3,11 @@ using ReLogic.Content;
 using ReLogic.Graphics;
 using System.ComponentModel;
 using Terraria.GameContent;
+using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Config.UI;
+using Terraria.ModLoader.Core;
+using Terraria.ModLoader.UI;
 using Terraria.UI;
 using Terraria.UI.Chat;
 
@@ -32,7 +35,71 @@ public class CommonConfig : ModConfig {
     public bool AutoMoveListWhenDragging { get; set; }
     #endregion
     #region 数据保存位置
+    [CustomModConfigItem(typeof(PathConfigElement))]
     public string? DataSavePath { get; set; }
+    public class PathConfigElement : ConfigElement<string> {
+        public override void OnBind() {
+            base.OnBind();
+            Height.Set(60, 0);
+            UIClickableImage openFolderButton = new(UICommon.ButtonOpenFolder){
+                Width = { Pixels = 22 },
+                Height = { Pixels = 22 },
+                Top = { Pixels = 4 },
+                Left = { Pixels = -4 },
+                HAlign = 1,
+            };
+            Append(openFolderButton);
+            UIPanel uIPanel = new(){
+                Top = { Pixels = 30 },
+                Left = { Pixels = 10 },
+                Width = { Pixels = -20, Percent = 1 },
+                Height = { Pixels = 30 },
+            };
+            uIPanel.SetPadding(0f);
+            Append(uIPanel);
+            UIFocusInputTextField uIInputTextField = new(Language.GetTextValue("tModLoader.ModConfigTypeHere")){
+                Top = { Pixels = 5 },
+                Left = { Pixels = 10 },
+                Width = { Pixels = -20, Percent = 1 },
+                Height = { Pixels = 20 },
+            };
+            uIInputTextField.SetText(Value);
+            uIInputTextField.OnTextChange += delegate {
+                Value = uIInputTextField.CurrentString;
+            };
+            uIInputTextField.OnRightClick += (_, _) => {
+                uIInputTextField.SetText(string.Empty);
+            };
+            openFolderButton.OnLeftClick += (_, _) => {
+                var folderPath = OpenExplorerToGetFolderPath(ModOrganizer.modPath);
+                if (!string.IsNullOrEmpty(folderPath)) {
+                    uIInputTextField.SetText(folderPath);
+                }
+            };
+            uIPanel.Append(uIInputTextField);
+            var originTooltipFunction = TooltipFunction;
+            TooltipFunction = delegate {
+                if (openFolderButton.IsMouseHovering) {
+                    return ModFolder.Instance.GetLocalization("UI.ConfigButtons.OpenFolder.Tooltip").Value;
+                }
+                if (uIPanel.IsMouseHovering) {
+                    return Value;
+                }
+                return originTooltipFunction();
+            };
+        }
+        public class UIClickableImage : UIImage {
+            public UIClickableImage(Asset<Texture2D> texture) : base(texture) {
+                ScaleToFit = true;
+                AllowResizingDimensions = false;
+                RemoveFloatingPointsFromDrawPosition = true;
+            }
+            public override void DrawSelf(SpriteBatch spriteBatch) {
+                Color = IsMouseHovering ? Color.White : Color.Silver;
+                base.DrawSelf(spriteBatch);
+            }
+        }
+    }
     #endregion
 
     #region 是否在模组加载时打印日志
@@ -58,35 +125,32 @@ public class CommonConfig : ModConfig {
 
     #region 更新日志
     [SeparatePage]
-	public SeeChangelogClass SeeChangelog { get; set; } = new();
-	public class SeeChangelogClass {
-		[CustomModConfigItem(typeof(ChangelogDisplay))]
-		public int ChangelogDisplay;
-	}
-	public class ChangelogDisplay : FloatElement {
-		Asset<DynamicSpriteFont>? _font;
-		Asset<DynamicSpriteFont> Font => _font ??= FontAssets.MouseText;
+    public SeeChangelogClass SeeChangelog { get; set; } = new();
+    public class SeeChangelogClass {
+        [CustomModConfigItem(typeof(ChangelogDisplay))]
+        public int ChangelogDisplay;
+    }
+    public class ChangelogDisplay : FloatElement {
+        Asset<DynamicSpriteFont>? _font;
+        Asset<DynamicSpriteFont> Font => _font ??= FontAssets.MouseText;
         static Color BaseColor => Color.White;
-		string? _changelog;
+        string? _changelog;
         TextSnippet[]? _changelogSnippets;
         TextSnippet[] ChangelogSnippets => _changelogSnippets ??= [.. ChatManager.ParseMessage(Changelog, BaseColor)];
-		string Changelog {
-			get {
+        string Changelog {
+            get {
                 string localizedChangelog = ModFolder.Instance.GetLocalization("Changelog").Value;
-                if (_changelog == localizedChangelog)
-                {
+                if (_changelog == localizedChangelog) {
                     return _changelog;
                 }
                 _changelog = localizedChangelog;
                 _changelogSnippets = [.. ChatManager.ParseMessage(_changelog, BaseColor)];
-				Vector2 stringSize = ChatManager.GetStringSize(Font.Value, _changelog, Vector2.One, GetDimensions().Width);
+                Vector2 stringSize = ChatManager.GetStringSize(Font.Value, _changelog, Vector2.One, GetDimensions().Width);
                 Height.Set(stringSize.Y, 0);
-                if (Parent != null)
-                {
+                if (Parent != null) {
                     Parent.Height.Set(stringSize.Y, 0);
                     UIElement root = Parent;
-                    while (root.Parent != null)
-                    {
+                    while (root.Parent != null) {
                         root = root.Parent;
                     }
                     root.Recalculate();

@@ -214,6 +214,7 @@ public static class FolderDataSystem {
             Parent._children.InsertRange(index, _children);
             _parent = null;
         }
+        public void ClearChildren() => _children.Clear();
     }
     public class RootNode : FolderNode {
         [JsonConstructor]
