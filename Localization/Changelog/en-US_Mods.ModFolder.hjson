@@ -1,5 +1,16 @@
 Changelog:
 	'''
+	v0.2.0
+	- optimize the loading time when entering the interface (load textures and dependencies asynchronously)
+	- delete folder when pressing Alt to put the content to the current folder
+	- double click to disable a mod when pressing Shift to disable the redundant dependencies at the same time, and the "Enable & Disable" button also allow to disable redundant dependencies
+	- more buttons: copy all enabled mods to the current folder; disable redundant dependencies
+	- save more frequently (save when changed, configurable)
+	- configure whether need confirm when deleting a folder (unsubscribe all always need to conform)
+	- configure whether to move list when dragging
+	- configure the save path of data
+	- bugfix: "Enable & Disable" button now handles dependencies
+
 	v0.1.2.1
 	- fix the misalignment when renaming a folder
 
@@ -9,7 +20,7 @@ Changelog:
 
 	v0.1.1
 	- add changelog
-	- config whether to use leftclick to enter the folder system (default rightclick)
+	- configure whether to use leftclick to enter the folder system (default rightclick)
 	- unloaded mods show display name instead of inner name
 	- resolve the lags when unsubscribing mods
 	- fill the description
