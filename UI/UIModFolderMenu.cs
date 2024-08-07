@@ -31,6 +31,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Instance = new();
     }
     public static void EnterFrom(UIWorkshopHub hub) {
+        SoundEngine.PlaySound(SoundID.MenuOpen);
 #if DEBUG
         // TODO: 做成选项
         TotallyReload();
@@ -792,6 +793,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #region 更多按钮按钮
         ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
         ButtonMore.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
             buttonPage = (buttonPage + 1) % buttonPageMax;
             SettleBottomButtons();
         };
@@ -812,6 +814,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ButtonB = new(Language.GetText("UI.Back"));
         ButtonB.OnLeftClick += (_, _) => {
             if (ShowFolderSystem && FolderPath.Count > 1 && !Main.keyState.PressingShift()) {
+                SoundEngine.PlaySound(SoundID.MenuClose);
                 GotoUpperFolder();
                 return;
             }
@@ -1064,6 +1067,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     private void DisableRedundant(bool rightclick) {
+        SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
             return;
