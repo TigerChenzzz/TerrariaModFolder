@@ -107,8 +107,8 @@ public class ModFolder : Mod {
         orig(self);
         var buttonMods = self._buttonMods;
         buttonMods.OnMouseOver += (_, _) => {
-            // TODO: 这里的文字按照配置修改
-            self._descriptionText.SetText(string.Join(' ', self._descriptionText.Text, Instance.GetLocalization("UI.Buttons.Mods.DescriptionToAdd").Value));
+            var localizationKey = CommonConfig.Instance.LeftClickToEnterFolderSystem ? "UI.Buttons.Mods.DescriptionWhenLeftClick" : "UI.Buttons.Mods.DescriptionToAdd";
+            self._descriptionText.SetText(string.Join(' ', self._descriptionText.Text, Instance.GetLocalization(localizationKey).Value));
         };
         buttonMods.OnRightClick += (e, el) => {
             SoundEngine.PlaySound(SoundID.MenuOpen);

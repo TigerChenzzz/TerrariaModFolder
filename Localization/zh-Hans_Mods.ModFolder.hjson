@@ -1,6 +1,9 @@
 UI: {
 	Buttons: {
-		Mods.DescriptionToAdd: 右键以打开文件夹系统。
+		Mods: {
+			DescriptionToAdd: 右键以打开文件夹系统。
+			DescriptionWhenLeftClick: 右键以打开原版界面。
+		}
 		CreateFolder.DisplayName: 新建文件夹
 
 		AllMods: {
