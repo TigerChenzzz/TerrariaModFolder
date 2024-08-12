@@ -4,6 +4,7 @@ UI: {
 			DescriptionToAdd: 右键以打开文件夹系统。
 			DescriptionWhenLeftClick: 右键以打开原版界面。
 		}
+
 		CreateFolder.DisplayName: 新建文件夹
 
 		AllMods: {
@@ -18,7 +19,7 @@ UI: {
 				按住 Shift 则应用于所有模组
 				按住 Ctrl 以在禁用时同时禁用收藏的模组
 				特殊的, 按住 Ctrl 时左键相当于不按 Ctrl 的右键, 但是会同时禁用冗余依赖
-				按住 Ctrl 时的中间相当于按住 Ctrl 的右键, 而且会同时禁用冗余依赖
+				按住 Ctrl 时的中键相当于按住 Ctrl 的右键, 而且会同时禁用冗余依赖
 				(收藏的模组默认不会被禁用)
 				'''
 		}

@@ -20,6 +20,8 @@ using Terraria.Utilities.FileBrowser;
 
 namespace ModFolder;
 
+// BUG: 启用时可能启用到过期的模组?
+
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
 // TODO: 批量 重新订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)

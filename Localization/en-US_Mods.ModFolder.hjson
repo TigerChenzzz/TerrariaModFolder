@@ -4,6 +4,7 @@ UI: {
 			DescriptionToAdd: Rightclick to open the folder system.
 			DescriptionWhenLeftClick: Rightclick to open the original UI.
 		}
+
 		CreateFolder.DisplayName: Create Folder
 
 		AllMods: {
