@@ -79,7 +79,10 @@ public class ModFolder : Mod {
     }
 
     public override void Unload() {
-        FolderDataSystem.Save();
+        if (Instance == null) {
+            // 这样能防止大多数情况报错, 但是由于可能断在一些奇怪的地方, 所以下面仍然要安全检查
+            return;
+        }
         if (Interface.modConfigList?.backButton is { } backButton) {
             backButton.OnLeftClick -= UIModConfigList_BackButton_OnLeftClick;
         }

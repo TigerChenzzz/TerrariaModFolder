@@ -818,6 +818,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 GotoUpperFolder();
                 return;
             }
+            // TODO: 在 Deactivate 中也有, 检查是否冗余
             FolderDataSystem.Save();
             FolderPath.Clear();
             list.ViewPosition = 0;
