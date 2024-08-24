@@ -113,4 +113,12 @@ UI: {
 		pressing Alt to move the content to the current folder
 		'''
 	ConfigButtons.OpenFolder.Tooltip: open folder...
+	Rename: Rename
+	FolderEnableStatus:
+		'''
+		all mods: {0}
+		enabled: {1}
+		to enable: {2}
+		to disable: {3}
+		'''
 }

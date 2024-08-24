@@ -52,6 +52,16 @@ CommonConfig: {
 		Label: 查看更新日志
 		Tooltip: ""
 	}
+
+	ShowEnableStatusBackground: {
+		Label: 显示启用状态背景
+		// Tooltip: ""
+	}
+
+	ShowEnableStatusText: {
+		Label: 显示启用状态文字
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -61,4 +71,75 @@ SeeChangelogClass: {
 		// Label: Changelog Display
 		// Tooltip: ""
 	}
+}
+
+ShowEnableStatusTextClass: {
+	// Tooltip: ""
+
+	ShowAllAlways: {
+		Label: 总是显示全部
+		// Tooltip: ""
+	}
+
+	ShowAllWhenNotZero: {
+		Label: 显示所有非零项
+		// Tooltip: ""
+	}
+
+	ShowNone: {
+		Label: 完全不显示
+		// Tooltip: ""
+	}
+
+	AllMods: {
+		Label: 总模组数
+		// Tooltip: ""
+	}
+
+	Enabled: {
+		Label: 已启用数
+		// Tooltip: ""
+	}
+
+	ToEnable: {
+		Label: 待启用数
+		// Tooltip: ""
+	}
+
+	ToDisable: {
+		Label: 待禁用数
+		// Tooltip: ""
+	}
+
+	Seperator: {
+		Label: 分隔符
+		// Tooltip: ""
+	}
+
+	AllModsColor: {
+		Label: 总模组数颜色
+		// Tooltip: ""
+	}
+
+	EnabledColor: {
+		Label: 已启用数颜色
+		// Tooltip: ""
+	}
+
+	ToEnableColor: {
+		Label: 待启用数颜色
+		// Tooltip: ""
+	}
+
+	ToDisableColor: {
+		Label: 待禁用数颜色
+		// Tooltip: ""
+	}
+}
+
+ShowType: {
+	// Tooltip: ""
+	Never.Label: 从不显示
+	WhenNotZero.Label: 非零时显示
+	Always.Label: 总是显示
 }

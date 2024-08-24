@@ -1,7 +1,10 @@
 ﻿using ModFolder.UI;
+using MonoMod.Cil;
+using Newtonsoft.Json;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System.ComponentModel;
+using System.Reflection;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.Config;
@@ -36,7 +39,8 @@ public class CommonConfig : ModConfig {
     #endregion
     #region 数据保存位置
     [CustomModConfigItem(typeof(PathConfigElement))]
-    public string? DataSavePath { get; set; }
+    [DefaultValue("")]
+    public string? DataSavePath { get; set; } = string.Empty;
     public class PathConfigElement : ConfigElement<string> {
         public override void OnBind() {
             base.OnBind();
@@ -101,6 +105,101 @@ public class CommonConfig : ModConfig {
         }
     }
     #endregion
+    #region 显示文件夹内的启用状态
+    [DefaultValue(true)]
+    public bool ShowEnableStatusBackground { get; set; }
+    public ShowEnableStatusTextClass ShowEnableStatusText { get; set; } = new();
+    public class ObjectElementFixed() : ObjectElement(false) {
+        private static bool hooked;
+        public override void OnBind() {
+            TryHook();
+            base.OnBind();
+        }
+        private void TryHook() {
+            if (hooked) {
+                return;
+            }
+            hooked = true;
+            MonoModHooks.Modify(typeof(ObjectElement).GetMethod(nameof(SetupList), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), FixSetupList);
+        }
+        private static void FixSetupList(ILContext il) {
+            ILCursor cursor = new(il);
+            if (!cursor.TryGotoNext(MoveType.AfterLabel, i => i.MatchCall(typeof(Attribute), nameof(Attribute.IsDefined)))) {
+                return;
+            }
+            cursor.Remove();
+            cursor.EmitDelegate((MemberInfo member, Type type) => Attribute.IsDefined(member, type) && !Attribute.IsDefined(member, typeof(ShowDespiteJsonIgnoreAttribute)));
+        }
+    }
+    [CustomModConfigItem(typeof(ObjectElementFixed))]
+    public class ShowEnableStatusTextClass {
+        public enum ShowType {
+            Never,
+            WhenNotZero,
+            Always
+        }
+        [JsonIgnore]
+        public bool ShowAny => !ShowNone;
+        [ShowDespiteJsonIgnore, JsonIgnore]
+        public bool ShowAllAlways {
+            get => AllMods == ShowType.Always && Enabled == ShowType.Always && ToEnable == ShowType.Always && ToDisable == ShowType.Always;
+            set {
+                if (value) {
+                    AllMods = ShowType.Always;
+                    Enabled = ShowType.Always;
+                    ToEnable = ShowType.Always;
+                    ToDisable = ShowType.Always;
+                }
+            }
+        }
+        [ShowDespiteJsonIgnore, JsonIgnore]
+        public bool ShowAllWhenNotZero {
+            get => AllMods == ShowType.WhenNotZero && Enabled == ShowType.WhenNotZero && ToEnable == ShowType.WhenNotZero && ToDisable == ShowType.WhenNotZero;
+            set {
+                if (value) {
+                    AllMods = ShowType.WhenNotZero;
+                    Enabled = ShowType.WhenNotZero;
+                    ToEnable = ShowType.WhenNotZero;
+                    ToDisable = ShowType.WhenNotZero;
+                }
+            }
+        }
+        [ShowDespiteJsonIgnore, JsonIgnore]
+        public bool ShowNone {
+            get => AllMods == ShowType.Never && Enabled == ShowType.Never && ToEnable == ShowType.Never && ToDisable == ShowType.Never;
+            set {
+                if (value) {
+                    AllMods = ShowType.Never;
+                    Enabled = ShowType.Never;
+                    ToEnable = ShowType.Never;
+                    ToDisable = ShowType.Never;
+                }
+            }
+        }
+        [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
+        public ShowType AllMods { get; set; } = ShowType.WhenNotZero;
+        [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
+        public ShowType Enabled { get; set; } = ShowType.WhenNotZero;
+        [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
+        public ShowType ToEnable { get; set; } = ShowType.WhenNotZero;
+        [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
+        public ShowType ToDisable { get; set; } = ShowType.WhenNotZero;
+        [DefaultValue(" / ")]
+        public string Seperator { get; set; } = " / ";
+        // 灰色
+        [JsonDefaultValue("\"128, 128, 128, 255\"")]
+        public Color AllModsColor { get; set; } = Color.Gray;
+        // 白色
+        [JsonDefaultValue("255, 255, 255, 255")]
+        public Color EnabledColor { get; set; } = UIFolderItem.EnabledColor;
+        // 绿色
+        [JsonDefaultValue("0, 255, 0, 255")]
+        public Color ToEnableColor { get; set; } = UIFolderItem.ToEnableColor;
+        // 红色
+        [JsonDefaultValue("255, 0, 0, 255")]
+        public Color ToDisableColor { get; set; } = UIFolderItem.ToDisableColor;
+    }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]
@@ -124,7 +223,7 @@ public class CommonConfig : ModConfig {
     #endregion
 
     #region 更新日志
-    [SeparatePage]
+    [SeparatePage, JsonIgnore, ShowDespiteJsonIgnore]
     public SeeChangelogClass SeeChangelog { get; set; } = new();
     public class SeeChangelogClass {
         [CustomModConfigItem(typeof(ChangelogDisplay))]
@@ -179,4 +278,11 @@ public class CommonConfig : ModConfig {
     public override void OnChanged() {
         ;
     }
+}
+
+public static class ShoeEnableStatusTextClassShowTypeExtensions {
+    public static bool Never(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Never;
+    public static bool WhenNotZero(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.WhenNotZero;
+    public static bool Always(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Always;
+    public static bool Check(this CommonConfig.ShowEnableStatusTextClass.ShowType self, int value) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Always || self == CommonConfig.ShowEnableStatusTextClass.ShowType.WhenNotZero && value != 0;
 }

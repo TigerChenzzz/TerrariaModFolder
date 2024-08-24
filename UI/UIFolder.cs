@@ -1,9 +1,9 @@
-﻿using ModFolder.Configs;
+﻿using Humanizer;
+using ModFolder.Configs;
 using ModFolder.Systems;
+using System.Text;
 using Terraria.Audio;
-using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
-using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -22,9 +22,11 @@ public class UIFolder : UIFolderItem {
     public override DateTime LastModified => base.LastModified;
     private UIImage _folderIcon = null!;
     private UIText _folderName = null!;
+    private int _folderNameIndex;
     private UIFocusInputTextFieldPro _renameText = null!;
     private UIImage? _deleteButton;
     private UIImage? _renameButton;
+    private UIText _enableStatusText = null!;
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
         FolderNode = folderNode;
@@ -41,18 +43,18 @@ public class UIFolder : UIFolderItem {
     private void CheckReplace() {
         if (replaceToFolderName) {
             replaceToFolderName = false;
-            this.ReplaceChildren(_renameText, _folderName, false);
+            this.ReplaceChildrenByIndex(_folderNameIndex, _folderName);
         }
         if (replaceToRenameText) {
             replaceToRenameText = false;
             _renameText.CurrentString = _folderName.Text;
-            this.ReplaceChildren(_folderName, _renameText, false);
+            this.ReplaceChildrenByIndex(_folderNameIndex, _renameText);
             _renameText.Focused = true;
         }
         if (directlyReplaceToRenameText) {
             directlyReplaceToRenameText = false;
             _renameText.CurrentString = string.Empty;
-            this.ReplaceChildren(_folderName, _renameText, false);
+            this.ReplaceChildrenByIndex(_folderNameIndex, _renameText);
             _renameText.Focused = true;
         }
         }
@@ -75,7 +77,7 @@ public class UIFolder : UIFolderItem {
         _folderName.Left.Pixels = 35;
         // _folderName.Top.Pixels = 7;
         _folderName.VAlign = 0.5f;
-        Append(_folderName);
+        _folderNameIndex = this.AppendAndGetIndex(_folderName);
         #endregion
         #region 删除按钮
         int rightRowOffset = -30;
@@ -91,9 +93,9 @@ public class UIFolder : UIFolderItem {
             _deleteButton.OnLeftClick += QuickFolderDelete;
             Append(_deleteButton);
         }
-        rightRowOffset -= 24;
         #endregion
         #region 重命名按钮
+        rightRowOffset -= 24;
         if (FolderNode != null) {
             _renameButton = new UIImage(Textures.ButtonRename) {
                 Width = { Pixels = 24 },
@@ -108,7 +110,16 @@ public class UIFolder : UIFolderItem {
             };
             Append(_renameButton);
         }
-        rightRowOffset -= 24;
+        #endregion
+        #region 启用状态
+        rightRowOffset -= 10;
+        _enableStatusText = new(string.Empty) {
+            Left = { Pixels = rightRowOffset, },
+            VAlign = 0.5f,
+            HAlign = 1,
+            TextOriginX = 1,
+        };
+        Append(_enableStatusText);
         #endregion
         #region 重命名输入框
         _renameText = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value) {
@@ -325,8 +336,11 @@ public class UIFolder : UIFolderItem {
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
     }
+    #region Draw
     public override void DrawSelf(SpriteBatch spriteBatch) {
         base.DrawSelf(spriteBatch);
+        DrawEnableStatus(spriteBatch);
+        UpdateEnableStatusText();
         CheckReplace();
         // TODO: 状态显示: 全启用 / 部分启用 / 全禁用 / 待启用 / 待禁用 / 待启用及禁用
         // TODO: 悬浮提示中显示详细状态 : 启用状态, 待启用数, 待禁用数
@@ -338,8 +352,11 @@ public class UIFolder : UIFolderItem {
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         else if (_renameButton?.IsMouseHovering == true) {
-            // TODO: 本地化
-            _tooltip = "重命名";
+            _tooltip = ModFolder.Instance.GetLocalization("UI.Rename").Value;
+        }
+        else if (CommonConfig.Instance.ShowEnableStatusText.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
+            !CommonConfig.Instance.ShowEnableStatusText.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
+            _tooltip = ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
         }
         #endregion
     }
@@ -350,4 +367,183 @@ public class UIFolder : UIFolderItem {
             UICommon.TooltipMouseText(_tooltip);
         }
     }
+    private readonly int randomStartOffset = Main.rand.Next(0, 10000);
+    private void UpdateEnableStatusText() {
+        var config = CommonConfig.Instance.ShowEnableStatusText;
+        if (FolderNode == null) {
+            return;
+        }
+        if (!config.ShowAny) {
+            _enableStatusText.SetText(string.Empty);
+            return;
+        }
+        StringBuilder sb = new();
+        bool slashed = false;
+        if (config.AllMods.Check(FolderNode.ChildrenCount)) {
+            sb.AppendFormat("[c/{0}:{1}]", config.AllModsColor.Hex3(), FolderNode.ChildrenCount);
+            slashed = true;
+        }
+        
+        if (config.Enabled.Check(FolderNode.EnabledCount)) {
+            if (slashed) {
+                sb.Append(config.Seperator);
+            }
+            else {
+                slashed = true;
+            }
+            sb.AppendFormat("[c/{0}:{1}]", config.EnabledColor.Hex3(), FolderNode.EnabledCount);
+        }
+        if (config.ToEnable.Check(FolderNode.ToEnableCount)) {
+            if (slashed) {
+                sb.Append(config.Seperator);
+            }
+            else {
+                slashed = true;
+            }
+            sb.AppendFormat("[c/{0}:{1}]", config.ToEnableColor.Hex3(), FolderNode.ToEnableCount);
+        }
+        if (config.ToDisable.Check(FolderNode.ToDisableCount)) {
+            if (slashed) {
+                sb.Append(config.Seperator);
+            }
+            else {
+                slashed = true;
+            }
+            sb.AppendFormat("[c/{0}:{1}]", config.ToDisableColor.Hex3(), FolderNode.ToDisableCount);
+        }
+        if (!slashed) {
+            _enableStatusText.SetText(string.Empty);
+            return;
+        }
+        _enableStatusText.SetText(sb.ToString());
+    }
+    private void DrawEnableStatus(SpriteBatch spriteBatch) {
+        if (!CommonConfig.Instance.ShowEnableStatusBackground) {
+            return;
+        }
+        if (FolderNode == null) {
+            return;
+        }
+        if (FolderNode.ChildrenCount == 0) {
+            return;
+        }
+        var rect = _dimensions.ToRectangle();
+        int width = rect.Width;
+        int height = rect.Height;
+        if (width < height || height < 2) {
+            return;
+        }
+        int countNow = FolderNode.EnabledCount - FolderNode.ToDisableCount;
+        int enableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount));
+        countNow += FolderNode.ToEnableCount;
+        int toEnableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount));
+        countNow += FolderNode.ToDisableCount;
+        int toDisableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount)) - toEnableWidth;
+        toEnableWidth -= enableWidth;
+        int minWidth = 5;
+        if (FolderNode.EnabledCount - FolderNode.ToEnableCount > 0 && enableWidth < minWidth) {
+            enableWidth = minWidth;
+        }
+        if (FolderNode.ToEnableCount > 0 && toEnableWidth < minWidth) {
+            toEnableWidth = minWidth;
+        }
+        if (FolderNode.ToDisableCount > 0 &&  toDisableWidth < minWidth) {
+            toDisableWidth = minWidth;
+        }
+        int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + randomStartOffset;
+        DrawEnableStatus_Single(spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
+        DrawEnableStatus_Single(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
+        DrawEnableStatus_Single(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
+    }
+
+    private readonly static Dictionary<int, Texture2D> _slashTextures = [];
+    private static Texture2D GetSlashTexture(int size) {
+        if (_slashTextures.TryGetValue(size, out var result)) {
+            return result;
+        }
+        Color[] colors = new Color[size * size];
+        for (int i = 1; i <= size; ++i) {
+            colors[(size - 1) * i] = Color.White;
+        }
+        result = Textures.FromColors(size, size, colors);
+        _slashTextures.Add(size, result);
+        return result;
+    }
+    private static void DrawEnableStatus_Single(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        int startOrigin = start;
+        start %= rect.Width;
+        if (start < 0) {
+            start += rect.Width;
+        }
+        end = end + start - startOrigin;
+        if (end <= start) {
+            return;
+        }
+        #region 下边框
+        if (start >= rect.Height - 1) {
+            if (end < rect.Width + rect.Height) {
+                // 两边都在边界内
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, end - start, 1), borderColor);
+            }
+            else {
+                // 右边超界
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, rect.Right - (rect.X + start - rect.Height + 1), 1), borderColor);
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Width - rect.Height + 1, 1), borderColor);
+            }
+        } 
+        else /*if (end < rect.Width + rect.Height)*/ {
+            // 左边超界
+            if (end < rect.Height) {
+                // 右边不足时
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, end - start, 1), borderColor);
+            }
+            else {
+                // 右边跨界时
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Height + 1, 1), borderColor);
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, - start + rect.Height, 1), borderColor);
+            }
+        }
+        #endregion
+        if (end > rect.Width) {
+            #region 上边框
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, rect.Width - start, 1), borderColor);
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y, end - rect.Width, 1), borderColor);
+            #endregion
+            end -= rect.Width;
+            for (int i = 0; i < end; ++i) {
+                DrawEnableStatus_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+            }
+            end = rect.Width;
+        }
+        else {
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, end - start, 1), borderColor);
+        }
+        for (int i = start; i < end; ++i) {
+            DrawEnableStatus_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+        }
+    }
+    private static void DrawEnableStatus_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        if (position >= rect.Height - 1) {
+            spriteBatch.Draw(GetSlashTexture(rect.Height - 2), new Rectangle(rect.X + position - rect.Height + 2, rect.Y + 1, rect.Height - 2, rect.Height - 2), innerColor);
+            return;
+        }
+        var slash = GetSlashTexture(rect.Height - 2);
+        if (position >= 1) {
+            // 左边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
+            if (position >= 2) {
+                // 左边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
+            }
+        }
+        if (position <=  rect.Height - 3) {
+            // 右边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
+            if (position <= rect.Height - 4) {
+                // 右边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.Right + position - rect.Height + 2, rect.Y + 1, rect.Height - position - 3, rect.Height - 2), new Rectangle(0, 0, rect.Height - position - 3, rect.Height - 2), innerColor);
+            }
+        }
+    }
+    #endregion
 }

@@ -113,4 +113,12 @@ UI: {
 		按住 Alt 以将内含物品放入当前位置
 		'''
 	ConfigButtons.OpenFolder.Tooltip: 打开文件夹...
+	Rename: 重命名
+	FolderEnableStatus:
+		'''
+		总模组数: {0}
+		已启用数: {1}
+		待启用数: {2}
+		待禁用数: {3}
+		'''
 }

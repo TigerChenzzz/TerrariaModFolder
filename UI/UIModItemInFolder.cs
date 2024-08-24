@@ -332,6 +332,7 @@ public class UIModItemInFolder : UIFolderItem {
                 return;
             // TODO: 双击某些位置时不能切换
             ToggleEnabled();
+            FolderDataSystem.Root.RefreshCountsInTree();
         };
         #endregion
         #region alt 左键收藏
@@ -677,21 +678,19 @@ public class UIModItemInFolder : UIFolderItem {
         #region 是否启用
         // TODO: 显示因配置而需要重载的状态?  _configChangesRequireReload
         if (_mod.Enabled && (_loaded || _mod.properties.side == ModSide.Server)) {
-            spriteBatch.DrawBox(rectangle, Color.White * 0.6f, Color.White * 0.2f);
+            spriteBatch.DrawBox(rectangle, EnabledBorderColor, EnabledInnerColor);
         }
         #endregion
         #region 需要重新加载
-        // TODO: 调色   现在的绿色貌似不是很显眼
         if (_mod.properties.side != ModSide.Server) {
             if (_mod.Enabled && !_loaded) {
-                spriteBatch.DrawBox(rectangle, new Color(0f, 1f, 0f) * 0.6f, new Color(0f, 1f, 0f) * 0.15f);
+                spriteBatch.DrawBox(rectangle, ToEnableBorderColor, ToEnableInnerColor);
             }
             else if (!_mod.Enabled && _loaded) {
-                spriteBatch.DrawBox(rectangle, Color.Red * 0.6f, Color.Red * 0.15f);
+                spriteBatch.DrawBox(rectangle, ToDisableBorderColor, ToDisableInnerColor);
             }
             else if (_configChangesRequireReload) {
-                // TODO: 和收藏的颜色冲突了
-                spriteBatch.DrawBox(rectangle, Color.Yellow * 0.6f, Color.Yellow * 0.2f);
+                spriteBatch.DrawBox(rectangle, ConfigNeedReloadBorderColor, ConfigNeedReloadInnerColor);
             }
         }
         #endregion

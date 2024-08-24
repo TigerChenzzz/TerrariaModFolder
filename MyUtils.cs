@@ -169,25 +169,6 @@ public static class MyUtils {
     }
     #endregion
 
-    public static void SaveTexture(Asset<Texture2D> texture, string path = "C:\\Users\\Administrator\\Documents\\My Games\\Terraria\\tModLoader\\Assets") {
-        if (!texture.IsLoaded) {
-            return;
-        }
-        string fullPath = Path.Join(path, texture.Name.Replace(".", "\\") + ".png");
-        if (Path.Exists(fullPath)) {
-            return;
-        }
-        string? directory = Path.GetDirectoryName(fullPath);
-        if (directory != null) {
-            Directory.CreateDirectory(directory);
-        }
-        using var file = File.Open(fullPath, FileMode.Create);
-        texture.Value.SaveAsPng(file, texture.Width(), texture.Height());
-    }
-    public static void SaveTextureExtra(Asset<Texture2D> texture, string path = "C:\\Users\\Administrator\\Documents\\My Games\\Terraria\\tModLoader\\AssetsExtra") {
-        SaveTexture(texture, path);
-    }
-
     #region 堆排序
     public static List<T> HeapSort<T>(this List<T> list, Func<T, T, int> comparer) {
         HeapSortInner(list, comparer, 0, list.Count);
@@ -264,21 +245,42 @@ public static class MyUtils {
         }
     }
 
-    public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd, Action? onReplace = null) {
+    /// <summary>
+    /// 返回被替换掉的元素
+    /// </summary>
+    public static UIElement ReplaceChildrenByIndex(this UIElement self, int index, UIElement element) {
+        if (element.Parent == self) {
+            return element;
+        }
+        var result = self.Elements[index];
+        result.Parent = null;
+        element.Remove();
+        self.Elements[index] = element;
+        element.Parent = self;
+        element.Recalculate();
+        return result;
+    }
+
+    public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd) {
         
         for (int i = 0; i < self.Elements.Count; ++i) {
             if (self.Elements[i] == from) {
                 from.Parent = null;
+                to.Remove();
                 self.Elements[i] = to;
                 to.Parent = self;
                 to.Recalculate();
-                onReplace?.Invoke();
                 return;
             }
         }
         if (forceAdd) {
             self.Append(to);
         }
+    }
+    public static int AppendAndGetIndex(this UIElement self, UIElement child) {
+        int index = self.Elements.Count;
+        self.Append(child);
+        return index;
     }
     private static bool? _developerMode;
     public static bool IsTMLDeveloperMode => _developerMode ??= ModCompile.DeveloperMode;

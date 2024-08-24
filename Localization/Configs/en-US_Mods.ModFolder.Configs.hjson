@@ -52,6 +52,16 @@ CommonConfig: {
 		Label: See Changelog
 		Tooltip: ""
 	}
+
+	ShowEnableStatusBackground: {
+		Label: Show Enable Status Background
+		Tooltip: ""
+	}
+
+	ShowEnableStatusText: {
+		Label: Show Enable Status Text
+		Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -61,4 +71,75 @@ SeeChangelogClass: {
 		Label: Changelog Display
 		Tooltip: ""
 	}
+}
+
+ShowEnableStatusTextClass: {
+	Tooltip: ""
+
+	ShowAllAlways: {
+		Label: Show All Always
+		Tooltip: ""
+	}
+
+	ShowAllWhenNotZero: {
+		Label: Show All When Not Zero
+		Tooltip: ""
+	}
+
+	ShowNone: {
+		Label: Show None
+		Tooltip: ""
+	}
+
+	AllMods: {
+		Label: All Mods
+		Tooltip: ""
+	}
+
+	Enabled: {
+		Label: Enabled
+		Tooltip: ""
+	}
+
+	ToEnable: {
+		Label: To Enable
+		Tooltip: ""
+	}
+
+	ToDisable: {
+		Label: To Disable
+		Tooltip: ""
+	}
+
+	Seperator: {
+		Label: Seperator
+		Tooltip: ""
+	}
+
+	AllModsColor: {
+		Label: All Mods Color
+		Tooltip: ""
+	}
+
+	EnabledColor: {
+		Label: Enabled Color
+		Tooltip: ""
+	}
+
+	ToEnableColor: {
+		Label: To Enable Color
+		Tooltip: ""
+	}
+
+	ToDisableColor: {
+		Label: To Disable Color
+		Tooltip: ""
+	}
+}
+
+ShowType: {
+	Tooltip: ""
+	Never.Label: Never
+	WhenNotZero.Label: When Not Zero
+	Always.Label: Always
 }

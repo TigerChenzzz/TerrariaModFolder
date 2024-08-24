@@ -114,6 +114,65 @@ public static class FolderDataSystem {
         public List<Node> ChildrenPublic { get => _children; set => _children = value; }
         public IReadOnlyList<Node> Children => _children;
         protected List<Node> _children = [];
+
+        public int ChildrenCount { get; set; }
+        public int EnabledCount { get; set; }
+        public int DisabledCount => ChildrenCount - EnabledCount;
+        public int ToEnableCount { get; set; }
+        public int ToDisableCount { get; set; }
+        public void RefreshCounts() {
+            ChildrenCount = 0;
+            EnabledCount = 0;
+            ToEnableCount = 0;
+            ToDisableCount = 0;
+            foreach (var mod in ModNodesInTree) {
+                RefreshCountsBy(mod);
+            }
+        }
+        public void TryRefreshCounts() {
+            if (CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny) {
+                RefreshCounts();
+            }
+        }
+        public void RefreshCountsInTree() {
+            ChildrenCount = 0;
+            EnabledCount = 0;
+            ToEnableCount = 0;
+            ToDisableCount = 0;
+            foreach (var node in Children) {
+                if (node is FolderNode folder) {
+                    folder.RefreshCountsInTree();
+                    RefreshCountsBy(folder);
+                }
+                else if (node is ModNode mod) {
+                    RefreshCountsBy(mod);
+                }
+            }
+        }
+        public void TryRefreshCountsInTree() {
+            if (CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny) {
+                RefreshCountsInTree();
+            }
+        }
+        public void RefreshCountsBy(FolderNode folder) {
+            ChildrenCount += folder.ChildrenCount;
+            EnabledCount += folder.EnabledCount;
+            ToEnableCount += folder.ToEnableCount;
+            ToDisableCount += folder.ToDisableCount;
+        }
+        private void RefreshCountsBy(ModNode mod) {
+            ChildrenCount += 1;
+            if (ModLoader.modsByName.ContainsKey(mod.ModName)) {
+                EnabledCount += 1;
+                if (!ModLoader.EnabledMods.Contains(mod.ModName)) {
+                    ToDisableCount += 1;
+                }
+            }
+            else if (ModLoader.EnabledMods.Contains(mod.ModName)) {
+                ToEnableCount += 1;
+            }
+        }
+
         public IEnumerable<ModNode> ModNodesInTree {
             get {
                 foreach (var child in Children) {

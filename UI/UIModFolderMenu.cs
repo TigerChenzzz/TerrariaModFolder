@@ -71,6 +71,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
     public UIHorizontalList folderPathList = null!;
+    private int folderPathListIndex;
     private readonly UIElement folderPathListPlaceHolder = new();
 
     private FolderPathClass? _folderPath;
@@ -129,6 +130,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIElement uiElement = null!;
     private UIPanel uiPanel = null!;
     private UIImagePro refreshButton = null!;
+    private int refreshButtonIndex;
     private readonly UIElement refreshButtonPlaceHolder = new();
     private UIFolderItemList list = null!;
     private UIScrollbar uiScrollbar = null!;
@@ -231,6 +233,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #region 内存占用
     private readonly UIMemoryBar ramUsage = new();
+    private int ramUsageIndex;
     private readonly UIElement ramUsagePlaceHolder = new();
     #endregion
 
@@ -643,7 +646,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         folderPathList.OnDraw += sb => {
             sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
         };
-        uiPanel.Append(folderPathList);
+        folderPathListIndex = uiPanel.AppendAndGetIndex(folderPathList);
         #endregion
         #region 刷新按钮
         #region refresh3 版
@@ -676,7 +679,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 refreshButton.SourceRectangle = new(30, 0, 30, 30);
             }
         };
-        uiPanel.Append(refreshButton);
+        refreshButtonIndex = uiPanel.AppendAndGetIndex(refreshButton);
         #endregion
         #region 单图标 + highlight 版
         /*
@@ -716,7 +719,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         uiPanel.Append(list);
         #endregion
         #region 内存占用
-        uiPanel.Append(ramUsagePlaceHolder);
+        ramUsageIndex = uiPanel.AppendAndGetIndex(ramUsagePlaceHolder);
         #endregion
         #region 滚条
         // TODO: 点按这个滚条会产生一个偏移的 bug
@@ -921,23 +924,24 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (ShowRamUsage) {
             upperPixels += 2;
             ramUsage.Top.Pixels = upperPixels;
-            uiPanel.ReplaceChildren(ramUsagePlaceHolder, ramUsage, false, onReplace: ramUsage.Show);
+            uiPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
+            ramUsage.Show();
             upperPixels += ramUsage.Height.Pixels; // 20
         }
         else {
-            uiPanel.ReplaceChildren(ramUsage, ramUsagePlaceHolder, false);
+            uiPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsagePlaceHolder);
         }
         if (!ShowAllMods) {
             upperPixels += 2;
             folderPathList.Top.Pixels = upperPixels;
             refreshButton.Top.Pixels = upperPixels;
-            uiPanel.ReplaceChildren(folderPathListPlaceHolder, folderPathList, false);
-            uiPanel.ReplaceChildren(refreshButtonPlaceHolder, refreshButton, false);
+            uiPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
+            uiPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
             upperPixels += folderPathList.Height.Pixels; // 30
         }
         else {
-            uiPanel.ReplaceChildren(folderPathList, folderPathListPlaceHolder, false);
-            uiPanel.ReplaceChildren(refreshButton, refreshButtonPlaceHolder, false);
+            uiPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
+            uiPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
         }
         upperPixels += 6;
         list.Top.Pixels = upperPixels;
@@ -1015,6 +1019,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
+        FolderDataSystem.Root.TryRefreshCountsInTree();
         ModOrganizer.SaveEnabledMods();
     }
     private void DisableMods(bool disableRedundantDependencies, bool ignoreFavorite) {
@@ -1036,6 +1041,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
+        FolderDataSystem.Root.TryRefreshCountsInTree();
         ModOrganizer.SaveEnabledMods();
     }
     private void ResetMods() {
@@ -1064,6 +1070,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (EnabledFilterMode != FolderEnabledFilter.All) {
                 ArrangeGenerate();
             }
+            FolderDataSystem.Root.TryRefreshCountsInTree();
             ModOrganizer.SaveEnabledMods();
         }
     }
@@ -1629,6 +1636,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
 
         FolderDataSystem.RemoveRedundantData();
+        FolderDataSystem.Root.TryRefreshCountsInTree();
         // TODO: 遍历一遍 Root 来做各种事情
         ;
     }

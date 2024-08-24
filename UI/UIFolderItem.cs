@@ -29,6 +29,20 @@ public class UIFolderItem : UIElement {
     public virtual bool Favorite { get => false; set { } }
     public virtual FolderDataSystem.Node? Node { get => null; }
     public bool RightDraggable { get; set; } = true;
+    #region Draw
+    public static Color EnabledColor { get; } = Color.White;
+    public static Color EnabledBorderColor { get; } = Color.White * 0.6f;
+    public static Color EnabledInnerColor { get; } = Color.White * 0.2f;
+    // TODO: 调色   现在的绿色貌似不是很显眼
+    public static Color ToEnableColor { get; } = new Color(0f, 1f, 0f);
+    public static Color ToEnableBorderColor { get; } = new Color(0f, 1f, 0f) * 0.6f;
+    public static Color ToEnableInnerColor { get; } = new Color(0f, 1f, 0f) * 0.15f;
+    public static Color ToDisableColor { get; } = Color.Red;
+    public static Color ToDisableBorderColor { get; } = Color.Red * 0.6f;
+    public static Color ToDisableInnerColor { get; } = Color.Red * 0.15f;
+    // TODO: 和收藏的颜色冲突了
+    public static Color ConfigNeedReloadBorderColor { get; } = Color.Yellow * 0.6f;
+    public static Color ConfigNeedReloadInnerColor { get; } = Color.Yellow * 0.2f;
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
@@ -80,6 +94,7 @@ public class UIFolderItem : UIElement {
         }
         #endregion
     }
+    #endregion
     #region 排序与过滤
     /// <summary>
     /// <br/>0 代表没有被过滤
