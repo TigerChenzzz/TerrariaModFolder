@@ -28,9 +28,9 @@ public static class FolderDataSystem {
         /// </summary>
         public FolderNode? ParentPublic { get => _parent; set => _parent = value; }
         /// <summary>
+        /// 将自己挪到最顶上
         /// 返回是否有改变 (如果 <see cref="Parent"/> 为空或者本来就是第一位那么就不改变)
         /// </summary>
-        /// <returns></returns>
         public bool MoveToTheTop() {
             if (Parent == null) {
                 return false;
@@ -120,6 +120,9 @@ public static class FolderDataSystem {
         public int DisabledCount => ChildrenCount - EnabledCount;
         public int ToEnableCount { get; set; }
         public int ToDisableCount { get; set; }
+
+        #region Refresh Counts
+        public static bool NeedToRefreshCounts => CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny;
         public void RefreshCounts() {
             ChildrenCount = 0;
             EnabledCount = 0;
@@ -130,7 +133,7 @@ public static class FolderDataSystem {
             }
         }
         public void TryRefreshCounts() {
-            if (CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny) {
+            if (NeedToRefreshCounts) {
                 RefreshCounts();
             }
         }
@@ -150,8 +153,20 @@ public static class FolderDataSystem {
             }
         }
         public void TryRefreshCountsInTree() {
-            if (CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny) {
+            if (NeedToRefreshCounts) {
                 RefreshCountsInTree();
+            }
+        }
+        public void RefreshCountsInThisFolder() {
+            foreach (var node in Children) {
+                if (node is FolderNode folder) {
+                    folder.RefreshCounts();
+                }
+            }
+        }
+        public void TryRefreshCountsInThisFolder() {
+            if (NeedToRefreshCounts) {
+                RefreshCountsInThisFolder();
             }
         }
         public void RefreshCountsBy(FolderNode folder) {
@@ -172,6 +187,7 @@ public static class FolderDataSystem {
                 ToEnableCount += 1;
             }
         }
+        #endregion
 
         public IEnumerable<ModNode> ModNodesInTree {
             get {

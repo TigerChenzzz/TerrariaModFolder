@@ -332,7 +332,6 @@ public class UIModItemInFolder : UIFolderItem {
                 return;
             // TODO: 双击某些位置时不能切换
             ToggleEnabled();
-            FolderDataSystem.Root.RefreshCountsInTree();
         };
         #endregion
         #region alt 左键收藏

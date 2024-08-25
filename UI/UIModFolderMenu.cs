@@ -1019,7 +1019,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
-        FolderDataSystem.Root.TryRefreshCountsInTree();
+        CurrentFolderNode.TryRefreshCountsInThisFolder();
         ModOrganizer.SaveEnabledMods();
     }
     private void DisableMods(bool disableRedundantDependencies, bool ignoreFavorite) {
@@ -1041,7 +1041,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
-        FolderDataSystem.Root.TryRefreshCountsInTree();
+        CurrentFolderNode.TryRefreshCountsInThisFolder();
         ModOrganizer.SaveEnabledMods();
     }
     private void ResetMods() {
@@ -1070,7 +1070,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (EnabledFilterMode != FolderEnabledFilter.All) {
                 ArrangeGenerate();
             }
-            FolderDataSystem.Root.TryRefreshCountsInTree();
+            CurrentFolderNode.TryRefreshCountsInThisFolder();
             ModOrganizer.SaveEnabledMods();
         }
     }
@@ -1225,9 +1225,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 var uf = new UIFolder(f);
                 if (f == nodeToRename) {
                     uf.DirectlyReplaceToRenameText();
+                    uf.FolderNode?.TryRefreshCounts();
                     yield return uf;
                 }
                 else if (uf.PassFilters(filterResults)) {
+                    uf.FolderNode?.TryRefreshCounts();
                     yield return uf;
                 }
             }
@@ -1636,7 +1638,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
 
         FolderDataSystem.RemoveRedundantData();
-        FolderDataSystem.Root.TryRefreshCountsInTree();
         // TODO: 遍历一遍 Root 来做各种事情
         ;
     }
