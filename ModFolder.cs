@@ -16,7 +16,6 @@ using Terraria.Audio;
 using Terraria.GameContent.UI.States;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
-using Terraria.Utilities.FileBrowser;
 
 namespace ModFolder;
 

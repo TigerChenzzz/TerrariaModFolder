@@ -342,9 +342,6 @@ public class UIFolder : UIFolderItem {
         DrawEnableStatus(spriteBatch);
         UpdateEnableStatusText();
         CheckReplace();
-        // TODO: 状态显示: 全启用 / 部分启用 / 全禁用 / 待启用 / 待禁用 / 待启用及禁用
-        // TODO: 悬浮提示中显示详细状态 : 启用状态, 待启用数, 待禁用数
-        // TODO: 配置是否显示状态 (因为数据庞大时可能会影响性能)
         #region 当鼠标在某些东西上时显示些东西
         // 更多信息按钮
         // 删除按钮
@@ -441,7 +438,7 @@ public class UIFolder : UIFolderItem {
         int toDisableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount)) - toEnableWidth;
         toEnableWidth -= enableWidth;
         int minWidth = 5;
-        if (FolderNode.EnabledCount - FolderNode.ToEnableCount > 0 && enableWidth < minWidth) {
+        if (FolderNode.EnabledCount - FolderNode.ToDisableCount > 0 && enableWidth < minWidth) {
             enableWidth = minWidth;
         }
         if (FolderNode.ToEnableCount > 0 && toEnableWidth < minWidth) {
