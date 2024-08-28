@@ -23,13 +23,14 @@ namespace ModFolder;
 
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
+// TODO: 模组名称备注
 // TODO: 批量 重新订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
+// TODO: 取消订阅时保留 description 等信息(description, 图片, build.txt) (可选 (对于每次取消订阅, 而不是可配置))
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
 // TODO: 大小模组图标的配置
 // TODO: 新建文件夹排序问题
 // TODO: description 的本地化支持?
 // TODO: 模组的内部名如何查看?
-// TODO: 模组名称备注
 // TODO: 选中, 选中多个
 // TODO: 名称过长时的处理 (滚动? 省略?)
 
@@ -53,11 +54,13 @@ namespace ModFolder;
 // TODO: 收藏的特效
 // TOTEST: 测试整合包
 
-// TODO: 更多按钮的按钮
 // TODO: 按钮: 批量删除
 // TODO: 按钮: 批量重新订阅
 // TODO: 按钮: 复制与粘贴
-// TODO: 按钮: 禁用多余前置(有被依赖的模组且这些模组都没有启用的模组)
+// TODO: 按钮的展开
+//           配置按钮, 展开为配置版 (直接使用按钮来配置)
+//           启用与禁用按钮展开, 选择是否影响全部, 包含子文件夹还是仅此文件夹, 等等原 Ctrl, Shift 和 Alt 做的事情 (原快捷键仍然生效)
+
 
 public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;

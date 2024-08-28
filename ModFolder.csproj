@@ -2,6 +2,7 @@
 	<!--<Import Project="..\tModLoader.targets" />-->
 	<PropertyGroup>
     <AssemblyName>ModFolder</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <DebugMod>None</DebugMod>
