@@ -105,6 +105,10 @@ public class CommonConfig : ModConfig {
         }
     }
     #endregion
+    #region 显示模组版本
+    // [DefaultValue(false)]
+    public bool ShowModVersion { get; set; }
+    #endregion
     #region 显示文件夹内的启用状态
     [DefaultValue(true)]
     public bool ShowEnableStatusBackground { get; set; }

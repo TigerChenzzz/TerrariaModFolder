@@ -120,6 +120,7 @@ public static class FolderDataSystem {
         public int DisabledCount => ChildrenCount - EnabledCount;
         public int ToEnableCount { get; set; }
         public int ToDisableCount { get; set; }
+        public int EnableStatusRandomOffset { get; } = Main.rand.Next(0, 10000);
 
         #region Refresh Counts
         public static bool NeedToRefreshCounts => CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny;
@@ -203,6 +204,7 @@ public static class FolderDataSystem {
                 }
             }
         }
+        #region 树操作
         public void SetChildAtTheTop(Node child) {
             child.Parent = null;
             child.ParentPublic = this;
@@ -290,6 +292,7 @@ public static class FolderDataSystem {
             _parent = null;
         }
         public void ClearChildren() => _children.Clear();
+        #endregion
     }
     public class RootNode : FolderNode {
         [JsonConstructor]
@@ -308,6 +311,8 @@ public static class FolderDataSystem {
         private Dictionary<string, ulong> PublishIds => FolderDataSystem.PublishIds;
         [JsonProperty]
         private Dictionary<string, string> DisplayNames => FolderDataSystem.DisplayNames;
+        [JsonProperty]
+        private Dictionary<string, string> ModAliases => FolderDataSystem.ModAliases;
 #pragma warning restore CA1822 // 将成员标记为 static
 #pragma warning restore IDE0051 // 删除未使用的私有成员
     }
@@ -315,6 +320,12 @@ public static class FolderDataSystem {
     public static HashSet<string> Favorites { get; private set; } = [];
     public static Dictionary<string, ulong> PublishIds { get; private set; } = [];
     public static Dictionary<string, string> DisplayNames { get; private set; } = [];
+    public static Dictionary<string, string> ModAliases { get; private set; } = [];
+    // 如果还要添加什么类似的东西:
+    // - 在 RootNode 中添加对应的带有 [JsonProperty] 的属性
+    // - 在 LoadRoot(...) 中添加其加载
+    // - 在 RemoveRedundantData() 中添加
+
     private static RootNode? _root;
     public static RootNode Root {
         get {
@@ -395,6 +406,12 @@ public static class FolderDataSystem {
                 DisplayNames = displayNames;
             }
         }
+        if (data.TryGetValue(nameof(ModAliases), out var modAliasesToken)) {
+            var modAliases = modAliasesToken.ToObject<Dictionary<string, string>>();
+            if (modAliases != null) {
+                ModAliases = modAliases;
+            }
+        }
         _root = LoadNode(data) is not FolderNode node ? new() : new(node);
     }
     private static Node? LoadNode(JObject data) {
@@ -465,6 +482,19 @@ public static class FolderDataSystem {
             foreach (var toRemove in toRemoves) {
                 DisplayNames.Remove(toRemove);
             }
+            toRemoves.Clear();
+        }
+        foreach (var mod in ModAliases.Keys) {
+            if (!mods.Contains(mod)) {
+                toRemoves.Add(mod);
+            }
+        }
+        if (toRemoves.Count != 0) {
+            anyRemoved = true;
+            foreach (var toRemove in toRemoves) {
+                ModAliases.Remove(toRemove);
+            }
+            toRemoves.Clear();
         }
         return anyRemoved;
     }

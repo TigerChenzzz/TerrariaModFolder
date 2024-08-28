@@ -62,6 +62,11 @@ CommonConfig: {
 		Label: 显示启用状态文字
 		// Tooltip: ""
 	}
+
+	ShowModVersion: {
+		Label: 显示模组版本
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {

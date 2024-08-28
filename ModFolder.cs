@@ -20,7 +20,9 @@ using Terraria.UI;
 namespace ModFolder;
 
 // BUG: 启用时可能启用到过期的模组?
+// BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
 
+// TODO: Generate 修缮, 只在必要时重新生成
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
 // TODO: 模组名称备注
@@ -59,7 +61,8 @@ namespace ModFolder;
 // TODO: 按钮: 复制与粘贴
 // TODO: 按钮的展开
 //           配置按钮, 展开为配置版 (直接使用按钮来配置)
-//           启用与禁用按钮展开, 选择是否影响全部, 包含子文件夹还是仅此文件夹, 等等原 Ctrl, Shift 和 Alt 做的事情 (原快捷键仍然生效)
+//           启用与禁用按钮展开, 选择是否影响全部, 包含子文件夹还是仅此文件夹, 等等原 Ctrl, Shift 和 Alt 做的事情 (原快捷键仍然生效, 且按下快捷键时对应按钮也会有反应),
+//               原工具提示放在展开的板上
 
 
 public class ModFolder : Mod {

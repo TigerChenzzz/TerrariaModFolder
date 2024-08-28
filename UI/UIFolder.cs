@@ -57,7 +57,7 @@ public class UIFolder : UIFolderItem {
             this.ReplaceChildrenByIndex(_folderNameIndex, _renameText);
             _renameText.Focused = true;
         }
-        }
+    }
     public void DirectlyReplaceToRenameText() => directlyReplaceToRenameText = true;
     #endregion
     public override void OnInitialize() {
@@ -105,9 +105,7 @@ public class UIFolder : UIFolderItem {
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
             };
-            _renameButton.OnLeftClick += (_, _) => {
-                replaceToRenameText = true;
-            };
+            _renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
             Append(_renameButton);
         }
         #endregion
@@ -348,9 +346,11 @@ public class UIFolder : UIFolderItem {
         if (_deleteButton?.IsMouseHovering == true) {
             _tooltip = Language.GetTextValue("UI.Delete");
         }
+        // 重命名按钮
         else if (_renameButton?.IsMouseHovering == true) {
             _tooltip = ModFolder.Instance.GetLocalization("UI.Rename").Value;
         }
+        // 启用状态
         else if (CommonConfig.Instance.ShowEnableStatusText.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
             !CommonConfig.Instance.ShowEnableStatusText.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
             _tooltip = ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
@@ -364,7 +364,7 @@ public class UIFolder : UIFolderItem {
             UICommon.TooltipMouseText(_tooltip);
         }
     }
-    private readonly int randomStartOffset = Main.rand.Next(0, 10000);
+    private int RandomStartOffset => FolderNode?.EnableStatusRandomOffset ?? 0;
     private void UpdateEnableStatusText() {
         var config = CommonConfig.Instance.ShowEnableStatusText;
         if (FolderNode == null) {
@@ -447,7 +447,7 @@ public class UIFolder : UIFolderItem {
         if (FolderNode.ToDisableCount > 0 &&  toDisableWidth < minWidth) {
             toDisableWidth = minWidth;
         }
-        int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + randomStartOffset;
+        int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + RandomStartOffset;
         DrawEnableStatus_Single(spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
         DrawEnableStatus_Single(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
         DrawEnableStatus_Single(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
