@@ -95,7 +95,7 @@ public static class FolderDataSystem {
                 }
             }
         }
-        public void ReceiveDataFrom(UIModItemInFolder uiMod) {
+        public void ReceiveDataFrom(UIModItemInFolderLoaded uiMod) {
             ModName = uiMod.ModName;
             PublishId = uiMod.PublishId;
             DisplayName = uiMod.TheLocalMod.DisplayName;

@@ -62,7 +62,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// <summary>
     /// 当找完模组后, 这里会存有所有的模组
     /// </summary>
-    public Dictionary<string, UIModItemInFolder> ModItemDict { get; set; } = [];
+    public Dictionary<string, UIModItemInFolderLoaded> ModItemDict { get; set; } = [];
     #endregion
 
     #region 文件夹路径
@@ -977,13 +977,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     // 按住 alt 同时包含子文件夹
     // 按住 ctrl 在禁用时同时禁用收藏
     // 使用悬浮文字以提示这些操作
-    private IEnumerable<UIModItemInFolder> GetAffectedMods(bool ignoreFavorite = false) {
-        IEnumerable<UIModItemInFolder> result;
+    private IEnumerable<UIModItemInFolderLoaded> GetAffectedMods(bool ignoreFavorite = false) {
+        IEnumerable<UIModItemInFolderLoaded> result;
         if (Main.keyState.PressingShift()) {
             result = ModItemDict.Values;
         }
         else if (!Main.keyState.PressingAlt()) {
-            result = list._items.Select(i => i as UIModItemInFolder).WhereNotNull();
+            result = list._items.Select(i => i as UIModItemInFolderLoaded).WhereNotNull();
         }
         else if (CurrentFolderNode == FolderDataSystem.Root) {
             result = ModItemDict.Values;
@@ -1110,7 +1110,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     public static bool IsPreviousUIStateOfConfigList { get; set; }
 
-    public UIModItemInFolder? FindUIModItem(string modName) {
+    public UIModItemInFolderLoaded? FindUIModItem(string modName) {
         return ModItemDict.GetValueOrDefault(modName);
     }
 
@@ -1614,9 +1614,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         var mods = ModOrganizer.FindMods(CommonConfig.Instance.LogModLoading);
         SetLoadingState("Loading Mods");
         await YieldWithToken(token);
-        Dictionary<string, UIModItemInFolder> tempModItemDict = [];
+        Dictionary<string, UIModItemInFolderLoaded> tempModItemDict = [];
         foreach (var mod in mods) {
-            UIModItemInFolder modItem = new(mod);
+            UIModItemInFolderLoaded modItem = new(mod);
             tempModItemDict.Add(modItem.ModName, modItem);
             modItem.Activate();
             await YieldWithToken(token);
@@ -1650,7 +1650,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     #region ArrangeDeleteMod
     private readonly HashSet<LocalMod> _modsToDelete = [];
-    public void ArrangeDeleteMod(UIModItemInFolder uiMod) {
+    public void ArrangeDeleteMod(UIModItemInFolderLoaded uiMod) {
         _modsToDelete.Add(uiMod.TheLocalMod);
         ModItemDict.Remove(uiMod.ModName);
         ArrangeGenerate();

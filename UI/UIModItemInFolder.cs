@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
 using ModFolder.Systems;
 using ReLogic.Content;
@@ -21,7 +21,28 @@ namespace ModFolder.UI;
 /// <summary>
 /// 文件夹系统列表中的一个模组
 /// </summary>
-public class UIModItemInFolder : UIFolderItem {
+public abstract class UIModItemInFolder : UIFolderItem {
+    public abstract string ModName { get; }
+    public abstract string ModDisplayName { get; }
+    private string? _modDisplayNameClean;
+    /// <summary>
+    ///  No chat tags: for search and sort functionality.
+    /// </summary>
+    public string ModDisplayNameClean => _modDisplayNameClean ??= Utils.CleanChatTags(ModDisplayName);
+    public string? GetAlias() => FolderDataSystem.ModAliases.TryGetValue(ModName, out var value) ? value : null;
+    public override string NameToSort => GetAlias() ?? ModDisplayNameClean;
+    /// <summary>
+    /// 考虑别名
+    /// </summary>
+    public virtual string GetModDisplayName() {
+        return GetAlias() ?? ModDisplayName;
+    }
+}
+
+/// <summary>
+/// 文件夹系统列表中的一个模组 (加载完成)
+/// </summary>
+public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     public override FolderDataSystem.Node? Node => ModNode;
     public FolderDataSystem.ModNode? ModNode { get; set; }
     [MemberNotNull(nameof(ModNode))]
@@ -43,7 +64,6 @@ public class UIModItemInFolder : UIFolderItem {
 
     public LocalMod TheLocalMod => _mod;
     public bool Loaded => _loaded;
-    public override string NameToSort => GetAlias() ?? DisplayNameClean;
     public override DateTime LastModified => _mod.lastModified;
     public override bool Favorite {
         get => ModNode?.Favorite ?? false;
@@ -76,7 +96,7 @@ public class UIModItemInFolder : UIFolderItem {
     private UIFocusInputTextFieldPro _renameText = null!;
     private UIImage? _modLocationIcon;
     internal UIAutoScaleTextTextPanel<string>? tMLUpdateRequired;
-    private readonly LocalMod _mod;
+    private readonly LocalMod _mod = localMod;
     #region 右边的按钮
     private readonly UIImageWithVisible?[] rightButtons = new UIImageWithVisible[6];
     private UIImageWithVisible? DeleteButton       { get => rightButtons[0] ; set => rightButtons[0] = value; }
@@ -91,17 +111,11 @@ public class UIModItemInFolder : UIFolderItem {
     private bool _configChangesRequireReload;
     private bool _loaded;
     private string? _tooltip;
-    public readonly string DisplayNameClean; // No chat tags: for search and sort functionality.
 
-    public string ModName => _mod.Name;
+    public override string ModName => _mod.Name;
     public bool NeedsReload => _mod.properties.side != ModSide.Server && (_mod.Enabled != _loaded || _configChangesRequireReload);
 
     private Asset<Texture2D>? hoverIcon;
-
-    public UIModItemInFolder(LocalMod mod) {
-        _mod = mod;
-        DisplayNameClean = _mod.DisplayNameClean;
-    }
 
     public override void OnInitialize() {
         base.OnInitialize();
@@ -154,7 +168,7 @@ public class UIModItemInFolder : UIFolderItem {
             leftOffset += 2;
         }
         // TODO: 名字太长怎么办 (UIHorizontalList?)
-        _modName = new(GetModName(), (orig, point) => {
+        _modName = new(GetModDisplayName(), (orig, point) => {
             return orig(point) || _modLocationIcon?.ContainsPoint(point) == true || updatedModDot?.ContainsPoint(point) == true;
         }) {
             Left = { Pixels = leftOffset },
@@ -763,7 +777,7 @@ public class UIModItemInFolder : UIFolderItem {
             // 模组名
             else {
                 _tooltip = string.Join('\n',
-                    GetOriginalModNameWithVersion(),
+                    GetOriginalModDisplayNameWithVersion(),
                     Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)
                 );
             }
@@ -867,11 +881,11 @@ public class UIModItemInFolder : UIFolderItem {
         if (replaceToModName) {
             replaceToModName = false;
             this.ReplaceChildrenByIndex(_modNameIndex, _modName);
-            UpdateModName();
+            UpdateModDisplayName();
         }
         if (replaceToRenameText) {
             replaceToRenameText = false;
-            _renameText.CurrentString = GetModName(false);
+            _renameText.CurrentString = GetModDisplayName(false);
             this.ReplaceChildrenByIndex(_modNameIndex, _renameText);
             _renameText.Focused = true;
         }
@@ -889,24 +903,24 @@ public class UIModItemInFolder : UIFolderItem {
         UIModFolderMenu.Instance.ArrangeGenerate();
         FolderDataSystem.TrySaveWhenChanged();
     }
-    private void UpdateModName() => UpdateModName(GetModName());
-    private void UpdateModName(string? name) {
+    private void UpdateModDisplayName() => UpdateModDisplayName(GetModDisplayName());
+    private void UpdateModDisplayName(string? name) {
         if (_modName.Text == name) {
             return;
         }
         _modName.SetText(name);
         RecalculateChildren();
     }
-    public string GetModName(bool? withVersion = null) {
-        var name = GetAlias() ?? GetOriginalModName();
+    public override string GetModDisplayName() => GetModDisplayName(null);
+    public string GetModDisplayName(bool? withVersion) {
+        var name = GetAlias() ?? ModDisplayName;
         if (withVersion ?? CommonConfig.Instance.ShowModVersion) {
-            name += " v" + _mod.modFile.Version;
+            return $"{name} v{_mod.modFile.Version}";
         }
         return name;
     }
-    public string GetOriginalModNameWithVersion() => $"{_mod.DisplayName} v{_mod.modFile.Version}";
-    public string GetOriginalModName() => _mod.DisplayName;
-    public string? GetAlias() => FolderDataSystem.ModAliases.TryGetValue(_mod.Name, out var value) ? value : null;
+    public string GetOriginalModDisplayNameWithVersion() => $"{ModDisplayName} v{_mod.modFile.Version}";
+    public override string ModDisplayName => _mod.DisplayName;
     #endregion
 
     public override int PassFiltersInner() {
@@ -918,7 +932,7 @@ public class UIModItemInFolder : UIFolderItem {
                 }
             }
             else {
-                if (DisplayNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                if (ModDisplayNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
                     goto NameFilterPassed;
                 }
                 if (ModName.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
@@ -1043,7 +1057,7 @@ public class UIModItemInFolder : UIFolderItem {
 }
 
 public class UITextWithCustomContainsPoint : UIText {
-    private CustomContainsPointDelegate _customContainsPoint;
+    private readonly CustomContainsPointDelegate _customContainsPoint;
     public delegate bool CustomContainsPointDelegate(Func<Vector2, bool> orig, Vector2 point);
     public UITextWithCustomContainsPoint(string text, CustomContainsPointDelegate customContainsPoint) : base(text) {
         _customContainsPoint = customContainsPoint;

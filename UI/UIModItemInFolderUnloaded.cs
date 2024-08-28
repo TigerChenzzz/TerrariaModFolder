@@ -9,17 +9,14 @@ using Terraria.UI;
 namespace ModFolder.UI;
 
 // TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
-public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFolderItem {
+public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIModItemInFolder {
     private UIText _uiModName = null!;
     private UIImage? _deleteModButton;
     // private bool modFromLocalModFolder;
     private string? _tooltip;
 
-    public override string NameToSort => ModDisplayNameClean;
-    public string ModName => _modNode.ModName;
-    public string ModDisplayName => _modNode.DisplayName;
-    private string? _modDisplayNameClean;
-    public string ModDisplayNameClean => _modDisplayNameClean ??= Utils.CleanChatTags(ModDisplayName);
+    public override string ModName => _modNode.ModName;
+    public override string ModDisplayName => _modNode.DisplayName;
     private readonly FolderDataSystem.ModNode _modNode = modNode;
     public FolderDataSystem.ModNode ModNode => _modNode;
     public override FolderDataSystem.Node? Node => ModNode;
@@ -34,8 +31,8 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIFol
 
     public override void OnInitialize() {
         #region 名字
-        string text = ModDisplayName;
-        _uiModName = new UIText(text) {
+        _uiModName = new UIText(GetAlias() ?? ModDisplayName) {
+            Left = { Pixels = 35 },
             Top = { Pixels = 7, },
         };
         Append(_uiModName);
