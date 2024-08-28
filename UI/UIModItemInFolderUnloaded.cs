@@ -1,6 +1,5 @@
 ﻿using ModFolder.Systems;
 using Terraria.Audio;
-using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.Social.Steam;
