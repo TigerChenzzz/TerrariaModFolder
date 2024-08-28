@@ -1,5 +1,8 @@
 Changelog:
 	'''
+	v0.2.2.1
+	- mods show alias even when not loaded yet
+
 	v0.2.2
 	- mod alias
 	- icon changed
