@@ -1,5 +1,9 @@
 Changelog:
 	'''
+	v0.2.2.2
+	- add page up and page down support
+	- fix version upgrade hints to more reliably detect and inform when a mod is preview only
+
 	v0.2.2.1
 	- mods show alias even when not loaded yet
 

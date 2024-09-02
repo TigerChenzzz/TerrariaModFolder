@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
 using ModFolder.Systems;
 using ReLogic.Content;

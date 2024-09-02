@@ -1,4 +1,5 @@
-﻿using ModFolder.Configs;
+﻿using Microsoft.Xna.Framework.Input;
+using ModFolder.Configs;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
@@ -67,5 +68,20 @@ public class UIFolderItemList : UIList {
     public override void Update(GameTime gameTime) {
         Update_Scrollbar();
         base.Update(gameTime);
+        Update_PageUpDownSupport();
+    }
+    /// <summary>
+    /// 改自 <see cref="UIModBrowser.PageUpDownSupport(UIList)"/>
+    /// </summary>
+    private void Update_PageUpDownSupport() {
+        if (Main.inputText.IsKeyDown(Keys.PageDown) && !Main.oldInputText.IsKeyDown(Keys.PageDown)) {
+            StopMoving();
+            ViewPosition += _innerDimensions.Height;
+        }
+
+        if (Main.inputText.IsKeyDown(Keys.PageUp) && !Main.oldInputText.IsKeyDown(Keys.PageUp)) {
+            StopMoving();
+            ViewPosition -= _innerDimensions.Height;
+        }
     }
 }
