@@ -35,6 +35,7 @@ namespace ModFolder;
 // TODO: 模组的内部名如何查看?
 // TODO: 选中, 选中多个
 // TODO: 名称过长时的处理 (滚动? 省略?)
+// TODO: 弱依赖显示
 
 // TODO: 右键拖动时禁用左键?
 

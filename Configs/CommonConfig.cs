@@ -262,10 +262,7 @@ public class CommonConfig : ModConfig {
             }
         }
         public override void Draw(SpriteBatch spriteBatch) {
-            //base.Draw(spriteBatch);
-            //spriteBatch.DrawString(Font.Value, Changelog, GetDimensions().Position(), Color.White);
             _ = Changelog;
-            // ChatManager.DrawColorCodedString(spriteBatch, Font.Value, ChangelogSnippets, GetDimensions().Position(), BaseColor, 0f, Vector2.Zero, Vector2.One, out _, GetDimensions().Width);
             ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Font.Value, ChangelogSnippets, GetDimensions().Position(), 0, Vector2.Zero, Vector2.One, out _, GetDimensions().Width);
         }
     }

@@ -1095,6 +1095,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
+        CurrentFolderNode.TryRefreshCountsInThisFolder();
         ModOrganizer.SaveEnabledMods();
     }
     #endregion
