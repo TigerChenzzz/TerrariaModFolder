@@ -24,8 +24,9 @@ public static class MyUtils {
             Color.White, Color.Transparent, Color.White,
             Color.White, Color.White      , Color.White,
         ]);
-        public static readonly Asset<Texture2D> ButtonRename = ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonRename");
-        public static readonly Asset<Texture2D> ButtonDelete = ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
+        public static readonly Asset<Texture2D> ButtonRename = UI("ButtonRename"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonRename");
+        public static readonly Asset<Texture2D> ButtonDelete = UI("ButtonDelete"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
+        public static readonly Asset<Texture2D> ButtonSubscribe = UI("ButtonSubscribe");
 
         public static Texture2D FromColors(int width, int height, Color[] colors) {
             Texture2D result = new(Main.instance.GraphicsDevice, width, height);
