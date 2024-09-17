@@ -94,6 +94,171 @@ public class UIFolderItem : UIElement {
         }
         #endregion
     }
+    #region DrawParallelogram
+    private readonly static Dictionary<int, Texture2D> _slashTextures = [];
+    private static Texture2D GetSlashTexture(int size) {
+        if (_slashTextures.TryGetValue(size, out var result)) {
+            return result;
+        }
+        Color[] colors = new Color[size * size];
+        for (int i = 1; i <= size; ++i) {
+            colors[(size - 1) * i] = Color.White;
+        }
+        result = Textures.FromColors(size, size, colors);
+        _slashTextures.Add(size, result);
+        return result;
+    }
+    /// <summary>
+    /// 画一根单斜线, 包含左右边界, 不包含上下边界
+    /// </summary>
+    private static void DrawParallelogramLoop_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        position %= rect.Width;
+        if (position < 0) {
+            position += rect.Width;
+        }
+        if (position >= rect.Height - 1) {
+            spriteBatch.Draw(GetSlashTexture(rect.Height - 2), new Rectangle(rect.X + position - rect.Height + 2, rect.Y + 1, rect.Height - 2, rect.Height - 2), innerColor);
+            return;
+        }
+        var slash = GetSlashTexture(rect.Height - 2);
+        if (position >= 1) {
+            // 左边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
+            if (position >= 2) {
+                // 左边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
+            }
+        }
+        if (position <=  rect.Height - 3) {
+            // 右边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
+            if (position <= rect.Height - 4) {
+                // 右边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.Right + position - rect.Height + 2, rect.Y + 1, rect.Height - position - 3, rect.Height - 2), new Rectangle(0, 0, rect.Height - position - 3, rect.Height - 2), innerColor);
+            }
+        }
+    }
+    /// <summary>
+    /// 需要 <paramref name="end"/> > <paramref name="start"/>, 否则不会画任何东西
+    /// </summary>
+    protected static void DrawParallelogramLoop(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        int startOrigin = start;
+        start %= rect.Width;
+        if (start < 0) {
+            start += rect.Width;
+        }
+        end = end + start - startOrigin;
+        if (end <= start) {
+            return;
+        }
+        if (end - start >= rect.Width) {
+            spriteBatch.DrawBox(rect, borderColor, innerColor);
+            return;
+        }
+        #region 下边框
+        if (start >= rect.Height - 1) {
+            if (end < rect.Width + rect.Height) {
+                // 两边都在边界内
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, end - start, 1), borderColor);
+            }
+            else {
+                // 右边超界
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, rect.Right - (rect.X + start - rect.Height + 1), 1), borderColor);
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Width - rect.Height + 1, 1), borderColor);
+            }
+        } 
+        else /*if (end < rect.Width + rect.Height)*/ {
+            // 左边超界
+            if (end < rect.Height) {
+                // 右边不足时
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, end - start, 1), borderColor);
+            }
+            else {
+                // 右边跨界时
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Height + 1, 1), borderColor);
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, - start + rect.Height, 1), borderColor);
+            }
+        }
+        #endregion
+        if (end > rect.Width) {
+            #region 上边框
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, rect.Width - start, 1), borderColor);
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y, end - rect.Width, 1), borderColor);
+            #endregion
+            end -= rect.Width;
+            for (int i = 0; i < end; ++i) {
+                DrawParallelogramLoop_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+            }
+            end = rect.Width;
+        }
+        else {
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, end - start, 1), borderColor);
+        }
+        for (int i = start; i < end; ++i) {
+            DrawParallelogramLoop_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+        }
+    }
+    /// <inheritdoc cref="DrawParallelogramLoop_SingleSlash(SpriteBatch, Rectangle, int, Color, Color)"/>
+    /// <param name="position">需要在 [1, rect.Width + rect.Height - 3] 区间</param>
+    private static void DrawParallelogram_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        if (position < 1 || position > rect.Width + rect.Height - 3) {
+            return;
+        }
+        var slash = GetSlashTexture(rect.Height - 2);
+        if (position <= rect.Height - 2) {
+            // 左边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
+            if (position >= 2) {
+                // 左边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
+            }
+        }
+        else if (position < rect.Width) {
+            spriteBatch.Draw(slash, new Rectangle(rect.X + position - rect.Height + 2, rect.Y + 1, rect.Height - 2, rect.Height - 2), innerColor);
+        }
+        else {
+            position -= rect.Width;
+            // 右边的边界点
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
+            if (position <= rect.Width + rect.Height - 4) {
+                // 右边的斜杠
+                spriteBatch.Draw(slash, new Rectangle(rect.Right + position - rect.Height + 2, rect.Y + 1, rect.Height - position - 3, rect.Height - 2), new Rectangle(0, 0, rect.Height - position - 3, rect.Height - 2), innerColor);
+            }
+        }
+    }
+    /// <inheritdoc cref="DrawParallelogramLoop(SpriteBatch, Rectangle, int, int, Color, Color)"/>
+    protected static void DrawParallelogram(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (end <= start) {
+            return;
+        }
+        if (start <= 0) {
+            if (end >= rect.Width + rect.Height - 1) {
+                spriteBatch.DrawBox(rect, borderColor, innerColor);
+                return;
+            }
+            start = 0;
+        }
+        else if (end > rect.Width + rect.Height - 1) {
+            end = rect.Width + rect.Height - 1;
+        }
+        #region 下边框
+        int downStart = Math.Max(start - rect.Height + 1, 0);
+        int downEnd = end - rect.Height + 1;
+        if (downEnd > downStart) {
+            spriteBatch.Draw(Textures.White, new Rectangle(downStart, rect.Bottom - 1, downEnd - downStart, 1), borderColor);
+        }
+        #endregion
+        #region 上边框
+        if (start < rect.Width) {
+            int upEnd = Math.Min(end, rect.Width);
+            spriteBatch.Draw(Textures.White, new Rectangle(start, rect.Top, upEnd - start, 1), borderColor);
+        }
+        #endregion
+        for (int i = start; i < end; ++i) {
+            DrawParallelogram_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+        }
+    }
+    #endregion
     #endregion
     #region 排序与过滤
     /// <summary>
