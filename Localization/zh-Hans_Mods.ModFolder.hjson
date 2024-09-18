@@ -73,6 +73,15 @@ UI: {
 				在没有启用的后置时会被右键禁用)
 				'''
 		}
+
+		Subscribe: {
+			Tooltips: {
+				Downloading: 下载中 {0} / {1}
+				Subscribing: 订阅中...
+				Loading: 加载中...
+				Subscribe: 订阅
+			}
+		}
 	}
 
 	SortButtons: {
@@ -121,4 +130,11 @@ UI: {
 		待启用数: {2}
 		待禁用数: {3}
 		'''
+
+	PopupInfos: {
+		CantSubscribeForMissingPublishId: 无法订阅! 未存有模组信息!
+		CantSubscribeWhenDownloading: 正在下载模组!
+		CantSubscribeWhenSubscribing: 正在尝试订阅! 请勿重复点击!
+		CantSubscribeWhenLoading: 暂时无法订阅! 请先等待加载完成!
+	}
 }

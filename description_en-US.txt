@@ -5,3 +5,7 @@ Rightclick and drag an item to move its position (when moving a mod into a folde
 When deleting an item, you should press Ctrl or Shift or both. Pressing Ctrl means unsubscribe (for folder it means unsubscribe all mods in the folder), just like the vanilla; Pressing Shift means delete the index, so the mod or mods in the folder would go back to the root. If you just unsubscribe but not delete the index, the item would still be there, and you can continue to manage its location, but you nned to resubscribe to enable it again.
 Click a mod when pressing Alt to favor it. Favorite mods won't be disalbed due to "Enable & Disable" button, unless you press Ctrl at the same time.
 This mod's data is saved in "ModFolderData.json" in the mod folder, please do not delete or modify it arbitrarily (if you want to modify it, please make a backup!)
+QQ: 574904188
+Join a dicussion on the dev's discord: https://discord.gg/fjFpgBkRBZ
+[quote=tModLoader ModFolder]
+Developed By Tigerzzz[/quote]

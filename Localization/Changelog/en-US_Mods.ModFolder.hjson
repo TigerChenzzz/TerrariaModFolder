@@ -1,5 +1,10 @@
 Changelog:
 	'''
+	v0.3.0
+	- resubscribe mods that is deleted but keep in directory
+	- make Esc behave the same as Back button
+	- disallow enable mods that miss references
+
 	v0.2.2.2
 	- add page up and page down support
 	- fix version upgrade hints to more reliably detect and inform when a mod is preview only

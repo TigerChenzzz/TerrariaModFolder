@@ -502,6 +502,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
         };
         upperMenuContainer.Append(SearchFilterToggle);
+        mouseOverTooltips.Add((SearchFilterToggle, () => searchFilterMode.ToFriendlyString()));
         #endregion
     }
     public SearchFilter searchFilterMode = SearchFilter.Name;
@@ -952,11 +953,18 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         FolderPath.Clear();
         list.ViewPosition = 0;
 
-        if (Main.keyState.PressingControl()) {
+        #region 强制重载
+        if (_forceReloadRequired) {
+            _forceReloadRequired = false;
             ModLoader.Reload();
             return;
         }
 
+        if (Main.keyState.PressingControl()) {
+            ModLoader.Reload();
+            return;
+        }
+        
         // To prevent entering the game with Configs that violate ReloadRequired
         if (ConfigManager.AnyModNeedsReload()) {
             Main.menuMode = Interface.reloadModsID;
@@ -968,6 +976,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Main.menuMode = Interface.reloadModsID;
             return;
         }
+        #endregion
 
         ConfigManager.OnChangedAll();
 
@@ -976,6 +985,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     void IHaveBackButtonCommand.HandleBackButtonUsage() {
         BackButtonClicked();
     }
+    #endregion
+    #region 强制重载
+    private bool _forceReloadRequired;
+    public bool ForceRoadRequired() => _forceReloadRequired = true;
     #endregion
     #region 启用禁用与重置模组
     // 只启用或禁用本文件夹下的模组, 按住 shift 时才是所有模组
@@ -1014,11 +1027,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 continue;
             modItem.EnableQuick(enabled, missingRefs);
         }
-        if (enabled.Count == 0)
-            return;
         if (missingRefs.Count != 0) {
             Interface.infoMessage.Show(Language.GetTextValue("tModLoader.ModDependencyModsNotFound", string.Join(", ", missingRefs)), MyMenuMode);
         }
+        if (enabled.Count == 0)
+            return;
         if (EnabledFilterMode != FolderEnabledFilter.All) {
             ArrangeGenerate();
         }
@@ -1125,6 +1138,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
         Update_ShowModLocation();
+        Update_HandleDownloads();
         Update_HandleTask(); // 处理任务在添加或移除加载动画前
         Update_AppendOrRemoveUILoader();  // 尝试移除加载动画
         Update_DeleteMods(); // 尝试删除模组要在尝试生成之前
@@ -1577,8 +1591,23 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         _cts = new();
         loadTask = FindModsTask(_cts.Token);
     }
+    private bool needRepopulate;
+    public void ArrrangeRepopulate() => needRepopulate = true;
     private void Update_HandleTask() {
-        if (loadTask == null || !loadTask.IsCompleted) {
+        if (loadTask == null) {
+            if (needRepopulate) {
+                needRepopulate = false;
+                Populate();
+                return;
+            }
+            return;
+        }
+        if (!loadTask.IsCompleted) {
+            return;
+        }
+        if (needRepopulate) {
+            needRepopulate = false;
+            Populate();
             return;
         }
         _loaded = true;
@@ -1675,6 +1704,30 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     public void ArrangeRemove(UIElement child) => toRemove.Add(child);
     #endregion
+    #region 订阅模组
+    public void AddDownload(string key, DownloadProgressImpl progress) {
+        _downloads.Add(key, progress);
+        downloadProgressQueue.Enqueue(progress);
+    }
+    public Dictionary<string, DownloadProgressImpl> Downloads => _downloads;
+    private readonly Dictionary<string, DownloadProgressImpl> _downloads = [];
+    private readonly Queue<DownloadProgressImpl> downloadProgressQueue = [];
+    private void Update_HandleDownloads() {
+        if (!downloadProgressQueue.TryPeek(out var progress)) {
+            return;
+        }
+        progress.TryStart();
+        if (progress.Completed) {
+            _downloads.Remove(progress.ModDownloadItem.ModName);
+            downloadProgressQueue.Dequeue();
+        }
+    }
+    #endregion
+
+    public void PopupInfo(string message) {
+        // TODO: 实现以及相关内容的本地化
+        _ = message;
+    }
 
     [Conditional("DEBUG")]
     private void OnInitialize_Debug() {

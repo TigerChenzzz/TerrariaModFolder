@@ -201,26 +201,42 @@ public class UIFolderItem : UIElement {
     /// <inheritdoc cref="DrawParallelogramLoop_SingleSlash(SpriteBatch, Rectangle, int, Color, Color)"/>
     /// <param name="position">需要在 [1, rect.Width + rect.Height - 3] 区间</param>
     private static void DrawParallelogram_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
-        if (position < 1 || position > rect.Width + rect.Height - 3) {
+        if (position < 1 || position > rect.Width + rect.Height - 3 || rect.Width <= 0 || rect.Height <= 0) {
             return;
         }
         var slash = GetSlashTexture(rect.Height - 2);
-        if (position <= rect.Height - 2) {
-            // 左边的边界点
+        bool reachLeft = position <= rect.Height - 2;
+        bool reachRight = position >= rect.Width;
+        // 左边的边界点
+        if (reachLeft) {
             spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
-            if (position >= 2) {
-                // 左边的斜杠
-                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
-            }
         }
-        else if (position < rect.Width) {
+        // 右边的边界点
+        if (reachRight) {
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position - rect.Width + 1, 1, 1), borderColor);
+        }
+        if (rect.Width <= 2 || rect.Height <= 2) {
+            return;
+        }
+        if (reachLeft) {
+            if (position < 2) {
+                return;
+            }
+            if (reachRight) {
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, rect.Width - 2, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, rect.Width - 2, rect.Height - 2), innerColor);
+                return;
+            }
+            // 左边的斜杠
+            spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
+            
+        }
+        else if (!reachRight) {
+            // 两边都没有接触时画出完整的斜杠
             spriteBatch.Draw(slash, new Rectangle(rect.X + position - rect.Height + 2, rect.Y + 1, rect.Height - 2, rect.Height - 2), innerColor);
         }
         else {
             position -= rect.Width;
-            // 右边的边界点
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
-            if (position <= rect.Width + rect.Height - 4) {
+            if (position <= rect.Height - 4) {
                 // 右边的斜杠
                 spriteBatch.Draw(slash, new Rectangle(rect.Right + position - rect.Height + 2, rect.Y + 1, rect.Height - position - 3, rect.Height - 2), new Rectangle(0, 0, rect.Height - position - 3, rect.Height - 2), innerColor);
             }
@@ -245,13 +261,13 @@ public class UIFolderItem : UIElement {
         int downStart = Math.Max(start - rect.Height + 1, 0);
         int downEnd = end - rect.Height + 1;
         if (downEnd > downStart) {
-            spriteBatch.Draw(Textures.White, new Rectangle(downStart, rect.Bottom - 1, downEnd - downStart, 1), borderColor);
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Left + downStart, rect.Bottom - 1, downEnd - downStart, 1), borderColor);
         }
         #endregion
         #region 上边框
         if (start < rect.Width) {
             int upEnd = Math.Min(end, rect.Width);
-            spriteBatch.Draw(Textures.White, new Rectangle(start, rect.Top, upEnd - start, 1), borderColor);
+            spriteBatch.Draw(Textures.White, new Rectangle(rect.Left + start, rect.Top, upEnd - start, 1), borderColor);
         }
         #endregion
         for (int i = start; i < end; ++i) {

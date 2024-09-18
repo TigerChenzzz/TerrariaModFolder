@@ -1,19 +1,19 @@
-﻿using ModFolder.Configs;
+﻿using Humanizer;
 using ModFolder.Systems;
-using Steamworks;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
-using Terraria.ModLoader.UI.DownloadManager;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Base;
 using Terraria.Social.Steam;
 using Terraria.UI;
-using static Microsoft.CodeAnalysis.IOperation;
+using QueryInstance = Terraria.Social.Steam.WorkshopHelper.QueryHelper.AQueryInstance;
+using SteamworksConstances = Steamworks.Constants;
 
 namespace ModFolder.UI;
 
@@ -42,6 +42,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
     public override void OnInitialize() {
         #region 名字
+        // TODO: 重命名
         _uiModName = new UIText(GetAlias() ?? ModDisplayName) {
             Left = { Pixels = 35 },
             Top = { Pixels = 7, },
@@ -75,25 +76,30 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         }
         #endregion
         // TODO: 显示 SteamId, 以及引导到 Steam 处
-        // TODO: 自动订阅?
-        // TODO: 显示下载进度 (滚动宽斜条表示)
-        // SteamedWraps.ModDownloadInstance downloadInstance = new();
-        // downloadInstance.Download(new(_modNode.PublishId));
-        // SteamedWraps.UninstallWorkshopItem(new(_modNode.PublishId));
     }
 
-    #region Subscribe
-    CancellationTokenSource SubscribeTaskTokenSource { get; } = new();
+    #region 订阅 (下载)
     Task? SubscribeTask { get; set; }
     private void TrySubscribeMod(UIMouseEvent evt, UIElement listeningElement) {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        if (SubscribeTask != null && !SubscribeTask.IsCompleted || UIModFolderMenu.Instance.Loading) {
-            return;
-        }
         if (ModNode.PublishId == 0) {
+            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeForMissingPublishId").Value);
             return;
         }
-        SubscribeTask = SubscribeModAsync(SubscribeTaskTokenSource.Token);
+        if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
+            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenDownloading").Value);
+            return;
+        }
+        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenSubscribing").Value);
+            return;
+        }
+        if (UIModFolderMenu.Instance.Loading) {
+            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenLoading").Value);
+            return;
+        }
+        SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
+        
 
         // 翻源码:
         // ModDownloadItem 由来:
@@ -126,21 +132,20 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #endregion
         #endregion
     }
-    private async Task SubscribeModAsync(CancellationToken token) {
-        // TODO: 急需区分未加载完成和没订阅的模组
+    private async Task SubscribeModAsync() {
         #region 获取 ModDownloadItem
+        await Task.Yield();
         QueryParameters queryParameters = new() {
             searchModIds = [new() { m_ModPubId = ModNode.PublishId.ToString() }]
         };
-        WorkshopHelper.QueryHelper.AQueryInstance aQueryInstance = new(queryParameters);
+        QueryInstance aQueryInstance = new(queryParameters);
         ModDownloadItem? modDownloadItem = null;
-        // 在 WorkshopHelper.QueryHelper.AQueryInstance.WaitForQueryResultAsync 有一个硬编码的 10s 超时, 希望网差的不会有事
-        // TODO: 改为异步?
-        var mods = aQueryInstance.QueryItemsSynchronously(out _);
-        if (mods.Count != 0) {
-            modDownloadItem = mods[0];
+        await foreach (var mod in QueryItemsAsync(aQueryInstance, [], CancellationToken.None)) {
+            modDownloadItem = mod;
+            break;
         }
         if (modDownloadItem == null) {
+            UIModFolderMenu.Instance.PopupInfo($"未在创意工坊找到模组: {ModDisplayNameClean} ({ModNode.ModName})");
             return;
         }
         #endregion
@@ -149,55 +154,69 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         HashSet<ModDownloadItem> set = [modDownloadItem];
         Interface.modBrowser.SocialBackend.GetDependenciesRecursive(set);
 
-        var fullList = ModDownloadItem.NeedsInstallOrUpdate(set).ToList();
-        if (fullList.Count == 0)
+        var fullList = ModDownloadItem.NeedsInstallOrUpdate(set).ToArray();
+        if (fullList.Length == 0)
             return;
         #endregion
         #region 下载模组
         // 取自 UIModBrowser
-		var downloadedList = new HashSet<string>();
         try {
             foreach (var mod in fullList) {
+                await Task.Yield();
+                if (UIModFolderMenu.Instance.Downloads.ContainsKey(mod.ModName)) {
+                    continue;
+                }
                 bool wasInstalled = mod.IsInstalled;
 
                 if (ModLoader.TryGetMod(mod.ModName, out var loadedMod)) {
                     loadedMod.Close();
-
                     // We must clear the Installed reference in ModDownloadItem to facilitate downloading, in addition to disabling - Solxan
                     mod.Installed = null;
-                    // TODO: 强制需求重载
-                    // setReloadRequred?.Invoke();
+                    UIModFolderMenu.Instance.ForceRoadRequired();
                 }
 
-                // TODO: 传入 IDownloadProgress
-                Interface.modBrowser.SocialBackend.DownloadItem(mod, new UIWorkshopDownload());
-                // 摘自 WorkshopBrowserModule.DownloadItem
-                var uiProgress = new UIWorkshopDownload();
-		        mod.UpdateInstallState();
-
-		        var publishId = new PublishedFileId_t(ulong.Parse(mod.PublishId.m_ModPubId));
-                bool forceUpdate = true;// mod.NeedUpdate || !SteamedWraps.IsWorkshopItemInstalled(publishId);
-
-		        uiProgress?.DownloadStarted(mod.DisplayName);
-		        Utils.LogAndConsoleInfoMessage(Language.GetTextValue("tModLoader.BeginDownload", mod.DisplayName));
-		        new SteamedWraps.ModDownloadInstance().Download(publishId, uiProgress, forceUpdate);
-
-                downloadedList.Add(mod.ModName);
+                #region 下载模组 (摘自 WorkshopBrowserModule.DownloadItem)
+                mod.UpdateInstallState();
+                UIModFolderMenu.Instance.AddDownload(mod.ModName, new(mod));
+                #endregion
             }
         }
         catch (Exception e) {
-            // TODO: 更加明显的错误显示
+            UIModFolderMenu.Instance.PopupInfo("下载模组时发生错误! 具体错误请查看日志");
             ModFolder.Instance.Logger.Error("Downloading mod error!", e);
         }
-		finally {
-			ModOrganizer.LocalModsChanged(downloadedList, isDeletion:false);
-            UIModFolderMenu.Instance.Populate();
-		}
         #endregion
-        #region 收尾
-        Thread.MemoryBarrier();
-        SubscribeTask = null;
-        #endregion
+    }
+
+    private static async IAsyncEnumerable<ModDownloadItem?> QueryItemsAsync(QueryInstance query, List<string> missingMods, [EnumeratorCancellation] CancellationToken token) {
+        var numPages = Math.Ceiling(query.queryParameters.searchModIds.Length / (float)SteamworksConstances.kNumUGCResultsPerPage);
+
+        for (int i = 0; i < numPages; i++) {
+            var pageIds = query.queryParameters.searchModIds.Take(new Range(i * SteamworksConstances.kNumUGCResultsPerPage, SteamworksConstances.kNumUGCResultsPerPage * (i + 1) ));
+            var idArray = pageIds.Select(x => x.m_ModPubId).ToArray();
+
+            try {
+                // 这里有一个硬编码的 10s 超时, 希望网差的不会有事
+                await query.WaitForQueryResultAsync(SteamedWraps.GenerateDirectItemsQuery(idArray), token);
+
+                for (int j = 0; j < query._queryReturnCount; j++) {
+                    var itemsIndex = j + i * SteamworksConstances.kNumUGCResultsPerPage;
+                    var item = query.GenerateModDownloadItemFromQuery((uint)j);
+                    if (item is null) {
+                        // Currently, only known case is if a mod the user is subbed to is set to hidden & not deleted by the user
+                        Logging.tML.Warn($"Unable to find Mod with ID {idArray[j]} on the Steam Workshop");
+                        missingMods.Add(idArray[j]);
+                        yield return null;
+                        continue;
+                    }
+                    item.UpdateInstallState();
+                    yield return item;
+                }
+            }
+            finally {
+                query.ReleaseWorkshopQuery();
+            }
+        }
     }
     [Conditional("NEVER")]
     private static void Show<T>(T any) {
@@ -208,6 +227,13 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     public override void Draw(SpriteBatch spriteBatch) {
         _tooltip = null;
         base.Draw(spriteBatch);
+        #region 画订阅按钮上的阴影
+        if (_subsribeButton != null) {
+            if (UIModFolderMenu.Instance.Loading || UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
+                spriteBatch.Draw(Textures.White, _subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
+            }
+        }
+        #endregion
         if (!string.IsNullOrEmpty(_tooltip)) {
             //var bounds = GetOuterDimensions().ToRectangle();
             //bounds.Height += 16;
@@ -217,18 +243,59 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
     public override void DrawSelf(SpriteBatch spriteBatch) {
         base.DrawSelf(spriteBatch);
+        if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progress)) {
+            DrawDownloadStatus(spriteBatch, progress);
+        }
         #region 当鼠标在某些东西上时显示些东西
-        // 更多信息按钮
         // 删除按钮
         if (_deleteModButton.IsMouseHovering) {
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         else if (_subsribeButton?.IsMouseHovering == true) {
-            // TODO: 本地化
-            _tooltip = "订阅";
+            if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progressForTooltip)) {
+                // _tooltip = "下载中 6.66 MB / 88.88 MB";
+                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Downloading").Value.FormatWith(
+                    UIMemoryBar.SizeSuffix(progressForTooltip.BytesReceived, 2),
+                    UIMemoryBar.SizeSuffix(progressForTooltip.TotalBytesNeeded, 2));
+            }
+            else if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+                // _tooltip = "订阅中...";
+                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribing").Value;
+            }
+            else if (UIModFolderMenu.Instance.Loading) {
+                // _tooltip = "加载中...";
+                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Loading").Value;
+            }
+            else {
+                // _tooltip = "订阅";
+                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribe").Value;
+            }
         }
         #endregion
     }
+    #region 画下载状态
+    private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
+        Rectangle rectangle = GetDimensions().ToRectangle();
+        Rectangle progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, (int)((rectangle.Width - 2) * progress.Progress), rectangle.Height - 2);
+        Rectangle progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
+
+        spriteBatch.DrawBox(rectangle, Color.White * 0.5f, default);
+        spriteBatch.Draw(Textures.White, progressRectangle, Color.White * 0.2f);
+
+        int timePassed = UIModFolderMenu.Instance.Timer - progress.StartTimeRandomized;
+        int totalWidthToPass = rectangle.Width * 3;
+        int goThroughWidth = rectangle.Width * 2 / 3;
+        int passSpeed = 12;
+        int end = timePassed * passSpeed % totalWidthToPass;
+        if (end < 0) {
+            end += totalWidthToPass;
+        }
+        int start = end - goThroughWidth;
+
+        DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
+        DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
+    }
+    #endregion
 
     #region 删除
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {

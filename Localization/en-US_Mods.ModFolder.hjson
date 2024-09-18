@@ -73,6 +73,15 @@ UI: {
 				would be disabled in right click when no dependents on)
 				'''
 		}
+
+		Subscribe: {
+			Tooltips: {
+				Downloading: Downloading {0} / {1}
+				Subscribing: Subscribing...
+				Loading: Loading...
+				Subscribe: Subscribe
+			}
+		}
 	}
 
 	SortButtons: {
@@ -121,4 +130,11 @@ UI: {
 		to enable: {2}
 		to disable: {3}
 		'''
+
+	PopupInfos: {
+		CantSubscribeForMissingPublishId: Can't subscribe! No mod info stored!
+		CantSubscribeWhenDownloading: Downloading mod!
+		CantSubscribeWhenSubscribing: Already subscribing! Don't repeatly click!
+		CantSubscribeWhenLoading: Can't subscibe when loading! Please wait for loading complete!
+	}
 }

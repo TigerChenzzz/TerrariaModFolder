@@ -565,19 +565,28 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         return false;
     }
 
-    public void EnableQuick(HashSet<string> enabled, HashSet<string> missingRefs) {
-        if (!ModLoader.EnabledMods.Add(_mod.Name)) {
-            return;
+    public bool EnableQuick(HashSet<string> enabled, HashSet<string> missingRefs) {
+        if (ModLoader.EnabledMods.Contains(_mod.Name)) {
+            return true;
         }
-        enabled.Add(_mod.Name);
+        bool fail = false;
         foreach (var name in _modReferences) {
             var dep = UIModFolderMenu.Instance.FindUIModItem(name);
             if (dep == null) {
                 missingRefs.Add(name);
+                fail = true;
                 continue;
             }
-            dep.EnableQuick(enabled, missingRefs);
+            if (!dep.EnableQuick(enabled, missingRefs)) {
+                fail = true;
+            }
         }
+        if (fail) {
+            return false;
+        }
+        enabled.Add(_mod.Name);
+        ModLoader.EnabledMods.Add(_mod.Name);
+        return true;
     }
     public void DisableQuick(HashSet<string> disabled, bool disableRedundantDependencies = false) {
         if (!ModLoader.EnabledMods.Remove(_mod.Name)) {
@@ -640,14 +649,28 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         return true;
     }
 
-    internal void EnableDependencies() {
-        var missingRefs = new List<string>();
-        EnableDepsRecursive(missingRefs);
-
+    internal bool TryEnableDependencies() {
+        List<string> missingRefs = [];
+        List<UIModItemInFolderLoaded> modItems = [];
+        foreach (var mod in _modDependencies) {
+            var modItem = UIModFolderMenu.Instance.FindUIModItem(mod);
+            if (modItem == null) {
+                missingRefs.Add(mod);
+            }
+            else {
+                modItems.Add(modItem);
+            }
+        }
         if (missingRefs.Count != 0) {
             Interface.infoMessage.Show(Language.GetTextValue("tModLoader.ModDependencyModsNotFound", string.Join(", ", missingRefs)), UIModFolderMenu.MyMenuMode);
+            return false;
         }
+        foreach (var modItem in modItems) {
+            modItem.Enable();
+        }
+        return true;
     }
+    [Obsolete("不再使用", true)]
     private void EnableDepsRecursive(List<string> missingRefs) {
         foreach (var name in _modReferences) {
             var dep = UIModFolderMenu.Instance.FindUIModItem(name);
@@ -660,8 +683,15 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
     }
     private void DisableDependents() {
-        DisableDependentsRecursive();
+        foreach (var name in _modDependents) {
+            var dep = UIModFolderMenu.Instance.FindUIModItem(name);
+            if (dep == null) {
+                continue;
+            }
+            dep.Disable();
+        }
     }
+    [Obsolete("不再使用", true)]
     private void DisableDependentsRecursive() {
         foreach (var name in _modDependents) {
             var dep = UIModFolderMenu.Instance.FindUIModItem(name);
@@ -801,20 +831,21 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     private void ToggleEnabled() {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        _mod.Enabled = !_mod.Enabled;
-        if (UIModFolderMenu.Instance.EnabledFilterMode != FolderEnabledFilter.All) {
-            UIModFolderMenu.Instance.ArrangeGenerate();
-        }
-
         if (!_mod.Enabled) {
+            if (!TryEnableDependencies()) {
+                return;
+            }
+        }
+        else {
             DisableDependents();
             if (Main.keyState.PressingShift()) {
                 DisableRedundantDependencies();
             }
-            return;
         }
-
-        EnableDependencies();
+        _mod.Enabled = !_mod.Enabled;
+        if (UIModFolderMenu.Instance.EnabledFilterMode != FolderEnabledFilter.All) {
+            UIModFolderMenu.Instance.ArrangeGenerate();
+        }
     }
     void DisableRedundantDependencies() {
         foreach (var dependency in _modReferences) {
@@ -873,7 +904,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     private void OnUnfocus_TryRename(object sender, EventArgs e) {
         var newName = _renameText.CurrentString;
         replaceToModName = true;
-        if (string.IsNullOrEmpty(newName)) {
+        if (string.IsNullOrEmpty(newName) || newName == ModDisplayName) {
             FolderDataSystem.ModAliases.Remove(_mod.Name);
         }
         else {

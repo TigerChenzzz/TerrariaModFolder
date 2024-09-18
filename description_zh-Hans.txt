@@ -5,3 +5,7 @@
 当删除一个模组或者文件夹时, 你需要按住 Ctrl 或 Shift 或同时按住, 按住 Ctrl 表示取消订阅 (如果是文件夹就是取消订阅所有内含模组), 和原版的行为一致; 按住 Shift 表示删除索引, 此模组或者此文件夹中的模组将会回到根目录。 如果只是取消订阅而没有删除索引, 那么模组仍然会显示在这里, 并且你可以继续管理它的位置, 只是需要重新订阅才能再次启用。
 按住 Alt 点击一个模组以收藏它, 收藏的模组默认不会因 "启用和禁用" 按钮而被禁用, 除非按下此按钮时按住 Ctrl。
 此模组的数据保存在模组文件夹的 "ModFolderData.json" 中, 请不要随意删除或修改它 (如果要修改请务必做好备份!)
+QQ群: 574904188
+Discord: https://discord.gg/fjFpgBkRBZ
+[quote=tModLoader ModFolder]
+Developed By Tigerzzz[/quote]

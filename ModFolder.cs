@@ -22,11 +22,11 @@ namespace ModFolder;
 // BUG: 启用时可能启用到过期的模组?
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
 
+// TODO: 显示所有下载项
 // TODO: 取消订阅时保留 description 等信息(description, 图片, build.txt) (可选 (对于每次取消订阅, 而不是可配置))
 // TODO: Generate 修缮, 只在必要时重新生成
 // TODO: 复制文件夹
 // TODO: 文件夹快捷方式
-// TODO: 模组名称备注
 // TODO: 批量 重新订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
 // TODO: 大小模组图标的配置
@@ -37,6 +37,7 @@ namespace ModFolder;
 // TODO: 名称过长时的处理 (滚动? 省略?)
 // TODO: 弱依赖显示
 // TODO: 尝试强制更新已有模组
+// TODO: 下载缺失依赖
 
 // TODO: 右键拖动时禁用左键?
 
