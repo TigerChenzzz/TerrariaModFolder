@@ -110,7 +110,7 @@ public class ModFolder : Mod {
         orig(main, selectedMenu, buttonNames, buttonScales, buttonVerticalSpacing, ref offY, ref spacing, ref numButtons, ref backButtonDown);
         if (Main.menuMode == UIModFolderMenu.MyMenuMode) {
             Main.MenuUI.SetState(UIModFolderMenu.Instance);
-            Main.menuMode = 888;
+            Main.menuMode = MenuID.FancyUI; // 888
         }
     }
     #endregion

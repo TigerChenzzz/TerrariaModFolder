@@ -814,38 +814,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 返回按钮
         ButtonB = new(Language.GetText("UI.Back"));
-        ButtonB.OnLeftClick += (_, _) => {
-            if (ShowFolderSystem && FolderPath.Count > 1 && !Main.keyState.PressingShift()) {
-                SoundEngine.PlaySound(SoundID.MenuClose);
-                GotoUpperFolder();
-                return;
-            }
-            // TODO: 在 Deactivate 中也有, 检查是否冗余
-            FolderDataSystem.Save();
-            FolderPath.Clear();
-            list.ViewPosition = 0;
-
-            if (Main.keyState.PressingControl()) {
-                ModLoader.Reload();
-                return;
-            }
-
-            // To prevent entering the game with Configs that violate ReloadRequired
-            if (ConfigManager.AnyModNeedsReload()) {
-                Main.menuMode = Interface.reloadModsID;
-                return;
-            }
-
-            // If auto reloading required mods is enabled, check if any mods need reloading and reload as required
-            if (ModLoader.autoReloadRequiredModsLeavingModsScreen && ModItemDict.Values.Any(i => i.NeedsReload)) {
-                Main.menuMode = Interface.reloadModsID;
-                return;
-            }
-
-            ConfigManager.OnChangedAll();
-
-            IHaveBackButtonCommand.GoBackTo(PreviousUIState);
-        };
+        ButtonB.OnLeftClick += (_, _) => BackButtonClicked();
         mouseOverTooltips.Add((ButtonB, () => ModFolder.Instance.GetLocalization("UI.Buttons.Back.Tooltip").Value));
         #endregion
         #region 复制已启用模组到此处
@@ -971,6 +940,43 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
 
+    #region 返回
+    private void BackButtonClicked() {
+        if (ShowFolderSystem && FolderPath.Count > 1 && !Main.keyState.PressingShift()) {
+            SoundEngine.PlaySound(SoundID.MenuClose);
+            GotoUpperFolder();
+            return;
+        }
+        // TODO: 在 Deactivate 中也有, 检查是否冗余
+        FolderDataSystem.Save();
+        FolderPath.Clear();
+        list.ViewPosition = 0;
+
+        if (Main.keyState.PressingControl()) {
+            ModLoader.Reload();
+            return;
+        }
+
+        // To prevent entering the game with Configs that violate ReloadRequired
+        if (ConfigManager.AnyModNeedsReload()) {
+            Main.menuMode = Interface.reloadModsID;
+            return;
+        }
+
+        // If auto reloading required mods is enabled, check if any mods need reloading and reload as required
+        if (ModLoader.autoReloadRequiredModsLeavingModsScreen && ModItemDict.Values.Any(i => i.NeedsReload)) {
+            Main.menuMode = Interface.reloadModsID;
+            return;
+        }
+
+        ConfigManager.OnChangedAll();
+
+        IHaveBackButtonCommand.GoBackTo(PreviousUIState);
+    }
+    void IHaveBackButtonCommand.HandleBackButtonUsage() {
+        BackButtonClicked();
+    }
+    #endregion
     #region 启用禁用与重置模组
     // 只启用或禁用本文件夹下的模组, 按住 shift 时才是所有模组
     // 按住 alt 同时包含子文件夹
@@ -1610,16 +1616,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         SetLoadingState("Ready To Find Mods");
         // 删除模组的操作不能取消, 所以从这里开始才使用 token
-        await YieldWithToken(token);
+        await Task.Delay(0, token);
         var mods = ModOrganizer.FindMods(CommonConfig.Instance.LogModLoading);
         SetLoadingState("Loading Mods");
-        await YieldWithToken(token);
+        await Task.Delay(0, token);
         Dictionary<string, UIModItemInFolderLoaded> tempModItemDict = [];
         foreach (var mod in mods) {
             UIModItemInFolderLoaded modItem = new(mod);
             tempModItemDict.Add(modItem.ModName, modItem);
             modItem.Activate();
-            await YieldWithToken(token);
+            await Task.Delay(0, token);
         }
         // 以防在加载过程中安排了删除模组但实际上还没删除的情况, 从中排除待删除的模组
         lock (_modsToDelete) {
@@ -1630,7 +1636,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ModItemDict = tempModItemDict;
         SetLoadingState("Final Clean");
         ArrangeGenerate();
-        await YieldWithToken(token);
+        await Task.Delay(0, token);
         var availableMods = ModOrganizer.RecheckVersionsToLoad().ToArray();
         // TODO: 算法优化 (虽然不是很有必要)
         foreach (var modItem in ModItemDict.Values) {
@@ -1640,10 +1646,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         FolderDataSystem.RemoveRedundantData();
         // TODO: 遍历一遍 Root 来做各种事情
         ;
-    }
-    private static YieldAwaitable YieldWithToken(CancellationToken token) {
-        token.ThrowIfCancellationRequested();
-        return Task.Yield();
     }
     #endregion
     #endregion
