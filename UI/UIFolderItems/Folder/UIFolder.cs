@@ -94,6 +94,7 @@ public class UIFolder : UIFolderItem {
             };
             _deleteButton.OnLeftClick += QuickFolderDelete;
             Append(_deleteButton);
+            mouseOverTooltips.Add((_deleteButton, () => Language.GetTextValue("UI.Delete")));
         }
         #endregion
         #region 重命名按钮
@@ -109,6 +110,7 @@ public class UIFolder : UIFolderItem {
             };
             _renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
             Append(_renameButton);
+            mouseOverTooltips.Add((_renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         }
         #endregion
         #region 启用状态
@@ -337,34 +339,22 @@ public class UIFolder : UIFolderItem {
         base.Update(gameTime);
     }
     #region Draw
+    protected override string? GetTooltip() {
+        var tooltip = base.GetTooltip();
+        if (tooltip != null) {
+            return tooltip;
+        }
+        if (CommonConfig.Instance.ShowEnableStatusText.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
+            !CommonConfig.Instance.ShowEnableStatusText.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
+            return ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
+        }
+        return null;
+    }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         base.DrawSelf(spriteBatch);
         DrawEnableStatus(spriteBatch);
         UpdateEnableStatusText();
         CheckReplace();
-        #region 当鼠标在某些东西上时显示些东西
-        // 更多信息按钮
-        // 删除按钮
-        if (_deleteButton?.IsMouseHovering == true) {
-            _tooltip = Language.GetTextValue("UI.Delete");
-        }
-        // 重命名按钮
-        else if (_renameButton?.IsMouseHovering == true) {
-            _tooltip = ModFolder.Instance.GetLocalization("UI.Rename").Value;
-        }
-        // 启用状态
-        else if (CommonConfig.Instance.ShowEnableStatusText.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
-            !CommonConfig.Instance.ShowEnableStatusText.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
-            _tooltip = ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
-        }
-        #endregion
-    }
-    public override void Draw(SpriteBatch spriteBatch) {
-        _tooltip = null;
-        base.Draw(spriteBatch);
-        if (!string.IsNullOrEmpty(_tooltip)) {
-            UICommon.TooltipMouseText(_tooltip);
-        }
     }
     private int RandomStartOffset => FolderNode?.EnableStatusRandomOffset ?? 0;
     private void UpdateEnableStatusText() {

@@ -91,7 +91,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     private bool _configChangesRequireReload;
     private bool _loaded;
-    private string? _tooltip;
 
     public override string ModName => _mod.Name;
     public bool NeedsReload => _mod.properties.side != ModSide.Server && (_mod.Enabled != _loaded || _configChangesRequireReload);
@@ -156,7 +155,28 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             Height = { Precent = 1 },
             TextOriginY = 0.5f,
         };
-        _modNameIndex = this.AppendAndGetIndex(_modName);
+        mouseOverTooltips.Add((_modName, () => {
+            if (_mod.properties.author.Length == 0) {
+                return null;
+            }
+            // 模组位置图标
+            if (_modLocationIcon?.IsMouseHovering == true) {
+                return Language.GetTextValue("tModLoader.ModFrom" + _mod.location);
+            }
+            // 已升级小点
+            else if (updatedModDot?.IsMouseHovering == true) {
+                if (previousVersionHint == null)
+                   return Language.GetTextValue("tModLoader.ModAddedSinceLastLaunchMessage");
+                else
+                    return Language.GetTextValue("tModLoader.ModUpdatedSinceLastLaunchMessage", previousVersionHint);
+            }
+            // 模组名
+            return string.Join('\n',
+                GetOriginalModDisplayNameWithVersion(),
+                Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)
+            );
+        }
+        ));
         #endregion
         #region 重命名输入框
         _renameText = new(_mod.DisplayNameClean) {
@@ -165,8 +185,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             Height = { Pixels = -5, Percent = 1 },
             UnfocusOnTab = true,
         };
-        _renameText.OnUnfocus += OnUnfocus_TryRename;
         // leftOffset += _modName.MinWidth.Pixels;
+        OnInitialize_ProcessName(_modName, _renameText);
         #endregion
         #region 模组位置标志
         leftOffset = 0;
@@ -235,6 +255,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                 Utils.OpenToURL(updateURL);
             };
             Append(tMLUpdateRequired);
+            mouseOverTooltips.Add((tMLUpdateRequired, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
         }
         else {
             // Append(_uiModStateCheckBoxHitbox);
@@ -254,6 +275,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             };
             DeleteButton.OnLeftClick += QuickModDelete;
             Append(DeleteButton);
+            mouseOverTooltips.Add((DeleteButton, () => Language.GetTextValue("UI.Delete")));
         }
         #endregion
         #region 重命名
@@ -265,8 +287,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
         };
-        RenameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
-        Append(RenameButton);
+        OnInitialize_ProcessRenameButton(RenameButton);
+        mouseOverTooltips.Add((RenameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         #endregion
         #region 更多信息
         MoreInfoButton = new(UICommon.ButtonModInfoTexture) {
@@ -279,6 +301,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         };
         MoreInfoButton.OnLeftClick += ShowMoreInfo;
         Append(MoreInfoButton);
+        mouseOverTooltips.Add((MoreInfoButton, () => Language.GetTextValue("tModLoader.ModsMoreInfo")));
         #endregion
         #region 配置按钮
         if (ModLoader.TryGetMod(ModName, out var loadedMod) && ConfigManager.Configs.ContainsKey(loadedMod)) {
@@ -292,6 +315,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             };
             ConfigButton.OnLeftClick += OpenConfig;
             Append(ConfigButton);
+            mouseOverTooltips.Add((ConfigButton, () => Language.GetTextValue("tModLoader.ModsOpenConfig")));
             // TODO: 在合适的情况下更新此值
             // TODO: 看看这个类中还有没有这种可能会发生变化的值
             if (ConfigManager.ModNeedsReload(loadedMod)) {
@@ -310,6 +334,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             Visible = false,
         };
         Append(ModReferenceIcon);
+        mouseOverTooltips.Add((ModReferenceIcon, () => _modRequiresTooltip));
         #endregion
         #region 翻译
         // if (_mod.properties.RefNames(true).Any() && _mod.properties.translationMod)
@@ -324,6 +349,10 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                 RemoveFloatingPointsFromDrawPosition = true,
             };
             Append(TranslationModIcon);
+            mouseOverTooltips.Add((TranslationModIcon, () => {
+                string refs = string.Join(", ", _mod.properties.RefNames(true)); // Translation mods can be strong or weak references.
+                return Language.GetTextValue("tModLoader.TranslationModTooltip", refs);
+            }));
         }
         #endregion
         SettleRightButtons();
@@ -725,18 +754,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 		// TODO: ITranslatable or something?
 	}*/
 
-    public override void Draw(SpriteBatch spriteBatch) {
-        _tooltip = null;
-        base.Draw(spriteBatch);
-        if (!string.IsNullOrEmpty(_tooltip)) {
-            //var bounds = GetOuterDimensions().ToRectangle();
-            //bounds.Height += 16;
-            UICommon.TooltipMouseText(_tooltip);
-        }
-    }
-
     public override void DrawSelf(SpriteBatch spriteBatch) {
-        CheckReplace();
         base.DrawSelf(spriteBatch);
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
@@ -771,58 +789,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         */
         #endregion
         #region 当鼠标在某些东西上时显示些东西
-        // 模组名, 模组位置图标 和 已升级小点
-        if (_modName?.IsMouseHovering == true && _mod.properties.author.Length > 0) {
-            // 模组位置图标
-            if (_modLocationIcon?.IsMouseHovering == true) {
-                _tooltip = Language.GetTextValue("tModLoader.ModFrom" + _mod.location);
-            }
-            // 已升级小点
-            else if (updatedModDot?.IsMouseHovering == true) {
-                if (previousVersionHint == null)
-                    _tooltip = Language.GetTextValue("tModLoader.ModAddedSinceLastLaunchMessage");
-                else
-                    _tooltip = Language.GetTextValue("tModLoader.ModUpdatedSinceLastLaunchMessage", previousVersionHint);
-            }
-            // 模组名
-            else {
-                _tooltip = string.Join('\n',
-                    GetOriginalModDisplayNameWithVersion(),
-                    Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)
-                );
-            }
-        }
-        // 更多信息按钮
-        else if (MoreInfoButton?.IsMouseHovering == true) {
-            _tooltip = Language.GetTextValue("tModLoader.ModsMoreInfo");
-        }
-        // 删除按钮
-        else if (DeleteButton?.IsMouseHovering == true) {
-            _tooltip = Language.GetTextValue("UI.Delete");
-        }
-        // 重命名按钮
-        else if (RenameButton.IsMouseHovering == true) {
-            _tooltip = ModFolder.Instance.GetLocalization("UI.Rename").Value;
-        }
-        // 配置
-        else if (ConfigButton?.IsMouseHovering == true) {
-            _tooltip = Language.GetTextValue("tModLoader.ModsOpenConfig");
-        }
-        // 需升级
-        else if (tMLUpdateRequired?.IsMouseHovering == true) {
-            _tooltip = Language.GetTextValue("tModLoader.SwitchVersionInfoButton");
-        }
-        // 引用
-        else if (ModReferenceIcon?.IsMouseHovering == true) {
-            _tooltip = _modRequiresTooltip;
-        }
-        // 翻译
-        else if (TranslationModIcon?.IsMouseHovering == true) {
-            string refs = string.Join(", ", _mod.properties.RefNames(true)); // Translation mods can be strong or weak references.
-            _tooltip = Language.GetTextValue("tModLoader.TranslationModTooltip", refs);
-        }
         // 图标
-        else if (_modIcon?.IsMouseHovering == true) {
+        if (_modIcon?.IsMouseHovering == true) {
             if (hoverIcon != null) {
                 UIModFolderMenu.Instance.SetMouseTexture(hoverIcon.Value, 160, 160, 8, 8);
             }
@@ -884,47 +852,9 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         UIModFolderMenu.IsPreviousUIStateOfConfigList = true;
     }
 
-    #region 别名相关
-    private bool replaceToModName;
-    private bool replaceToRenameText;
-    public void SetReplaceToRenameText() => replaceToRenameText = true;
-    private void CheckReplace() {
-        if (replaceToModName) {
-            replaceToModName = false;
-            this.ReplaceChildrenByIndex(_modNameIndex, _modName);
-            UpdateModDisplayName();
-        }
-        if (replaceToRenameText) {
-            replaceToRenameText = false;
-            _renameText.CurrentString = GetModDisplayName(false);
-            this.ReplaceChildrenByIndex(_modNameIndex, _renameText);
-            _renameText.Focused = true;
-        }
-    }
-
-    private void OnUnfocus_TryRename(object sender, EventArgs e) {
-        var newName = _renameText.CurrentString;
-        replaceToModName = true;
-        if (string.IsNullOrEmpty(newName) || newName == ModDisplayName) {
-            FolderDataSystem.ModAliases.Remove(_mod.Name);
-        }
-        else {
-            FolderDataSystem.ModAliases[_mod.Name] = newName;
-        }
-        UIModFolderMenu.Instance.ArrangeGenerate();
-        FolderDataSystem.TrySaveWhenChanged();
-    }
-    private void UpdateModDisplayName() => UpdateModDisplayName(GetModDisplayName());
-    private void UpdateModDisplayName(string? name) {
-        if (_modName.Text == name) {
-            return;
-        }
-        _modName.SetText(name);
-        RecalculateChildren();
-    }
     public override string GetModDisplayName() => GetModDisplayName(null);
     public string GetModDisplayName(bool? withVersion) {
-        var name = GetAlias() ?? ModDisplayName;
+        var name = Alias ?? ModDisplayName;
         if (withVersion ?? CommonConfig.Instance.ShowModVersion) {
             return $"{name} v{_mod.modFile.Version}";
         }
@@ -932,7 +862,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     public string GetOriginalModDisplayNameWithVersion() => $"{ModDisplayName} v{_mod.modFile.Version}";
     public override string ModDisplayName => _mod.DisplayName;
-    #endregion
 
     public override int PassFiltersInner() {
         var filter = UIModFolderMenu.Instance.Filter;
@@ -949,7 +878,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                 if (ModName.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
                     goto NameFilterPassed;
                 }
-                var alias = GetAlias();
+                var alias = AliasClean;
                 if (alias != null && alias.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
                     goto NameFilterPassed;
                 }

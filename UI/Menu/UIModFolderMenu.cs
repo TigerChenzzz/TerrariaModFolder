@@ -551,6 +551,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
     private FolderNode? nodeToRename;
+    #endregion
+    #region 确认弹窗
     private readonly List<UIElement> _confirmPanels = [];
     private UIImage? _confirmPanelCover;
     private UIImage ConfirmPanelCover {
@@ -947,6 +949,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     #region 返回
     private void BackButtonClicked() {
+        if (_confirmPanels.Count != 0) {
+            RemoveConfirmPanel();
+            return;
+        }
         if (ShowFolderSystem && FolderPath.Count > 1 && !Main.keyState.PressingShift()) {
             SoundEngine.PlaySound(SoundID.MenuClose);
             GotoUpperFolder();

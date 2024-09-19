@@ -32,6 +32,26 @@ public class UIFolderItem : UIElement {
     public virtual bool Favorite { get => false; set { } }
     public virtual FolderDataSystem.Node? Node { get => null; }
     public bool RightDraggable { get; set; } = true;
+    #region MouseoverTooltip
+    protected readonly List<(UIElement, Func<string?>)> mouseOverTooltips = [];
+    protected virtual string? GetTooltip() {
+        foreach (var (ui, f) in mouseOverTooltips) {
+            if (ui.IsMouseHovering) {
+                var tooltip = f();
+                if (tooltip != null) {
+                    return tooltip;
+                }
+            }
+        }
+        return null;
+    }
+    private void Draw_Tooltip() {
+        var tooltip = GetTooltip();
+        if (tooltip != null) {
+            UICommon.TooltipMouseText(tooltip);
+        }
+    }
+    #endregion
     #region Draw
     public static Color EnabledColor { get; } = Color.White;
     public static Color EnabledBorderColor { get; } = Color.White * 0.6f;
@@ -96,6 +116,10 @@ public class UIFolderItem : UIElement {
             spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
         }
         #endregion
+    }
+    public override void Draw(SpriteBatch spriteBatch) {
+        base.Draw(spriteBatch);
+        Draw_Tooltip();
     }
     #region DrawParallelogram
     private readonly static Dictionary<int, Texture2D> _slashTextures = [];

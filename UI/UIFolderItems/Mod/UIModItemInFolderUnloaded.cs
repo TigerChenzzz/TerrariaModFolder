@@ -20,12 +20,10 @@ namespace ModFolder.UI.UIFolderItems.Mod;
 
 // TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
 public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIModItemInFolder {
-    private UIText _uiModName = null!;
-    private UIImage _deleteModButton = null!;
+    private UIImage deleteModButton = null!;
     // 当没有 PublishId 时或 Steam 不可用时为空
-    private UIImage? _subsribeButton;
-    // private bool modFromLocalModFolder;
-    private string? _tooltip;
+    private UIImage? subsribeButton;
+    private UIImage renameButton = null!;
 
     public override string ModName => _modNode.ModName;
     public override string ModDisplayName => _modNode.DisplayName;
@@ -42,38 +40,61 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     }
 
     public override void OnInitialize() {
-        #region 名字
-        // TODO: 重命名
-        _uiModName = new UIText(GetAlias() ?? ModDisplayName) {
+        #region 名字与重命名输入框
+        OnInitialize_ProcessName(new(GetModDisplayName()) {
             Left = { Pixels = 35 },
             Top = { Pixels = 7, },
-        };
-        Append(_uiModName);
+        }, new(ModDisplayNameClean) {
+            Left = { Pixels = 35 },
+            Top = { Pixels = 5 },
+            Height = { Pixels = -5, Percent = 1 },
+            UnfocusOnTab = true,
+        });
         #endregion
         #region 删除按钮
         int bottomRightRowOffset = -30;
-        _deleteModButton = new UIImage(Textures.ButtonDelete) {
+        deleteModButton = new UIImage(Textures.ButtonDelete) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
             Left = { Pixels = bottomRightRowOffset, Precent = 1 },
             Top = { Pixels = -12, Percent = 0.5f },
             ScaleToFit = true,
+            AllowResizingDimensions = false,
+            RemoveFloatingPointsFromDrawPosition = true,
         };
-        _deleteModButton.OnLeftClick += QuickModDelete;
-        Append(_deleteModButton);
+        deleteModButton.OnLeftClick += QuickModDelete;
+        Append(deleteModButton);
+        mouseOverTooltips.Add((deleteModButton, () => Language.GetTextValue("UI.Delete")));
+        #endregion
+        #region 重命名
+        bottomRightRowOffset -= 24;
+        renameButton = new(Textures.ButtonRename) {
+            Width = { Pixels = 24 },
+            Height = { Pixels = 24 },
+            Left = { Pixels = bottomRightRowOffset, Precent = 1 },
+            Top = { Pixels = -12, Percent = 0.5f },
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
+            RemoveFloatingPointsFromDrawPosition = true,
+        };
+        OnInitialize_ProcessRenameButton(renameButton);
+        mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         #endregion
         #region 重新订阅按钮
         bottomRightRowOffset -= 24;
         if (ModNode.PublishId != 0 && SteamedWraps.SteamAvailable) {
-            _subsribeButton = new(Textures.ButtonSubscribe) {
+            subsribeButton = new(Textures.ButtonSubscribe) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = bottomRightRowOffset, Precent = 1 },
                 Top = { Pixels = -12, Percent = 0.5f },
                 ScaleToFit = true,
+                AllowResizingDimensions = false,
+                RemoveFloatingPointsFromDrawPosition = true,
             };
-            _subsribeButton.OnLeftClick += TrySubscribeMod;
-            Append(_subsribeButton);
+            subsribeButton.OnLeftClick += TrySubscribeMod;
+            Append(subsribeButton);
+            mouseOverTooltips.Add((subsribeButton, GetSubscribeButtonTooltip));
         }
         #endregion
         // TODO: 显示 SteamId, 以及引导到 Steam 处
@@ -272,18 +293,12 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     #endregion
 
     public override void Draw(SpriteBatch spriteBatch) {
-        _tooltip = null;
         base.Draw(spriteBatch);
         #region 画订阅按钮上的阴影
-        if (_subsribeButton != null && GetSubscribeStatus() != SubscribeStatus.None) {
-            spriteBatch.Draw(Textures.White, _subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
+        if (subsribeButton != null && GetSubscribeStatus() != SubscribeStatus.None) {
+            spriteBatch.Draw(Textures.White, subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
         }
         #endregion
-        if (!string.IsNullOrEmpty(_tooltip)) {
-            //var bounds = GetOuterDimensions().ToRectangle();
-            //bounds.Height += 16;
-            UICommon.TooltipMouseText(_tooltip);
-        }
     }
 
     public override void DrawSelf(SpriteBatch spriteBatch) {
@@ -291,15 +306,6 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progress)) {
             DrawDownloadStatus(spriteBatch, progress);
         }
-        #region 当鼠标在某些东西上时显示些东西
-        // 删除按钮
-        if (_deleteModButton.IsMouseHovering) {
-            _tooltip = Language.GetTextValue("UI.Delete");
-        }
-        else if (_subsribeButton?.IsMouseHovering == true) {
-            _tooltip = GetSubscribeButtonTooltip();
-        }
-        #endregion
     }
     #region 画下载状态
     private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
