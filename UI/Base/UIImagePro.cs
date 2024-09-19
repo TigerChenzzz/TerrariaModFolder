@@ -1,7 +1,7 @@
 ﻿using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Base;
 
 // 主要修改: 添加 PreDrawSelf 和 SourceRectangle
 public class UIImagePro : UIImage {
@@ -11,7 +11,7 @@ public class UIImagePro : UIImage {
     public UIImagePro(Asset<Texture2D> texture) : base(texture) { }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         PreDrawSelf?.Invoke(spriteBatch);
-        
+
         Texture2D texture2D;
         if (_nonReloadingTexture != null) {
             texture2D = _nonReloadingTexture;

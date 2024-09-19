@@ -1,5 +1,6 @@
 ﻿using Humanizer;
 using ModFolder.Systems;
+using ModFolder.UI.Menu;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -15,7 +16,7 @@ using Terraria.UI;
 using QueryInstance = Terraria.Social.Steam.WorkshopHelper.QueryHelper.AQueryInstance;
 using SteamworksConstances = Steamworks.Constants;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems.Mod;
 
 // TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
 public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIModItemInFolder {
@@ -87,7 +88,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             return;
         }
         SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
-        
+
 
         // 翻源码:
         // ModDownloadItem 由来:
@@ -116,7 +117,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #region 查找全部依赖
         Show(nameof(SocialBrowserModule.GetDependenciesRecursive));
         Show(nameof(WorkshopBrowserModule.DirectQueryItems));
-        Show(nameof(WorkshopHelper.QueryHelper.AQueryInstance.QueryItemsSynchronously));
+        Show(nameof(QueryInstance.QueryItemsSynchronously));
         #endregion
         #endregion
     }
@@ -180,7 +181,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         var numPages = Math.Ceiling(query.queryParameters.searchModIds.Length / (float)SteamworksConstances.kNumUGCResultsPerPage);
 
         for (int i = 0; i < numPages; i++) {
-            var pageIds = query.queryParameters.searchModIds.Take(new Range(i * SteamworksConstances.kNumUGCResultsPerPage, SteamworksConstances.kNumUGCResultsPerPage * (i + 1) ));
+            var pageIds = query.queryParameters.searchModIds.Take(new Range(i * SteamworksConstances.kNumUGCResultsPerPage, SteamworksConstances.kNumUGCResultsPerPage * (i + 1)));
             var idArray = pageIds.Select(x => x.m_ModPubId).ToArray();
 
             try {

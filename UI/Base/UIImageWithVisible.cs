@@ -1,7 +1,7 @@
 ﻿using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Base;
 
 internal class UIImageWithVisible : UIImage {
     private bool _visible = true;

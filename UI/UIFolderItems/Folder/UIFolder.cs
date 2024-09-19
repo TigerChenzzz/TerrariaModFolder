@@ -1,13 +1,15 @@
 ﻿using Humanizer;
 using ModFolder.Configs;
 using ModFolder.Systems;
+using ModFolder.UI.Base;
+using ModFolder.UI.Menu;
 using System.Text;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems.Folder;
 
 /// <summary>
 /// 文件夹系统列表中的一个文件夹
@@ -213,7 +215,7 @@ public class UIFolder : UIFolderItem {
 
         UIModFolderMenu.Instance.Recalculate();
     }
-    
+
     private void DeleteFolder(bool loaded, bool quick = false) {
         if (!loaded) {
             DeleteFolderInner(Main.keyState.PressingAlt());
@@ -380,7 +382,7 @@ public class UIFolder : UIFolderItem {
             sb.AppendFormat("[c/{0}:{1}]", config.AllModsColor.Hex3(), FolderNode.ChildrenCount);
             slashed = true;
         }
-        
+
         if (config.Enabled.Check(FolderNode.EnabledCount)) {
             if (slashed) {
                 sb.Append(config.Seperator);
@@ -444,7 +446,7 @@ public class UIFolder : UIFolderItem {
         if (FolderNode.ToEnableCount > 0 && toEnableWidth < minWidth) {
             toEnableWidth = minWidth;
         }
-        if (FolderNode.ToDisableCount > 0 &&  toDisableWidth < minWidth) {
+        if (FolderNode.ToDisableCount > 0 && toDisableWidth < minWidth) {
             toDisableWidth = minWidth;
         }
         int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + RandomStartOffset;

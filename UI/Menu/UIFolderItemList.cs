@@ -3,7 +3,7 @@ using ModFolder.Configs;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Menu;
 
 // TODO: 边缘虚化
 public class UIFolderItemList : UIList {

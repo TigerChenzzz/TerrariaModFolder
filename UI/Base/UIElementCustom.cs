@@ -1,6 +1,6 @@
 ﻿using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Base;
 
 public class UIElementCustom : UIElement {
     public event Action<SpriteBatch>? OnDraw;

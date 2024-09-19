@@ -1,7 +1,8 @@
 ﻿using System.Collections;
+using ModFolder.UI.Base;
 using FolderNode = ModFolder.Systems.FolderDataSystem.FolderNode;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Menu;
 
 /// <summary>
 /// 当 FolderPath 改变时同步修改 folderPathList 中的元素

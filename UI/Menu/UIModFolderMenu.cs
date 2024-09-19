@@ -1,6 +1,10 @@
 using Microsoft.CodeAnalysis;
 using ModFolder.Configs;
 using ModFolder.Systems;
+using ModFolder.UI.Base;
+using ModFolder.UI.UIFolderItems;
+using ModFolder.UI.UIFolderItems.Folder;
+using ModFolder.UI.UIFolderItems.Mod;
 using ReLogic.Content;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -19,7 +23,7 @@ using FolderNode = ModFolder.Systems.FolderDataSystem.FolderNode;
 using ModNode = ModFolder.Systems.FolderDataSystem.ModNode;
 using Node = ModFolder.Systems.FolderDataSystem.Node;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Menu;
 
 // TODO: Esc 返回时同样尝试回到上一级目录
 // TODO: 在进入时即刻生成 UI
@@ -964,7 +968,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             ModLoader.Reload();
             return;
         }
-        
+
         // To prevent entering the game with Configs that violate ReloadRequired
         if (ConfigManager.AnyModNeedsReload()) {
             Main.menuMode = Interface.reloadModsID;
@@ -1223,7 +1227,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private IEnumerable<UIFolderItem> GetVisibleItems_InFolderSystem(UIModsFilterResults filterResults) {
         HashSet<string> modsCurrent = [];
-        List<ModNode> nodesToRemove = []; 
+        List<ModNode> nodesToRemove = [];
         foreach (var node in CurrentFolderNode.Children) {
             if (node is ModNode m) {
                 if (modsCurrent.Contains(m.ModName)) {

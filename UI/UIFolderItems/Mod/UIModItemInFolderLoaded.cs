@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
 using ModFolder.Systems;
+using ModFolder.UI.Base;
+using ModFolder.UI.Menu;
 using ReLogic.Content;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -16,7 +18,7 @@ using Terraria.Social.Base;
 using Terraria.Social.Steam;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems.Mod;
 
 /// <summary>
 /// 文件夹系统列表中的一个模组 (加载完成)
@@ -170,20 +172,20 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         leftOffset = 0;
         if (CommonConfig.Instance.ShowModLocation) {
             // 24x24
-		    var modLocationIconTexture = _mod.location switch {
-			    ModLocation.Workshop => TextureAssets.Extra[243],
-			    ModLocation.Modpack => UICommon.ModLocationModPackIcon,
-			    ModLocation.Local => UICommon.ModLocationLocalIcon,
-			    _ => throw new NotImplementedException(),
-		    };
+            var modLocationIconTexture = _mod.location switch {
+                ModLocation.Workshop => TextureAssets.Extra[243],
+                ModLocation.Modpack => UICommon.ModLocationModPackIcon,
+                ModLocation.Local => UICommon.ModLocationLocalIcon,
+                _ => throw new NotImplementedException(),
+            };
             leftOffset += 2;
-		    _modLocationIcon = new(modLocationIconTexture) {
-			    RemoveFloatingPointsFromDrawPosition = true,
-			    Left = { Pixels = leftOffset, Precent = 1 },
+            _modLocationIcon = new(modLocationIconTexture) {
+                RemoveFloatingPointsFromDrawPosition = true,
+                Left = { Pixels = leftOffset, Precent = 1 },
                 VAlign = 0.5f,
-		    };
+            };
             leftOffset += _modLocationIcon.Width.Pixels;
-		    _modName.Append(_modLocationIcon);
+            _modName.Append(_modLocationIcon);
         }
         #endregion
         #region 已升级小点
@@ -377,8 +379,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 服务器版本不同的提示
         // TODO: 修改这个
         if (loadedMod != null && _mod.modFile.path != loadedMod.File.path) {
-            var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session")
-            {
+            var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session") {
                 Left = new StyleDimension(0, 0f),
                 Width = new StyleDimension(0, 1f),
                 Height = new StyleDimension(30, 0f),
@@ -555,7 +556,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                 GetDependents(dependent, allDependents, availableMods);
         }
     }
-    
+
     public bool AnyDependentOn() {
         foreach (var dependent in _modDependents) {
             if (ModLoader.EnabledMods.Contains(dependent)) {

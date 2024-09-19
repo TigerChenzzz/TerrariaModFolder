@@ -10,7 +10,7 @@ global using Terraria.Localization;
 global using Terraria.ModLoader;
 using ModFolder.Configs;
 using ModFolder.Systems;
-using ModFolder.UI;
+using ModFolder.UI.Menu;
 using System.Reflection;
 using Terraria.Audio;
 using Terraria.GameContent.UI.States;

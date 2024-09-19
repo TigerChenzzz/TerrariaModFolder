@@ -1,8 +1,11 @@
 ﻿using ModFolder.Systems;
+using ModFolder.UI.Base;
+using ModFolder.UI.Menu;
+using ModFolder.UI.UIFolderItems.Folder;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems;
 
 /// <summary>
 /// 文件夹系统列表中的一件物品, 可能是文件夹, 可能是模组, 也可能是其它什么东西
@@ -129,7 +132,7 @@ public class UIFolderItem : UIElement {
                 spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
             }
         }
-        if (position <=  rect.Height - 3) {
+        if (position <= rect.Height - 3) {
             // 右边的边界点
             spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
             if (position <= rect.Height - 4) {
@@ -166,7 +169,7 @@ public class UIFolderItem : UIElement {
                 spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, rect.Right - (rect.X + start - rect.Height + 1), 1), borderColor);
                 spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Width - rect.Height + 1, 1), borderColor);
             }
-        } 
+        }
         else /*if (end < rect.Width + rect.Height)*/ {
             // 左边超界
             if (end < rect.Height) {
@@ -176,7 +179,7 @@ public class UIFolderItem : UIElement {
             else {
                 // 右边跨界时
                 spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Height + 1, 1), borderColor);
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, - start + rect.Height, 1), borderColor);
+                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, -start + rect.Height, 1), borderColor);
             }
         }
         #endregion
@@ -228,7 +231,7 @@ public class UIFolderItem : UIElement {
             }
             // 左边的斜杠
             spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
-            
+
         }
         else if (!reachRight) {
             // 两边都没有接触时画出完整的斜杠

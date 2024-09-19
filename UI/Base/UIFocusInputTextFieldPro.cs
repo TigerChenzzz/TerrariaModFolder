@@ -2,7 +2,7 @@
 using Terraria.GameInput;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Base;
 
 // 主要修改: 在按下 Enter 时也会失去焦点
 public class UIFocusInputTextFieldPro(string hintText) : UIElement {

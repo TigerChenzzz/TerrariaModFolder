@@ -1,7 +1,7 @@
 ﻿using Terraria.GameInput;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Base;
 
 // TODO: 边缘虚化
 public class UIHorizontalList : UIElement {

@@ -3,7 +3,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.Menu;
 
 public class UIFolderPathItem : UIElement {
     public FolderDataSystem.FolderNode FolderNode { get; private init; }

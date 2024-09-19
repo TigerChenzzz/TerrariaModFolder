@@ -1,4 +1,4 @@
-﻿namespace ModFolder.UI; 
+﻿namespace ModFolder.UI.Base;
 
 public enum FolderMenuSortMode {
     Custom,

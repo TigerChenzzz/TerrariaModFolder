@@ -1,4 +1,4 @@
-﻿using ModFolder.UI;
+﻿using ModFolder.UI.Menu;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.ModLoader.Core;
@@ -6,7 +6,7 @@ using Terraria.ModLoader.UI.DownloadManager;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Steam;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems.Mod;
 
 public class DownloadProgressImpl : IDownloadProgress {
     public ModDownloadItem ModDownloadItem { get; private init; }
@@ -31,8 +31,6 @@ public class DownloadProgressImpl : IDownloadProgress {
             return;
         }
         started = true;
-        // tartTime = UIModFolderMenu.Instance.Timer;
-        // tartTimeRandomized = StartTime - Random.Shared.Next(100000);
         DownloadTask = Task.Run(() => {
             try {
                 DownloadStarted(ModDownloadItem.DisplayName);
@@ -67,7 +65,7 @@ public class DownloadProgressImpl : IDownloadProgress {
 
     public void DownloadSucceeded() {
         lock (localModsChangedLock) {
-            ModOrganizer.LocalModsChanged([ModDownloadItem.ModName], isDeletion:false);
+            ModOrganizer.LocalModsChanged([ModDownloadItem.ModName], isDeletion: false);
         }
         Thread.MemoryBarrier();
         UIModFolderMenu.Instance.ArrrangeRepopulate();

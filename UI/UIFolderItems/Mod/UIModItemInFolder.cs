@@ -1,6 +1,6 @@
 ﻿using ModFolder.Systems;
 
-namespace ModFolder.UI;
+namespace ModFolder.UI.UIFolderItems.Mod;
 
 /// <summary>
 /// 文件夹系统列表中的一个模组

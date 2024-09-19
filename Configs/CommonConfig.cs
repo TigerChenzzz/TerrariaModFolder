@@ -1,4 +1,4 @@
-﻿using ModFolder.UI;
+﻿using ModFolder.UI.UIFolderItems;
 using MonoMod.Cil;
 using Newtonsoft.Json;
 using ReLogic.Content;
