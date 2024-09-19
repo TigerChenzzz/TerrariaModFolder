@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using ModFolder.UI;
+using System.Threading;
 using System.Threading.Tasks;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI.DownloadManager;
@@ -7,30 +8,37 @@ using Terraria.Social.Steam;
 
 namespace ModFolder.UI;
 
-public class DownloadProgressImpl(ModDownloadItem mod) : IDownloadProgress {
-    public ModDownloadItem ModDownloadItem => mod;
-    public bool Started { get; private set; }
+public class DownloadProgressImpl : IDownloadProgress {
+    public ModDownloadItem ModDownloadItem { get; private init; }
     public bool Completed { get; private set; }
-    public string ModName { get; } = mod.ModName;
     public string? DisplayName { get; private set; }
     public float Progress { get; private set; }
     public long BytesReceived { get; private set; }
     public long TotalBytesNeeded { get; private set; }
     public Task? DownloadTask { get; private set; }
-    public int StartTime { get; private set; }
-    public int StartTimeRandomized { get; private set; }
+    public int CreateTime { get; private init; }
+    public int CreateTimeRandomized { get; private init; }
 
+    public DownloadProgressImpl(ModDownloadItem mod) {
+        ModDownloadItem = mod;
+        CreateTime = UIModFolderMenu.Instance.Timer;
+        CreateTimeRandomized = CreateTime - Random.Shared.Next(100000);
+    }
+
+    private bool started;
     public void TryStart() {
-        if (Started) {
+        if (started) {
             return;
         }
-        Started = true;
+        started = true;
+        // tartTime = UIModFolderMenu.Instance.Timer;
+        // tartTimeRandomized = StartTime - Random.Shared.Next(100000);
         DownloadTask = Task.Run(() => {
             try {
-                DownloadStarted(mod.DisplayName);
-                Utils.LogAndConsoleInfoMessage(Language.GetTextValue("tModLoader.BeginDownload", mod.DisplayName));
+                DownloadStarted(ModDownloadItem.DisplayName);
+                Utils.LogAndConsoleInfoMessage(Language.GetTextValue("tModLoader.BeginDownload", ModDownloadItem.DisplayName));
                 new SteamedWraps.ModDownloadInstance().Download(
-                    new(ulong.Parse(mod.PublishId.m_ModPubId)),
+                    new(ulong.Parse(ModDownloadItem.PublishId.m_ModPubId)),
                     this,
                     true /* mod.NeedUpdate || !SteamedWraps.IsWorkshopItemInstalled(publishId) */);
                 DownloadSucceeded();
@@ -43,8 +51,6 @@ public class DownloadProgressImpl(ModDownloadItem mod) : IDownloadProgress {
 
     public void DownloadStarted(string displayName) {
         DisplayName = displayName;
-        StartTime = UIModFolderMenu.Instance.Timer;
-        StartTimeRandomized = StartTime - Random.Shared.Next(100000);
     }
 
     public void UpdateDownloadProgress(float progress, long bytesReceived, long totalBytesNeeded) {
@@ -61,7 +67,7 @@ public class DownloadProgressImpl(ModDownloadItem mod) : IDownloadProgress {
 
     public void DownloadSucceeded() {
         lock (localModsChangedLock) {
-            ModOrganizer.LocalModsChanged([ModName], isDeletion:false);
+            ModOrganizer.LocalModsChanged([ModDownloadItem.ModName], isDeletion:false);
         }
         Thread.MemoryBarrier();
         UIModFolderMenu.Instance.ArrrangeRepopulate();

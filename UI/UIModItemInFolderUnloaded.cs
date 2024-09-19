@@ -82,20 +82,8 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     Task? SubscribeTask { get; set; }
     private void TrySubscribeMod(UIMouseEvent evt, UIElement listeningElement) {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        if (ModNode.PublishId == 0) {
-            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeForMissingPublishId").Value);
-            return;
-        }
-        if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
-            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenDownloading").Value);
-            return;
-        }
-        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
-            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenSubscribing").Value);
-            return;
-        }
-        if (UIModFolderMenu.Instance.Loading) {
-            UIModFolderMenu.Instance.PopupInfo(ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenLoading").Value);
+        if (GetCantSubscribePopupInfo() is string popupInfo) {
+            UIModFolderMenu.Instance.PopupInfo(popupInfo);
             return;
         }
         SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
@@ -222,16 +210,72 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     private static void Show<T>(T any) {
         _ = any;
     }
+
+    public enum SubscribeStatus {
+        None,
+        Loading,
+        Subscribing,
+        Downloading,
+        NotExist,
+    }
+    public SubscribeStatus GetSubscribeStatus() {
+        if (ModNode.PublishId == 0) {
+            return SubscribeStatus.NotExist;
+        }
+        if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
+            return SubscribeStatus.Downloading;
+        }
+        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+            return SubscribeStatus.Subscribing;
+        }
+        if (UIModFolderMenu.Instance.Loading) {
+            return SubscribeStatus.Loading;
+        }
+        return SubscribeStatus.None;
+    }
+    public string? GetCantSubscribePopupInfo() {
+        if (ModNode.PublishId == 0) {
+            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeForMissingPublishId").Value;
+        }
+        if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
+            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenDownloading").Value;
+        }
+        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenSubscribing").Value;
+        }
+        if (UIModFolderMenu.Instance.Loading) {
+            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenLoading").Value;
+        }
+        return null;
+    }
+    public string GetSubscribeButtonTooltip() {
+        if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progressForTooltip)) {
+            // return "下载中 6.66 MB / 88.88 MB";
+            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Downloading").Value.FormatWith(
+                UIMemoryBar.SizeSuffix(progressForTooltip.BytesReceived, 2),
+                UIMemoryBar.SizeSuffix(progressForTooltip.TotalBytesNeeded, 2));
+        }
+        else if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+            // return "订阅中...";
+            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribing").Value;
+        }
+        else if (UIModFolderMenu.Instance.Loading) {
+            // return "加载中...";
+            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Loading").Value;
+        }
+        else {
+            // return "订阅";
+            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribe").Value;
+        }
+    }
     #endregion
 
     public override void Draw(SpriteBatch spriteBatch) {
         _tooltip = null;
         base.Draw(spriteBatch);
         #region 画订阅按钮上的阴影
-        if (_subsribeButton != null) {
-            if (UIModFolderMenu.Instance.Loading || UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
-                spriteBatch.Draw(Textures.White, _subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
-            }
+        if (_subsribeButton != null && GetSubscribeStatus() != SubscribeStatus.None) {
+            spriteBatch.Draw(Textures.White, _subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
         }
         #endregion
         if (!string.IsNullOrEmpty(_tooltip)) {
@@ -252,24 +296,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             _tooltip = Language.GetTextValue("UI.Delete");
         }
         else if (_subsribeButton?.IsMouseHovering == true) {
-            if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progressForTooltip)) {
-                // _tooltip = "下载中 6.66 MB / 88.88 MB";
-                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Downloading").Value.FormatWith(
-                    UIMemoryBar.SizeSuffix(progressForTooltip.BytesReceived, 2),
-                    UIMemoryBar.SizeSuffix(progressForTooltip.TotalBytesNeeded, 2));
-            }
-            else if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
-                // _tooltip = "订阅中...";
-                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribing").Value;
-            }
-            else if (UIModFolderMenu.Instance.Loading) {
-                // _tooltip = "加载中...";
-                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Loading").Value;
-            }
-            else {
-                // _tooltip = "订阅";
-                _tooltip = ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribe").Value;
-            }
+            _tooltip = GetSubscribeButtonTooltip();
         }
         #endregion
     }
@@ -282,13 +309,17 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         spriteBatch.DrawBox(rectangle, Color.White * 0.5f, default);
         spriteBatch.Draw(Textures.White, progressRectangle, Color.White * 0.2f);
 
-        int timePassed = UIModFolderMenu.Instance.Timer - progress.StartTimeRandomized;
+        int timePassed = UIModFolderMenu.Instance.Timer - progress.CreateTimeRandomized;
+        int realTimePassed = UIModFolderMenu.Instance.Timer - progress.CreateTime;
         int totalWidthToPass = rectangle.Width * 3;
         int goThroughWidth = rectangle.Width * 2 / 3;
         int passSpeed = 12;
         int end = timePassed * passSpeed % totalWidthToPass;
         if (end < 0) {
             end += totalWidthToPass;
+        }
+        if (end > realTimePassed * passSpeed) {
+            return;
         }
         int start = end - goThroughWidth;
 
