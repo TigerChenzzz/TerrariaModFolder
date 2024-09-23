@@ -85,7 +85,7 @@ public class UIFolderItem : UIElement {
                 a = 180 - a;
             }
             gold *= (float)a / 450 + 0.05f;
-            spriteBatch.Draw(Textures.White, rectangle, gold);
+            spriteBatch.Draw(MTextures.White, rectangle, gold);
         }
         #endregion
         #region 鼠标在上面时高亮; 当为拖动对象时虚线显示, 为拖动目的地时显示高亮或上下
@@ -96,15 +96,15 @@ public class UIFolderItem : UIElement {
             else if (UIModFolderMenu.Instance.DraggingTo == this) {
                 switch (UIModFolderMenu.Instance.DraggingDirection) {
                 case > 0:
-                    spriteBatch.Draw(Textures.White, dividerRect, Color.White);
+                    spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                     break;
                 case < 0:
                     if (this is UIFolder f && f.Name == "..") {
-                        spriteBatch.Draw(Textures.White, dividerRect, Color.White);
+                        spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                         break;
                     }
                     Rectangle r = new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4);
-                    spriteBatch.Draw(Textures.White, r, Color.White);
+                    spriteBatch.Draw(MTextures.White, r, Color.White);
                     break;
                 default:
                     spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
@@ -131,7 +131,7 @@ public class UIFolderItem : UIElement {
         for (int i = 1; i <= size; ++i) {
             colors[(size - 1) * i] = Color.White;
         }
-        result = Textures.FromColors(size, size, colors);
+        result = MTextures.FromColors(size, size, colors);
         _slashTextures.Add(size, result);
         return result;
     }
@@ -150,7 +150,7 @@ public class UIFolderItem : UIElement {
         var slash = GetSlashTexture(rect.Height - 2);
         if (position >= 1) {
             // 左边的边界点
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
             if (position >= 2) {
                 // 左边的斜杠
                 spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, position - 1, rect.Height - 2), new Rectangle(rect.Height - 2 - position + 1, 0, position - 1, rect.Height - 2), innerColor);
@@ -158,7 +158,7 @@ public class UIFolderItem : UIElement {
         }
         if (position <= rect.Height - 3) {
             // 右边的边界点
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Y + position + 1, 1, 1), borderColor);
             if (position <= rect.Height - 4) {
                 // 右边的斜杠
                 spriteBatch.Draw(slash, new Rectangle(rect.Right + position - rect.Height + 2, rect.Y + 1, rect.Height - position - 3, rect.Height - 2), new Rectangle(0, 0, rect.Height - position - 3, rect.Height - 2), innerColor);
@@ -186,31 +186,31 @@ public class UIFolderItem : UIElement {
         if (start >= rect.Height - 1) {
             if (end < rect.Width + rect.Height) {
                 // 两边都在边界内
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, end - start, 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, end - start, 1), borderColor);
             }
             else {
                 // 右边超界
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, rect.Right - (rect.X + start - rect.Height + 1), 1), borderColor);
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Width - rect.Height + 1, 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + start - rect.Height + 1, rect.Bottom - 1, rect.Right - (rect.X + start - rect.Height + 1), 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Width - rect.Height + 1, 1), borderColor);
             }
         }
         else /*if (end < rect.Width + rect.Height)*/ {
             // 左边超界
             if (end < rect.Height) {
                 // 右边不足时
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, end - start, 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, end - start, 1), borderColor);
             }
             else {
                 // 右边跨界时
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Height + 1, 1), borderColor);
-                spriteBatch.Draw(Textures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, -start + rect.Height, 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Left, rect.Bottom - 1, end - rect.Height + 1, 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right + start - rect.Height, rect.Bottom - 1, -start + rect.Height, 1), borderColor);
             }
         }
         #endregion
         if (end > rect.Width) {
             #region 上边框
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, rect.Width - start, 1), borderColor);
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y, end - rect.Width, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + start, rect.Y, rect.Width - start, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y, end - rect.Width, 1), borderColor);
             #endregion
             end -= rect.Width;
             for (int i = 0; i < end; ++i) {
@@ -219,7 +219,7 @@ public class UIFolderItem : UIElement {
             end = rect.Width;
         }
         else {
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.X + start, rect.Y, end - start, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + start, rect.Y, end - start, 1), borderColor);
         }
         for (int i = start; i < end; ++i) {
             DrawParallelogramLoop_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
@@ -236,11 +236,11 @@ public class UIFolderItem : UIElement {
         bool reachRight = position >= rect.Width;
         // 左边的边界点
         if (reachLeft) {
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y + position, 1, 1), borderColor);
         }
         // 右边的边界点
         if (reachRight) {
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.Right - 1, rect.Y + position - rect.Width + 1, 1, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Y + position - rect.Width + 1, 1, 1), borderColor);
         }
         if (rect.Width <= 2 || rect.Height <= 2) {
             return;
@@ -288,13 +288,13 @@ public class UIFolderItem : UIElement {
         int downStart = Math.Max(start - rect.Height + 1, 0);
         int downEnd = end - rect.Height + 1;
         if (downEnd > downStart) {
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.Left + downStart, rect.Bottom - 1, downEnd - downStart, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Left + downStart, rect.Bottom - 1, downEnd - downStart, 1), borderColor);
         }
         #endregion
         #region 上边框
         if (start < rect.Width) {
             int upEnd = Math.Min(end, rect.Width);
-            spriteBatch.Draw(Textures.White, new Rectangle(rect.Left + start, rect.Top, upEnd - start, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Left + start, rect.Top, upEnd - start, 1), borderColor);
         }
         #endregion
         for (int i = start; i < end; ++i) {

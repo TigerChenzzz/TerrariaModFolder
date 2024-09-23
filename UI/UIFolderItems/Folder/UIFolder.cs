@@ -84,7 +84,7 @@ public class UIFolder : UIFolderItem {
         #region 删除按钮
         int rightRowOffset = -30;
         if (FolderNode != null) {
-            _deleteButton = new UIImage(Textures.ButtonDelete) {
+            _deleteButton = new UIImage(MTextures.ButtonDelete) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = rightRowOffset, Precent = 1 },
@@ -100,7 +100,7 @@ public class UIFolder : UIFolderItem {
         #region 重命名按钮
         rightRowOffset -= 24;
         if (FolderNode != null) {
-            _renameButton = new UIImage(Textures.ButtonRename) {
+            _renameButton = new UIImage(MTextures.ButtonRename) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = rightRowOffset, Precent = 1 },
@@ -334,7 +334,6 @@ public class UIFolder : UIFolderItem {
         FolderDataSystem.TrySaveWhenChanged();
     }
 
-    private string? _tooltip;
     public override void Update(GameTime gameTime) {
         base.Update(gameTime);
     }

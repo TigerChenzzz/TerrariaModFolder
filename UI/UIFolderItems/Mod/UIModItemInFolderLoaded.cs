@@ -72,7 +72,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     private Version? previousVersionHint;
     private UIHoverImage? _keyImage;
     private UIHoverImage? _modDidNotFullyUnloadWarningImage;
-    private int _modNameIndex;
     private UITextWithCustomContainsPoint _modName = null!;
     private UIFocusInputTextFieldPro _renameText = null!;
     private UIImage? _modLocationIcon;
@@ -265,7 +264,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 右边的按钮
         #region 删除
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            DeleteButton = new(Textures.ButtonDelete) {
+            DeleteButton = new(MTextures.ButtonDelete) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Top = { Pixels = -12, Percent = 0.5f },
@@ -279,7 +278,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
         #endregion
         #region 重命名
-        RenameButton = new(Textures.ButtonRename) {
+        RenameButton = new(MTextures.ButtonRename) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
             Top = { Pixels = -12, Percent = 0.5f },

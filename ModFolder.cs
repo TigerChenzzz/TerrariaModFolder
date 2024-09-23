@@ -8,6 +8,9 @@ global using Terraria;
 global using Terraria.ID;
 global using Terraria.Localization;
 global using Terraria.ModLoader;
+global using TigerUtilsLib;
+global using static TigerUtilsLib.TigerClasses;
+global using static TigerUtilsLib.TigerUtils;
 using ModFolder.Configs;
 using ModFolder.Systems;
 using ModFolder.UI.Menu;
@@ -76,6 +79,7 @@ public class ModFolder : Mod {
     public static ModFolder Instance { get; private set; } = null!;
 
     public override void Load() {
+        InitializeTigerUtils(this);
         Instance = this;
         FolderDataSystem.Reload();
         On_UIWorkshopHub.OnInitialize += On_UIWorkshopHub_OnInitialize;

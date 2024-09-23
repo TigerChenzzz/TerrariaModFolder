@@ -8,7 +8,7 @@ using Terraria.UI;
 namespace ModFolder;
 
 public static class MyUtils {
-    public static class Textures {
+    public static class MTextures {
         private static readonly Dictionary<string, Asset<Texture2D>> UITextures = [];
         public static Asset<Texture2D> UI(string name) {
             if (UITextures.TryGetValue(name, out var value)) {
@@ -39,18 +39,18 @@ public static class MyUtils {
     public static void DrawBox(this SpriteBatch self, Rectangle destination, Color color, Color innerColor, int width = 1) {
         int size = Math.Min(destination.Width, destination.Height);
         if ((size + 1) / 2 <= width) {
-            self.Draw(Textures.White, destination, color);
+            self.Draw(MTextures.White, destination, color);
             return;
         }
         int dx1 = destination.X, dx2 = dx1 + width, dx3 = dx1 + destination.Width - width;
         int dy1 = destination.Y, dy2 = dy1 + width, dy3 = dy1 + destination.Height - width;
         int dw = destination.Width, ddx = dw - 2 * width, ddy = destination.Height - 2 * width;
-        self.Draw(Textures.White, new Rectangle(dx1, dy1, dw, width), color);
-        self.Draw(Textures.White, new Rectangle(dx1, dy3, dw, width), color);
-        self.Draw(Textures.White, new Rectangle(dx1, dy2, width, ddy), color);
-        self.Draw(Textures.White, new Rectangle(dx3, dy2, width, ddy), color);
+        self.Draw(MTextures.White, new Rectangle(dx1, dy1, dw, width), color);
+        self.Draw(MTextures.White, new Rectangle(dx1, dy3, dw, width), color);
+        self.Draw(MTextures.White, new Rectangle(dx1, dy2, width, ddy), color);
+        self.Draw(MTextures.White, new Rectangle(dx3, dy2, width, ddy), color);
         if (innerColor != default)
-            self.Draw(Textures.White, new Rectangle(dx2, dy2, ddx, ddy), innerColor);
+            self.Draw(MTextures.White, new Rectangle(dx2, dy2, ddx, ddy), innerColor);
     }
     public static void DrawDashedOutline(this SpriteBatch self, Rectangle destination, Color color, Color innerColor = default, int width = 1, int dashed = 5, int dashedInterval = 3, int start = 0) {
         start %= dashed + dashedInterval;
@@ -63,7 +63,7 @@ public static class MyUtils {
         for (; start < destination.Width; start += dashed + dashedInterval) {
             var r = NewRectangleByXY(destination.X + Math.Max(0, start), destination.Y,
                 destination.X + Math.Min(destination.Width, start + dashed), destination.Y + width);
-            self.Draw(Textures.White, r, color);
+            self.Draw(MTextures.White, r, color);
         }
         start -= destination.Width;
         if (start > dashedInterval) {
@@ -72,7 +72,7 @@ public static class MyUtils {
         for(; start < destination.Height - 2 * width; start += dashed + dashedInterval) {
             var r = NewRectangleByXY(destination.X + destination.Width - width, destination.Y + width + Math.Max(0, start),
                 destination.X  + destination.Width, destination.Y + width + Math.Min(destination.Height - 2 * width, start + dashed));
-            self.Draw(Textures.White, r, color);
+            self.Draw(MTextures.White, r, color);
         }
         start -= destination.Height - 2 * width;
         if (start > dashedInterval) {
@@ -81,7 +81,7 @@ public static class MyUtils {
         for (; start < destination.Width; start += dashed + dashedInterval) {
             var r = NewRectangleByXY(destination.X + destination.Width - Math.Min(destination.Width, start + dashed), destination.Y + destination.Height - width,
                 destination.X + destination.Width - Math.Max(0, start), destination.Y + destination.Height);
-            self.Draw(Textures.White, r, color);
+            self.Draw(MTextures.White, r, color);
         }
         start -= destination.Width;
         if (start > dashedInterval) {
@@ -90,10 +90,10 @@ public static class MyUtils {
         for(; start < destination.Height - 2 * width; start += dashed + dashedInterval) {
             var r = NewRectangleByXY(destination.X, destination.Y + destination.Height - width - Math.Min(destination.Height - 2 * width, start + dashed),
                 destination.X  + width, destination.Y + destination.Height - width - Math.Max(0, start));
-            self.Draw(Textures.White, r, color);
+            self.Draw(MTextures.White, r, color);
         }
         if (innerColor != default) {
-            self.Draw(Textures.White, new Rectangle(destination.X + width, destination.Y + width, destination.Width - 2 * width, destination.Height - 2 * width), innerColor);
+            self.Draw(MTextures.White, new Rectangle(destination.X + width, destination.Y + width, destination.Width - 2 * width, destination.Height - 2 * width), innerColor);
         }
     }
     #region Draw9Piece

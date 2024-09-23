@@ -10,4 +10,7 @@
 	<ItemGroup>
 	  <PackageReference Include="Solaestas.tModLoader.ModBuilder" Version="1.6.1" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\TigerUtilsLib\TigerUtilsLib.csproj" />
+	</ItemGroup>
 </Project>

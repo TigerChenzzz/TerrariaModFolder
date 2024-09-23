@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -234,36 +236,46 @@ public class CommonConfig : ModConfig {
         public int ChangelogDisplay;
     }
     public class ChangelogDisplay : FloatElement {
-        Asset<DynamicSpriteFont>? _font;
-        Asset<DynamicSpriteFont> Font => _font ??= FontAssets.MouseText;
+        readonly Asset<DynamicSpriteFont> font = FontAssets.MouseText;
         static Color BaseColor => Color.White;
-        string? _changelog;
-        TextSnippet[]? _changelogSnippets;
-        TextSnippet[] ChangelogSnippets => _changelogSnippets ??= [.. ChatManager.ParseMessage(Changelog, BaseColor)];
-        string Changelog {
-            get {
-                string localizedChangelog = ModFolder.Instance.GetLocalization("Changelog").Value;
-                if (_changelog == localizedChangelog) {
-                    return _changelog;
+        float textWidth = -1;
+        string? changelog;
+        List<TextSnippet>? changelogSnippets;
+        List<TextSnippet>? wrappedChangelogSnippets;
+        [MemberNotNull(nameof(changelog), nameof(changelogSnippets), nameof(wrappedChangelogSnippets))]
+        private void UpdateChangeLog() {
+            string localizedChangelog = ModFolder.Instance.GetLocalization("Changelog").Value;
+            var width = GetDimensions().Width;
+            if (changelog != localizedChangelog) {
+                changelog = localizedChangelog;
+                goto ChangeLogChanged;
+            }
+            Debug.Assert(changelogSnippets != null);
+            if (width != textWidth) {
+                textWidth = width;
+                goto WidthChanged;
+            }
+            Debug.Assert(wrappedChangelogSnippets != null);
+            return;
+        ChangeLogChanged:
+            changelogSnippets = ChatManager.ParseMessage(changelog, BaseColor);
+        WidthChanged:
+            wrappedChangelogSnippets = ChatManagerFix.CreateWrappedText(font.Value, changelogSnippets, width);
+            Vector2 stringSize = ChatManagerFix.GetStringSize(font.Value, wrappedChangelogSnippets);
+            Height.Set(stringSize.Y, 0);
+            if (Parent != null) {
+                Parent.Height.Set(stringSize.Y, 0);
+                UIElement root = Parent;
+                while (root.Parent != null) {
+                    root = root.Parent;
                 }
-                _changelog = localizedChangelog;
-                _changelogSnippets = [.. ChatManager.ParseMessage(_changelog, BaseColor)];
-                Vector2 stringSize = ChatManager.GetStringSize(Font.Value, _changelog, Vector2.One, GetDimensions().Width);
-                Height.Set(stringSize.Y, 0);
-                if (Parent != null) {
-                    Parent.Height.Set(stringSize.Y, 0);
-                    UIElement root = Parent;
-                    while (root.Parent != null) {
-                        root = root.Parent;
-                    }
-                    root.Recalculate();
-                }
-                return _changelog;
+                root.Recalculate();
             }
         }
         public override void Draw(SpriteBatch spriteBatch) {
-            _ = Changelog;
-            ChatManager.DrawColorCodedStringWithShadow(spriteBatch, Font.Value, ChangelogSnippets, GetDimensions().Position(), 0, Vector2.Zero, Vector2.One, out _, GetDimensions().Width);
+            UpdateChangeLog();
+            // ChatManager.DrawColorCodedStringWithShadow(spriteBatch, font.Value, changelogSnippets, GetDimensions().Position(), 0, Vector2.Zero, Vector2.One, out _, GetDimensions().Width);
+            ChatManagerFix.DrawColorCodedStringWithShadow(spriteBatch, font.Value, wrappedChangelogSnippets, GetDimensions().Position(), 0, Vector2.Zero, 1, out _);
         }
     }
     #endregion

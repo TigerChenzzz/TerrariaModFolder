@@ -229,7 +229,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = { Pixels = upperPixels }
         };
         upperPixels += 32;
-        var texture = Textures.UI("SortIcons");
+        var texture = MTextures.UI("SortIcons");
         OnInitialize_SortButtons(texture);
         OnInitialize_SearchFilter(texture);
     }
@@ -560,7 +560,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (_confirmPanelCover != null) {
                 return _confirmPanelCover;
             }
-            _confirmPanelCover = new(Textures.White) {
+            _confirmPanelCover = new(MTextures.White) {
                 Width = { Percent = 1 },
                 Height = { Percent = 1 },
                 Color = Color.Black * 0.2f,
@@ -656,7 +656,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 刷新按钮
         #region refresh3 版
-        refreshButton = new(Textures.UI("Refresh3")) {
+        refreshButton = new(MTextures.UI("Refresh3")) {
             Width = { Pixels = 30 },
             Height = { Pixels = 30 },
             Left = { Pixels = -35, Precent = 1 },

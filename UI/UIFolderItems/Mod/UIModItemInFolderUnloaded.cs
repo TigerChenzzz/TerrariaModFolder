@@ -53,7 +53,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #endregion
         #region 删除按钮
         int bottomRightRowOffset = -30;
-        deleteModButton = new UIImage(Textures.ButtonDelete) {
+        deleteModButton = new UIImage(MTextures.ButtonDelete) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
             Left = { Pixels = bottomRightRowOffset, Precent = 1 },
@@ -68,7 +68,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #endregion
         #region 重命名
         bottomRightRowOffset -= 24;
-        renameButton = new(Textures.ButtonRename) {
+        renameButton = new(MTextures.ButtonRename) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
             Left = { Pixels = bottomRightRowOffset, Precent = 1 },
@@ -83,7 +83,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #region 重新订阅按钮
         bottomRightRowOffset -= 24;
         if (ModNode.PublishId != 0 && SteamedWraps.SteamAvailable) {
-            subsribeButton = new(Textures.ButtonSubscribe) {
+            subsribeButton = new(MTextures.ButtonSubscribe) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
                 Left = { Pixels = bottomRightRowOffset, Precent = 1 },
@@ -296,7 +296,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         base.Draw(spriteBatch);
         #region 画订阅按钮上的阴影
         if (subsribeButton != null && GetSubscribeStatus() != SubscribeStatus.None) {
-            spriteBatch.Draw(Textures.White, subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
+            spriteBatch.Draw(MTextures.White, subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
         }
         #endregion
     }
@@ -314,7 +314,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         Rectangle progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
 
         spriteBatch.DrawBox(rectangle, Color.White * 0.5f, default);
-        spriteBatch.Draw(Textures.White, progressRectangle, Color.White * 0.2f);
+        spriteBatch.Draw(MTextures.White, progressRectangle, Color.White * 0.2f);
 
         int timePassed = UIModFolderMenu.Instance.Timer - progress.CreateTimeRandomized;
         int realTimePassed = UIModFolderMenu.Instance.Timer - progress.CreateTime;
