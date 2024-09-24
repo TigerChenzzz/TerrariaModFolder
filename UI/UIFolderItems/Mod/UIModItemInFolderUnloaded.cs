@@ -43,7 +43,8 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #region 名字与重命名输入框
         OnInitialize_ProcessName(new(GetModDisplayName()) {
             Left = { Pixels = 35 },
-            Top = { Pixels = 7, },
+            Height = { Precent = 1 },
+            TextOriginY = 0.5f,
         }, new(ModDisplayNameClean) {
             Left = { Pixels = 35 },
             Top = { Pixels = 5 },

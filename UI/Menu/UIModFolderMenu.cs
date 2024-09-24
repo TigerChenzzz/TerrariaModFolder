@@ -516,10 +516,19 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     #region ShowModLocation
-    private bool _showModLocation = true;
-    private void Update_ShowModLocation() {
+    private bool _showModVersion = CommonConfig.Instance.ShowModVersion;
+    private bool _showModLocation = CommonConfig.Instance.ShowModLocation;
+    private void Update_DetectConfigChange() {
+        bool configChanged = false;
         if (CommonConfig.Instance.ShowModLocation != _showModLocation) {
             _showModLocation = CommonConfig.Instance.ShowModLocation;
+            configChanged = true;
+        }
+        if (CommonConfig.Instance.ShowModVersion != _showModVersion) {
+            _showModVersion = CommonConfig.Instance.ShowModVersion;
+            configChanged = true;
+        }
+        if (configChanged) { 
             Populate();
         }
     }
@@ -1147,7 +1156,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Timer += 1;
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
-        Update_ShowModLocation();
+        Update_DetectConfigChange();
         Update_HandleDownloads();
         Update_HandleTask(); // 处理任务在添加或移除加载动画前
         Update_AppendOrRemoveUILoader();  // 尝试移除加载动画
