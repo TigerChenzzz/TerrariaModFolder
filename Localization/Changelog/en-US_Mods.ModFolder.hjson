@@ -1,5 +1,8 @@
 Changelog:
 	'''
+	[c/00ff00:v0.3.0.2]
+	[c/999999:- fix the line break issue of Chinese changelog]
+
 	[c/00ff00:v0.3.0.1]
 	- set alias for unloaded mod
 	[c/999999:- download status background would not blink]

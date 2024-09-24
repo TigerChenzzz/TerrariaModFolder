@@ -147,9 +147,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             leftOffset += 2;
         }
         // TODO: 名字太长怎么办 (UIHorizontalList?)
-        _modName = new(GetModDisplayName(), (orig, point) => {
-            return orig(point) || _modLocationIcon?.ContainsPoint(point) == true || updatedModDot?.ContainsPoint(point) == true;
-        }) {
+        _modName = new(GetModDisplayName(), (orig, point) => orig(point) || _modLocationIcon?.ContainsPoint(point) == true || updatedModDot?.ContainsPoint(point) == true) {
             Left = { Pixels = leftOffset },
             Height = { Precent = 1 },
             TextOriginY = 0.5f,
