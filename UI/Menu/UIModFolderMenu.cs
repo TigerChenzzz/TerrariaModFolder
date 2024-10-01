@@ -90,6 +90,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #region 文件夹跳转
     public void EnterFolder(FolderNode? folder) {
         folder ??= FolderDataSystem.Root;
+        list.ViewPosition = 0;
         bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
         // TODO: 换成 Parent 检测
         if (folder.Parent == CurrentFolderNode) {
@@ -113,6 +114,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (FolderPath.Count <= 1) {
             return;
         }
+        list.ViewPosition = 0;
         FolderPath.RemoveAt(FolderPath.Count - 1);
         ArrangeGenerate();
     }
@@ -121,6 +123,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (FolderPath[i] != folder) {
                 continue;
             }
+            list.ViewPosition = 0;
             FolderPath.RemoveRange(i + 1, FolderPath.Count - i - 1);
             ArrangeGenerate();
             break;
@@ -515,7 +518,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #endregion
 
-    #region ShowModLocation
+    #region 检测配置修改
     private bool _showModVersion = CommonConfig.Instance.ShowModVersion;
     private bool _showModLocation = CommonConfig.Instance.ShowModLocation;
     private void Update_DetectConfigChange() {

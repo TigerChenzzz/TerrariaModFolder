@@ -115,29 +115,6 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool ShowEnableStatusBackground { get; set; }
     public ShowEnableStatusTextClass ShowEnableStatusText { get; set; } = new();
-    public class ObjectElementFixed() : ObjectElement(false) {
-        private static bool hooked;
-        public override void OnBind() {
-            TryHook();
-            base.OnBind();
-        }
-        private void TryHook() {
-            if (hooked) {
-                return;
-            }
-            hooked = true;
-            MonoModHooks.Modify(typeof(ObjectElement).GetMethod(nameof(SetupList), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), FixSetupList);
-        }
-        private static void FixSetupList(ILContext il) {
-            ILCursor cursor = new(il);
-            if (!cursor.TryGotoNext(MoveType.AfterLabel, i => i.MatchCall(typeof(Attribute), nameof(Attribute.IsDefined)))) {
-                return;
-            }
-            cursor.Remove();
-            cursor.EmitDelegate((MemberInfo member, Type type) => Attribute.IsDefined(member, type) && !Attribute.IsDefined(member, typeof(ShowDespiteJsonIgnoreAttribute)));
-        }
-    }
-    [CustomModConfigItem(typeof(ObjectElementFixed))]
     public class ShowEnableStatusTextClass {
         public enum ShowType {
             Never,

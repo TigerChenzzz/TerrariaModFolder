@@ -24,7 +24,10 @@ namespace ModFolder;
 
 // BUG: 启用时可能启用到过期的模组?
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
+// BUG: Generate 之后收藏等信息丢失
 
+// TODO: "单击以禁用 ? 和 ? 个依赖模组" (hjson 中的 ModsDisableAndDependents, ModsEnableAndDependencies)
+// TODO: 一键订阅按钮
 // TODO: 显示所有下载项
 // TODO: 取消订阅时保留 description 等信息(description, 图片, build.txt) (可选 (对于每次取消订阅, 而不是可配置))
 // TODO: Generate 修缮, 只在必要时重新生成
@@ -42,6 +45,7 @@ namespace ModFolder;
 // TODO: 尝试强制更新已有模组
 // TODO: 下载缺失依赖
 // TODO: 搜索文件夹
+// TODO: 按特定键双击文件夹以启用 / 禁用所有内含模组 (禁用冗余依赖?)
 
 // TODO: 右键拖动时禁用左键?
 
