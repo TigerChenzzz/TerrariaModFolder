@@ -1,5 +1,6 @@
 ﻿using Humanizer;
 using ModFolder.Systems;
+using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -100,6 +101,41 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #endregion
         // TODO: 显示 SteamId, 以及引导到 Steam 处
     }
+    
+    public override int PassFiltersInner() {
+        var filter = UIModFolderMenu.Instance.Filter;
+        if (filter.Length > 0) {
+            if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Author) {
+                if (string.IsNullOrEmpty(filter))
+                    goto NameFilterPassed;
+            }
+            else {
+                if (ModDisplayNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                    goto NameFilterPassed;
+                }
+                if (ModName.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                    goto NameFilterPassed;
+                }
+                var alias = AliasClean;
+                if (alias != null && alias.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                    goto NameFilterPassed;
+                }
+            }
+            return 1;
+        }
+    NameFilterPassed:
+        if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
+            return 2;
+        }
+        var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
+            FolderEnabledFilter.All => true,
+            FolderEnabledFilter.Disabled => true,
+            FolderEnabledFilter.WouldBeDisabled => true,
+            _ => false,
+        };
+        return passed ? 0 : 3;
+    }
+
 
     #region 订阅 (下载)
     Task? SubscribeTask { get; set; }

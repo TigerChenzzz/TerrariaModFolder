@@ -1261,7 +1261,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     }
                     continue;
                 }
-                yield return new UIModItemInFolderUnloaded(m);
+                UIModItemInFolderUnloaded uiModUnloaded = new(m);
+                if (uiModUnloaded.PassFilters(filterResults)) {
+                    yield return uiModUnloaded;
+                }
             }
             else if (node is FolderNode f) {
                 var uf = new UIFolder(f);

@@ -1,6 +1,6 @@
 displayName = Mod Folder System
 author = Tigerzzz
-version = 0.3.0.3
+version = 0.3.0.4
 side = Client
 homepage = https://github.com/TigerChenzzz/TerrariaModFolder
 hideCode = false
