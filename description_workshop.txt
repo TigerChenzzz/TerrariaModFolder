@@ -1,3 +1,4 @@
+[h3]综述[/h3]
 "模组文件夹" 旨在以文件夹的形式管理模组, 方便订阅了大量模组的玩家。
 右键 "管理模组" 按钮以进入文件夹系统。
 双击模组以启用或禁用 (禁用模组时按住 Shift 以同时禁用冗余前置 (没有被其它将启用模组使用的前置)), 双击文件夹以进入文件夹 (首先你需要通过界面下方的 "新建文件夹" 按钮以创建文件夹。)
@@ -5,5 +6,39 @@
 当删除一个模组或者文件夹时, 你需要按住 Ctrl 或 Shift 或同时按住, 按住 Ctrl 表示取消订阅 (如果是文件夹就是取消订阅所有内含模组), 和原版的行为一致; 按住 Shift 表示删除索引, 此模组或者此文件夹中的模组将会回到根目录。 如果只是取消订阅而没有删除索引, 那么模组仍然会显示在这里, 并且你可以继续管理它的位置, 只是需要重新订阅才能再次启用。
 按住 Alt 点击一个模组以收藏它, 收藏的模组默认不会因 "启用和禁用" 按钮而被禁用, 除非按下此按钮时按住 Ctrl。
 此模组的数据保存在模组文件夹的 "ModFolderData.json" 中, 请不要随意删除或修改它 (如果要修改请务必做好备份!)
+[h3]详情[/h3]
+- 更窄的模组项, 以及更小的模组图标 (如果可用将会显示 icon_small, 并且在指向时显示大图)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258661953/1BC65F74D108CB8562AC313A5F79AB01C9DB9FB6/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258661953/1BC65F74D108CB8562AC313A5F79AB01C9DB9FB6/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258676069/30D994BCC2E5AB34FA4EB022384671F480BDD560/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258676069/30D994BCC2E5AB34FA4EB022384671F480BDD560/[/img][/url]
+- 给模组设置别名, 在鼠标指向时显示原名和作者
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258679454/08F45F78BF94FA44011587A4DD87266CD051D8DA//][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258679454/08F45F78BF94FA44011587A4DD87266CD051D8DA/[/img][/url]
+- 双击一个模组以切换它的启用状态, 且通过不同的背景颜色以显示其启用状态 (透明 - 禁用, 白色 - 启用, 绿色 - 待启用, 红色 - 待禁用)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258680220/B3FC8F4C4D1E38F1C8974C756D5F76C3E9973CD0/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258680220/B3FC8F4C4D1E38F1C8974C756D5F76C3E9973CD0/[/img][/url]
+- 右键按住并拖动以排序
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258680631/32294FE8A33AF5FB5F2BFE36EDDF17DBA9DAB9FC/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258680631/32294FE8A33AF5FB5F2BFE36EDDF17DBA9DAB9FC/[/img][/url]
+- 创建一个文件夹以容纳模组和其他文件夹. 你可以将一个项放入或放出文件夹 (通过一个名为 ".." 的特殊文件夹). 当你将一个模组拖入或拖出文件夹时按住 Ctrl 那么你可以复制这个模组的索引, 这样就可以在不同的目录下有相同的模组了
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258689356/12CD647DD3D39FB4C329CECFCBA61137B1D504DE/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258689356/12CD647DD3D39FB4C329CECFCBA61137B1D504DE/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258689913/5E485CDC4099042C593AB0387FE48174A15BDA92/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258689913/5E485CDC4099042C593AB0387FE48174A15BDA92/[/img][/url]
+- 删除分为了取消订阅和删除索引. 如果一个模组只是取消订阅而未删除索引, 那么它仍然会在目录中显示, 而且我们可以简单的重新订阅并下载它. 如果只是删除了索引但仍保持订阅, 那么如果它没有在其他有索引的复制, 则会回到根目录
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258694801/5769AFA70A4760FCCD87373022BB60D7F37749E2/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258694801/5769AFA70A4760FCCD87373022BB60D7F37749E2/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258695791/0DF11F92879643E533EDB46C7F5CF8D68EBA2660/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258695791/0DF11F92879643E533EDB46C7F5CF8D68EBA2660/[/img][/url]
+- 删除文件夹与之类似, 只是取消订阅全部更加的危险, 所以默认情况下二次确认总是必须的
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258696823/F37B71B2C3458F9D91BFFD43E7BC6D50F31DED89/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258696823/F37B71B2C3458F9D91BFFD43E7BC6D50F31DED89/[/img][/url]
+- "启用与禁用" 按钮是一个用以启用和禁用特定模组的强大按钮 (当前文件夹下, 当前文件夹及子文件夹下, 所有模组). 详情参见下图:
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258697455/68EDE44CDF3184933E7A0C651718E48CFA83C726/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258697455/68EDE44CDF3184933E7A0C651718E48CFA83C726/[/img][/url]
+- 按住 Alt 并点击一个模组以收藏它, 收藏的模组默认不会被 "启用与禁用" 按钮禁用掉 (现在它的样子并不是很好看, 而且收藏的功能之后可能会改)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258698769/B30E58E81E62A24F641CA3E0C75B4D0D98DD6D7F/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258698769/B30E58E81E62A24F641CA3E0C75B4D0D98DD6D7F/[/img][/url]
+- "返回" 按钮现在会优先返回到上一级目录, 不过你仍可以按住 Shift 以直接返回主菜单
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699091/EA7E374ED09BAACC8117091360F611F81E96288F/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699091/EA7E374ED09BAACC8117091360F611F81E96288F/[/img][/url]
+- "复制已启用模组" 按钮会将所有启用的模组复制到当前文件夹下, 用以构建一个简单的 "模组合集"
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699373/46505F0ABA35788D2CD7B385A1F0CEC5BFB4A433/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699373/46505F0ABA35788D2CD7B385A1F0CEC5BFB4A433/[/img][/url]
+- "禁用冗余模组" 按钮会禁用掉所有的冗余依赖 (有后置但没有后置被启用的模组)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699754/B25E46C68A4EF1F23939726448E581A08403BF2A/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699754/B25E46C68A4EF1F23939726448E581A08403BF2A/[/img][/url]
+- 左上角的按钮主要用以排序和筛选模组
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258706092/891DB02076B9784CB76231DD198B9B5B36485DB4/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258706092/891DB02076B9784CB76231DD198B9B5B36485DB4/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258707248/34A03C3EC473E601FE8DE78B6C7B4942D2824AF1/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258707248/34A03C3EC473E601FE8DE78B6C7B4942D2824AF1/[/img][/url]
+- 异步加载模组图标和依赖关系以优化加载时间
+- 模组数据储存在存放本地模组的文件夹下的 "ModFolderData.json" 中
+[h3]联系方式[/h3]
 QQ群: 574904188
 Discord: https://discord.gg/fjFpgBkRBZ

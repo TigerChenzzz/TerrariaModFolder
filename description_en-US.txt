@@ -1,3 +1,4 @@
+[h3]Summary[/h3]
 "Mod Folder System" is designed to manage mods in folder system, making it convenient for players with a lot of mods subscribed.
 Rightclick at the "Manage Mods" button to open the folder system.
 Double-click a mod to toggle it (disable a mod when pressing Shift would also disable its redundant dependencies (dependencies that are not used by other enabled mods)), or a folder to enter (first you should create a folder using the button "Create Folder" below).
@@ -5,6 +6,40 @@ Rightclick and drag an item to move its position (when moving a mod into a folde
 When deleting an item, you should press Ctrl or Shift or both. Pressing Ctrl means unsubscribe (for folder it means unsubscribe all mods in the folder), just like the vanilla; Pressing Shift means delete the index, so the mod or mods in the folder would go back to the root. If you just unsubscribe but not delete the index, the item would still be there, and you can continue to manage its location, but you nned to resubscribe to enable it again.
 Click a mod when pressing Alt to favor it. Favorite mods won't be disalbed due to "Enable & Disable" button, unless you press Ctrl at the same time.
 This mod's data is saved in "ModFolderData.json" in the mod folder, please do not delete or modify it arbitrarily (if you want to modify it, please make a backup!)
+[h3]Description[/h3]
+- Thinner mod items, and smaller mod icon (use icon_small when available, and show the original when hovered)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258661953/1BC65F74D108CB8562AC313A5F79AB01C9DB9FB6/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258661953/1BC65F74D108CB8562AC313A5F79AB01C9DB9FB6/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258676069/30D994BCC2E5AB34FA4EB022384671F480BDD560/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258676069/30D994BCC2E5AB34FA4EB022384671F480BDD560/[/img][/url]
+- Set alias to a mod, and hover to see the original name and authors
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258679454/08F45F78BF94FA44011587A4DD87266CD051D8DA//][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258679454/08F45F78BF94FA44011587A4DD87266CD051D8DA/[/img][/url]
+- Double click on a mod to toggle it, and show the enable status via different background color. (transparent - disabled, white - enabled, green - to be enabled, red - to be disabled)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258680220/B3FC8F4C4D1E38F1C8974C756D5F76C3E9973CD0/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258680220/B3FC8F4C4D1E38F1C8974C756D5F76C3E9973CD0/[/img][/url]
+- Rightclick to drag an item to sort
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258680631/32294FE8A33AF5FB5F2BFE36EDDF17DBA9DAB9FC/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258680631/32294FE8A33AF5FB5F2BFE36EDDF17DBA9DAB9FC/[/img][/url]
+- Create a folder to hold mods or other folders. You can drag an item into the folder or out the folder (through special folder ".."), Especially, you can drag into or out a folder while holding Ctrl to copy the mod's index, allow to have a mod in different directory.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258689356/12CD647DD3D39FB4C329CECFCBA61137B1D504DE/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258689356/12CD647DD3D39FB4C329CECFCBA61137B1D504DE/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258689913/5E485CDC4099042C593AB0387FE48174A15BDA92/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258689913/5E485CDC4099042C593AB0387FE48174A15BDA92/[/img][/url]
+- Delete is seperated into unsubscribe and delete the index. If a mod is unsubscribed but keep the index, it would still show in the directory, and player can easily resubscribe and install it. And if you delete the index but don't unsubscribe the mod, it would show up at the root folder if it don't has a copy anywhere else.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258694801/5769AFA70A4760FCCD87373022BB60D7F37749E2/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258694801/5769AFA70A4760FCCD87373022BB60D7F37749E2/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258695791/0DF11F92879643E533EDB46C7F5CF8D68EBA2660/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258695791/0DF11F92879643E533EDB46C7F5CF8D68EBA2660/[/img][/url]
+- Delete the folder behave similarly, but unsubscribe all is more dangerous, so double confirm is always needed by default.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258696823/F37B71B2C3458F9D91BFFD43E7BC6D50F31DED89/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258696823/F37B71B2C3458F9D91BFFD43E7BC6D50F31DED89/[/img][/url]
+- "Enable & Disable" button is a powerful button to enable or disable certain mods (current folder, current folder with sub folders, all mods). More detailed see in the picture.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258697455/68EDE44CDF3184933E7A0C651718E48CFA83C726/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258697455/68EDE44CDF3184933E7A0C651718E48CFA83C726/[/img][/url]
+- Alt-click a mod to favor it, and favorite mods would not be disabled by the button below by default. (now its appearance is not pretty, and the feature may vary)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258698769/B30E58E81E62A24F641CA3E0C75B4D0D98DD6D7F/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258698769/B30E58E81E62A24F641CA3E0C75B4D0D98DD6D7F/[/img][/url]
+- "Back" button will prioritize returning to the previous directory, but you can press Shift to directly go to the main menu.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699091/EA7E374ED09BAACC8117091360F611F81E96288F/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699091/EA7E374ED09BAACC8117091360F611F81E96288F/[/img][/url]
+- "Copy Enabled" button could copy all enabled mods to current folder, make it easy to build a simple "mod pack"
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699373/46505F0ABA35788D2CD7B385A1F0CEC5BFB4A433/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699373/46505F0ABA35788D2CD7B385A1F0CEC5BFB4A433/[/img][/url]
+- "Disable Redundant" button could disable redundant dependencies (mods that have dependents but no dependent is enabled)
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258699754/B25E46C68A4EF1F23939726448E581A08403BF2A/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258699754/B25E46C68A4EF1F23939726448E581A08403BF2A/[/img][/url]
+- Top left buttons mainly handle sorting and filtering mods.
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258706092/891DB02076B9784CB76231DD198B9B5B36485DB4/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258706092/891DB02076B9784CB76231DD198B9B5B36485DB4/[/img][/url]
+[url=https://steamuserimages-a.akamaihd.net/ugc/15293402258707248/34A03C3EC473E601FE8DE78B6C7B4942D2824AF1/][img]https://steamuserimages-a.akamaihd.net/ugc/15293402258707248/34A03C3EC473E601FE8DE78B6C7B4942D2824AF1/[/img][/url]
+- Load mods' icon and dependencies tree asynchronously to optimize the loading time
+- data is saved at "ModFolderData.json" at the Mods folder of tModLoader
+[h3]Contact Us[/h3]
 QQ: 574904188
 Join a dicussion on the dev's discord: https://discord.gg/fjFpgBkRBZ
 [quote=tModLoader ModFolder]
