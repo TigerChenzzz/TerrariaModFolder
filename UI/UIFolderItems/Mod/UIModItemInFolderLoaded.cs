@@ -78,17 +78,20 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     internal UIAutoScaleTextTextPanel<string>? tMLUpdateRequired;
     private readonly LocalMod _mod = localMod;
     #region 右边的按钮
-    private readonly UIImageWithVisible?[] rightButtons = new UIImageWithVisible[6];
-    private UIImageWithVisible? DeleteButton       { get => rightButtons[0] ; set => rightButtons[0] = value; }
-    private UIImageWithVisible  RenameButton       { get => rightButtons[1]!; set => rightButtons[1] = value; }
-    private UIImageWithVisible  MoreInfoButton     { get => rightButtons[2]!; set => rightButtons[2] = value; }
-    private UIImageWithVisible? ConfigButton       { get => rightButtons[3] ; set => rightButtons[3] = value; }
-    private UIImageWithVisible  ModReferenceIcon   { get => rightButtons[4]!; set => rightButtons[4] = value; }
-    private UIImageWithVisible? TranslationModIcon { get => rightButtons[5] ; set => rightButtons[5] = value; }
+    private readonly UIImageWithVisibility?[] rightButtons = new UIImageWithVisibility[6];
+    private UIImageWithVisibility? DeleteButton       { get => rightButtons[0] ; set => rightButtons[0] = value; }
+    private UIImageWithVisibility  RenameButton       { get => rightButtons[1]!; set => rightButtons[1] = value; }
+    private UIImageWithVisibility  MoreInfoButton     { get => rightButtons[2]!; set => rightButtons[2] = value; }
+    private UIImageWithVisibility? ConfigButton       { get => rightButtons[3] ; set => rightButtons[3] = value; }
+    private UIImageWithVisibility  ModReferenceIcon   { get => rightButtons[4]!; set => rightButtons[4] = value; }
+    private UIImageWithVisibility? TranslationModIcon { get => rightButtons[5] ; set => rightButtons[5] = value; }
     #endregion
     // private bool modFromLocalModFolder;
 
     private bool _configChangesRequireReload;
+    /// <summary>
+    /// 是否已被加载, 通过 _mod.Enabled 判断是否即将被加载
+    /// </summary>
     private bool _loaded;
 
     public override string ModName => _mod.Name;
@@ -98,6 +101,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     public override void OnInitialize() {
         base.OnInitialize();
+
+        #region 前置判断
+        if (ModLoader.TryGetMod(ModName, out var loadedMod)) {
+            _loaded = true;
+        }
+        #endregion
 
         #region 图标
         float leftOffset = 30;
@@ -261,18 +270,27 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
         #region 右边的按钮
         #region 删除
+        DeleteButton = new(MTextures.ButtonDelete) {
+            Width = { Pixels = 24 },
+            Height = { Pixels = 24 },
+            Top = { Pixels = -12, Percent = 0.5f },
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
+            RemoveFloatingPointsFromDrawPosition = true,
+        };
+        Append(DeleteButton);
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            DeleteButton = new(MTextures.ButtonDelete) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                Top = { Pixels = -12, Percent = 0.5f },
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
             DeleteButton.OnLeftClick += QuickModDelete;
-            Append(DeleteButton);
             mouseOverTooltips.Add((DeleteButton, () => Language.GetTextValue("UI.Delete")));
+        }
+        else {
+            DeleteButton.Visibility = 0.4f;
+            if (_loaded) {
+                mouseOverTooltips.Add((DeleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteEnabled")));
+            }
+            else {
+                mouseOverTooltips.Add((DeleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteInModPack")));
+            }
         }
         #endregion
         #region 重命名
@@ -301,7 +319,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         mouseOverTooltips.Add((MoreInfoButton, () => Language.GetTextValue("tModLoader.ModsMoreInfo")));
         #endregion
         #region 配置按钮
-        if (ModLoader.TryGetMod(ModName, out var loadedMod) && ConfigManager.Configs.ContainsKey(loadedMod)) {
+        if (loadedMod != null && ConfigManager.Configs.ContainsKey(loadedMod)) {
             ConfigButton = new(UICommon.ButtonModConfigTexture) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
@@ -328,7 +346,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
-            Visible = false,
+            Visibility = 0,
         };
         Append(ModReferenceIcon);
         mouseOverTooltips.Add((ModReferenceIcon, () => _modRequiresTooltip));
@@ -426,7 +444,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         int rightOffset = -6;
         for (int i = 0; i < rightButtons.Length; ++i) {
             var button = rightButtons[i];
-            if (button != null && button.Visible) {
+            if (button != null && button.Visibility > 0) {
                 rightOffset -= 24;
                 button.Left = new(rightOffset, 1);
             }
@@ -484,11 +502,21 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     #endregion
     #region 引用相关
+    /// <summary>
+    /// 直接的模组引用
+    /// </summary>
     private string[] _modReferences = null!;
-    private string[] _modDependencies = null!; // Note: 递归的
-    private string[] _modDependents = null!; // Note: 递归的
+    /// <summary>
+    /// 递归的模组引用
+    /// </summary>
+    private string[] _modDependencies = null!;
+    /// <summary>
+    /// 递归的被引
+    /// </summary>
+    private string[] _modDependents = null!;
     private string _modRequiresTooltip = null!;
     public void SetModReferences(IEnumerable<LocalMod>? availableMods) {
+        // TODO: 弱引用与弱被引: _mod.properties.weakReferences
         _modReferences = [.. _mod.properties.modReferences.Select(x => x.mod)];
 
         StringBuilder tooltip = new();
@@ -542,9 +570,9 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
 
         _modRequiresTooltip = tooltip.ToString();
-        bool visibleToSet = !string.IsNullOrWhiteSpace(_modRequiresTooltip);
-        if (ModReferenceIcon.Visible != visibleToSet) {
-            ModReferenceIcon.Visible = visibleToSet;
+        float visibleToSet = string.IsNullOrWhiteSpace(_modRequiresTooltip) ? 0 : 1;
+        if (ModReferenceIcon.Visibility != visibleToSet) {
+            ModReferenceIcon.Visibility = visibleToSet;
             SettleRightButtons();
         }
     }
@@ -860,7 +888,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     public string GetOriginalModDisplayNameWithVersion() => $"{ModDisplayName} v{_mod.modFile.Version}";
     public override string ModDisplayName => _mod.DisplayName;
 
-    public override int PassFiltersInner() {
+    public override PassFilterResults PassFiltersInner() {
         var filter = UIModFolderMenu.Instance.Filter;
         if (filter.Length > 0) {
             if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Author) {
@@ -880,12 +908,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                     goto NameFilterPassed;
                 }
             }
-            return 1;
+            return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
             if ((int)_mod.properties.side != (int)UIModFolderMenu.Instance.ModSideFilterMode - 1) {
-                return 2;
+                return PassFilterResults.FilteredByModSide;
             }
         }
         var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
@@ -899,7 +927,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             FolderEnabledFilter.WouldBeDisabled => !_mod.Enabled,
             _ => false,
         };
-        return passed ? 0 : 3;
+        return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;
     }
 
     #region 删除

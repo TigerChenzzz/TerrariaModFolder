@@ -304,22 +304,22 @@ public class UIFolderItem : UIElement {
     #endregion
     #endregion
     #region 排序与过滤
-    /// <summary>
-    /// <br/>0 代表没有被过滤
-    /// <br/>1 代表被搜索过滤
-    /// <br/>2 代表被模组类型过滤
-    /// <br/>3 代表被启用状态过滤
-    /// </summary>
-    public virtual int PassFiltersInner() => 0;
+    public enum PassFilterResults {
+        NotFiltered,
+        FilteredBySearch,
+        FilteredByModSide,
+        FilteredByEnabled,
+    }
+    public virtual PassFilterResults PassFiltersInner() => PassFilterResults.NotFiltered;
     public bool PassFilters(UIModsFilterResults filterResults) {
         switch (PassFiltersInner()) {
-        case 1:
+        case PassFilterResults.FilteredBySearch:
             filterResults.filteredBySearch += 1;
             return false;
-        case 2:
+        case PassFilterResults.FilteredByModSide:
             filterResults.filteredByModSide += 1;
             return false;
-        case 3:
+        case PassFilterResults.FilteredByEnabled:
             filterResults.filteredByEnabled += 1;
             return false;
         default:

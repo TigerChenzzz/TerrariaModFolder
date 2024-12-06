@@ -82,6 +82,13 @@ UI: {
 				Subscribe: 订阅
 			}
 		}
+
+		Delete: {
+			Tooltips: {
+				CantDeleteEnabled: 不能删除已启用的模组
+				CantDeleteInModPack: 不能删除在整合包中的模组
+			}
+		}
 	}
 
 	SortButtons: {

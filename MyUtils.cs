@@ -36,22 +36,6 @@ public static class MyUtils {
     }
 
     #region Draw...
-    public static void DrawBox(this SpriteBatch self, Rectangle destination, Color color, Color innerColor, int width = 1) {
-        int size = Math.Min(destination.Width, destination.Height);
-        if ((size + 1) / 2 <= width) {
-            self.Draw(MTextures.White, destination, color);
-            return;
-        }
-        int dx1 = destination.X, dx2 = dx1 + width, dx3 = dx1 + destination.Width - width;
-        int dy1 = destination.Y, dy2 = dy1 + width, dy3 = dy1 + destination.Height - width;
-        int dw = destination.Width, ddx = dw - 2 * width, ddy = destination.Height - 2 * width;
-        self.Draw(MTextures.White, new Rectangle(dx1, dy1, dw, width), color);
-        self.Draw(MTextures.White, new Rectangle(dx1, dy3, dw, width), color);
-        self.Draw(MTextures.White, new Rectangle(dx1, dy2, width, ddy), color);
-        self.Draw(MTextures.White, new Rectangle(dx3, dy2, width, ddy), color);
-        if (innerColor != default)
-            self.Draw(MTextures.White, new Rectangle(dx2, dy2, ddx, ddy), innerColor);
-    }
     public static void DrawDashedOutline(this SpriteBatch self, Rectangle destination, Color color, Color innerColor = default, int width = 1, int dashed = 5, int dashedInterval = 3, int start = 0) {
         start %= dashed + dashedInterval;
         if (start > dashedInterval) {

@@ -82,6 +82,13 @@ UI: {
 				Subscribe: Subscribe
 			}
 		}
+
+		Delete: {
+			Tooltips: {
+				CantDeleteEnabled: Can't delete an enabled mod
+				CantDeleteInModPack: Can't delete a mod in a mod pack
+			}
+		}
 	}
 
 	SortButtons: {

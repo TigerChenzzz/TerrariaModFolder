@@ -102,7 +102,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         // TODO: 显示 SteamId, 以及引导到 Steam 处
     }
     
-    public override int PassFiltersInner() {
+    public override PassFilterResults PassFiltersInner() {
         var filter = UIModFolderMenu.Instance.Filter;
         if (filter.Length > 0) {
             if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Author) {
@@ -121,11 +121,11 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
                     goto NameFilterPassed;
                 }
             }
-            return 1;
+            return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
-            return 2;
+            return PassFilterResults.FilteredByModSide;
         }
         var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
             FolderEnabledFilter.All => true,
@@ -133,7 +133,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             FolderEnabledFilter.WouldBeDisabled => true,
             _ => false,
         };
-        return passed ? 0 : 3;
+        return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;
     }
 
 

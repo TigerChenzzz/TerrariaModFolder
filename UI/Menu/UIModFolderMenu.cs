@@ -1697,7 +1697,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             modItem.SetModReferences(availableMods);
         }
 
-        FolderDataSystem.RemoveRedundantData();
+        if (CommonConfig.Instance.RemoveRedundantData) {
+            FolderDataSystem.RemoveRedundantData();
+        }
         // TODO: 遍历一遍 Root 来做各种事情
         ;
     }

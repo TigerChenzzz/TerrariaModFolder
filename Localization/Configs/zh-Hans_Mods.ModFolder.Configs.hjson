@@ -43,6 +43,26 @@ CommonConfig: {
 			'''
 	}
 
+	ShowModVersion: {
+		Label: 显示模组版本
+		Tooltip: ""
+	}
+
+	ShowEnableStatusBackground: {
+		Label: 显示启用状态背景
+		Tooltip: ""
+	}
+
+	ShowEnableStatusText: {
+		Label: 显示启用状态文字
+		Tooltip: ""
+	}
+
+	RemoveRedundantData: {
+		Label: 删除冗余数据
+		Tooltip: 删除没有订阅且没有保存在文件夹系统中的模组数据
+	}
+
 	LogModLoading: {
 		Label: 刷新时打印日志
 		Tooltip: 启用它可能会在加载模组时产生卡顿现象
@@ -52,98 +72,83 @@ CommonConfig: {
 		Label: 查看更新日志
 		Tooltip: ""
 	}
-
-	ShowEnableStatusBackground: {
-		Label: 显示启用状态背景
-		// Tooltip: ""
-	}
-
-	ShowEnableStatusText: {
-		Label: 显示启用状态文字
-		// Tooltip: ""
-	}
-
-	ShowModVersion: {
-		Label: 显示模组版本
-		// Tooltip: ""
-	}
 }
 
 SeeChangelogClass: {
-	// Tooltip: ""
+	Tooltip: ""
 
 	ChangelogDisplay: {
-		// Label: Changelog Display
-		// Tooltip: ""
+		Label: 更新日志显示
+		Tooltip: ""
 	}
 }
 
 ShowEnableStatusTextClass: {
-	// Tooltip: ""
+	Tooltip: ""
 
 	ShowAllAlways: {
 		Label: 总是显示全部
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ShowAllWhenNotZero: {
 		Label: 显示所有非零项
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ShowNone: {
 		Label: 完全不显示
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	AllMods: {
 		Label: 总模组数
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	Enabled: {
 		Label: 已启用数
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ToEnable: {
 		Label: 待启用数
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ToDisable: {
 		Label: 待禁用数
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	Seperator: {
 		Label: 分隔符
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	AllModsColor: {
 		Label: 总模组数颜色
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	EnabledColor: {
 		Label: 已启用数颜色
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ToEnableColor: {
 		Label: 待启用数颜色
-		// Tooltip: ""
+		Tooltip: ""
 	}
 
 	ToDisableColor: {
 		Label: 待禁用数颜色
-		// Tooltip: ""
+		Tooltip: ""
 	}
 }
 
 ShowType: {
-	// Tooltip: ""
+	Tooltip: ""
 	Never.Label: 从不显示
 	WhenNotZero.Label: 非零时显示
 	Always.Label: 总是显示

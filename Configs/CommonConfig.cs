@@ -1,4 +1,5 @@
-﻿using ModFolder.UI.UIFolderItems;
+﻿using ModFolder.Systems;
+using ModFolder.UI.UIFolderItems;
 using MonoMod.Cil;
 using Newtonsoft.Json;
 using ReLogic.Content;
@@ -22,6 +23,7 @@ public class CommonConfig : ModConfig {
     public static CommonConfig Instance { get; set; } = null!;
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
+    [DefaultValue(true)]
     public bool LeftClickToEnterFolderSystem { get; set; }
     #region 显示模组来源
     [DefaultValue(true)]
@@ -183,6 +185,17 @@ public class CommonConfig : ModConfig {
         public Color ToDisableColor { get; set; } = UIFolderItem.ToDisableColor;
     }
     #endregion
+    #region 移除冗余数据
+    private bool _removeRedundantDataOld;
+    [DefaultValue(true)]
+    public bool RemoveRedundantData { get; set; }
+    private void OnChanged_TryRemoveRendundantData() {
+        if (RemoveRedundantData && !_removeRedundantDataOld) {
+            FolderDataSystem.RemoveRedundantData();
+        }
+        _removeRedundantDataOld = RemoveRedundantData;
+    }
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]
@@ -266,7 +279,7 @@ public class CommonConfig : ModConfig {
     }
 
     public override void OnChanged() {
-        ;
+        OnChanged_TryRemoveRendundantData();
     }
 }
 

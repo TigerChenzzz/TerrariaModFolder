@@ -26,6 +26,7 @@ namespace ModFolder;
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
 // BUG: Generate 之后收藏等信息丢失
 
+// TODO: 通过配置自动清理或手动清理冗余数据
 // TODO: "单击以禁用 ? 和 ? 个依赖模组" (hjson 中的 ModsDisableAndDependents, ModsEnableAndDependencies)
 // TODO: 一键订阅按钮
 // TODO: 显示所有下载项
@@ -40,12 +41,15 @@ namespace ModFolder;
 // TODO: description 的本地化支持?
 // TODO: 模组的内部名如何查看?
 // TODO: 选中, 选中多个
+//           按住 Ctrl 时右键以选中或取消选中一个, 按住 Shift 右键以选中多个, 按住 Ctrl 和 Shift 以反选多个
+//           选中多个可同时移动或通过按钮复制粘贴删除重新订阅
 // TODO: 名称过长时的处理 (滚动? 省略?)
 // TODO: 弱依赖显示
 // TODO: 尝试强制更新已有模组
 // TODO: 下载缺失依赖
 // TODO: 搜索文件夹
 // TODO: 按特定键双击文件夹以启用 / 禁用所有内含模组 (禁用冗余依赖?)
+// TODO: 文件夹的模组启用状态剔除重复的模组
 
 // TODO: 右键拖动时禁用左键?
 
@@ -62,14 +66,15 @@ namespace ModFolder;
 
 // TODO: 在有文件夹和模组的排序时仍可以自定义顺序
 // TODO: 块状排列 (ConciseModList: ???)
+//           在左上角有切换块状和条状的按钮
+//           当在块状时当鼠标悬浮在此按钮上时在按钮上方额外显示滑条和输入框 (或者几个特定的数字?) 以调整大小
+//           或者也可以调整条状显示时的大小?
 // TODO: Mouse4 和 Mouse5 撤回与回退 返回上级 (Alt + ←→↑)
 // TODO: 启用某个玩家对应的模组
 // TODO: 收藏的特效
 // TOTEST: 测试整合包
+// TODO: 如何可以删除已启用的模组?
 
-// TODO: 按钮: 批量删除
-// TODO: 按钮: 批量重新订阅
-// TODO: 按钮: 复制与粘贴
 // TODO: 按钮的展开
 //           配置按钮, 展开为配置版 (直接使用按钮来配置)
 //           启用与禁用按钮展开, 选择是否影响全部, 包含子文件夹还是仅此文件夹, 等等原 Ctrl, Shift 和 Alt 做的事情 (原快捷键仍然生效, 且按下快捷键时对应按钮也会有反应),
@@ -88,8 +93,7 @@ public class ModFolder : Mod {
         FolderDataSystem.Reload();
         On_UIWorkshopHub.OnInitialize += On_UIWorkshopHub_OnInitialize;
         On_UIWorkshopHub.Click_OpenModsMenu += On_UIWorkshopHub_Click_OpenModsMenu;
-        var bfs = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-        MonoModHooks.Add(typeof(Interface).GetMethod(nameof(Interface.ModLoaderMenus), bfs), On_Interface_ModLoaderMenus);
+        MonoModHooks.Add(typeof(Interface).GetMethod(nameof(Interface.ModLoaderMenus), TMLReflection.bfs), On_Interface_ModLoaderMenus);
         var configList = Interface.modConfigList;
         if (!configList._isInitialized) {
             configList.Initialize();

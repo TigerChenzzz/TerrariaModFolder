@@ -43,13 +43,8 @@ CommonConfig: {
 			'''
 	}
 
-	LogModLoading: {
-		Label: Log Mod Loading
-		Tooltip: Enabling it may cause lags when loading mods
-	}
-
-	SeeChangelog: {
-		Label: See Changelog
+	ShowModVersion: {
+		Label: Show Mod Version
 		Tooltip: ""
 	}
 
@@ -63,8 +58,18 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
-	ShowModVersion: {
-		Label: Show Mod Version
+	RemoveRedundantData: {
+		Label: Remove Redundant Data
+		Tooltip: Remove data of mods that are neither subscribed nor in the folder system
+	}
+
+	LogModLoading: {
+		Label: Log Mod Loading
+		Tooltip: Enabling it may cause lags when loading mods
+	}
+
+	SeeChangelog: {
+		Label: See Changelog
 		Tooltip: ""
 	}
 }

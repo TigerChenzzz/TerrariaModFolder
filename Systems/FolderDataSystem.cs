@@ -327,15 +327,7 @@ public static class FolderDataSystem {
     // - 在 RemoveRedundantData() 中添加
 
     private static RootNode? _root;
-    public static RootNode Root {
-        get {
-            if (_root != null) {
-                return _root;
-            }
-            Reload_Inner();
-            return _root ??= new();
-        }
-    }
+    public static RootNode Root => _root ?? Reload();
     private static string DataPath {
         get {
             string? pathFromConfig = CommonConfig.Instance.DataSavePath;
@@ -364,9 +356,9 @@ public static class FolderDataSystem {
     }
     #endregion
     #region 加载
-    public static void Reload() {
+    public static RootNode Reload() {
         Reload_Inner();
-        _root ??= new();
+        return _root ??= new();
     }
     private static void Reload_Inner() {
         string path = DataPath;
