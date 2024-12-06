@@ -156,6 +156,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             leftOffset += 2;
         }
         // TODO: 名字太长怎么办 (UIHorizontalList?)
+        //           滚动显示 (左右移动) 可配置 (显示开头还是来回显示)
+        //           文本输入框的适配
         _modName = new(GetModDisplayName(), (orig, point) => orig(point) || _modLocationIcon?.ContainsPoint(point) == true || updatedModDot?.ContainsPoint(point) == true) {
             Left = { Pixels = leftOffset },
             Height = { Precent = 1 },
@@ -499,6 +501,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         */
         #endregion
         generateTask = null;
+
+        // 依赖关系的加载在 UIModFolderMenu 的 Populate 时通过调用所有模组的 SetModReferences 完成
     }
     #endregion
     #region 引用相关
@@ -575,10 +579,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             ModReferenceIcon.Visibility = visibleToSet;
             SettleRightButtons();
         }
-    }
-    public void SetDependents(IEnumerable<LocalMod> availableMods) {
-        _modDependents = [.. GetDependents(availableMods)];
-
     }
     private HashSet<string> GetDependencies() {
         HashSet<string> result = [];

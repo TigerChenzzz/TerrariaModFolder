@@ -564,15 +564,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         _mouseTextureOffsetY = offsetY;
         _mouseTextureColor = color == default ? Color.White : color;
     }
-    private UIFolderItem? _draggingTarget;
-    public UIFolderItem? DraggingTarget {
-        get => ShowFolderSystem ? _draggingTarget : null;
-        set {
-            if (ShowFolderSystem || value == null) {
-                _draggingTarget = value;
-            }
-        }
-    }
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
     private FolderNode? nodeToRename;
     #endregion
@@ -1333,15 +1324,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Draw_TryCloseButtons();
         SetDraggingPosition();
         base.Draw(spriteBatch);
-        /*
-        // 鼠标 4 键返回
-        if (Main.mouseXButton1 && Main.mouseXButton1Release) {
-            if (FolderPath.Count > 1) {
-                GotoUpperFolder();
-                Main.mouseXButton1Release = false;
-            }
-        }
-        */
         #region DrawMouseTexture
         if (_mouseTexture != null) {
 
@@ -1368,6 +1350,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #region 右键拖动
+    private UIFolderItem? _draggingTarget;
+    public UIFolderItem? DraggingTarget {
+        get => ShowFolderSystem ? _draggingTarget : null;
+        set {
+            if (ShowFolderSystem || value == null) {
+                _draggingTarget = value;
+            }
+        }
+    }
     // 在 Draw 之前执行
     private void SetDraggingPosition() {
         if (DraggingTarget == null) {
