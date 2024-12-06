@@ -137,6 +137,11 @@ UI: {
 		to enable: {2}
 		to disable: {3}
 		'''
+	CycleImageDisabled:
+		'''
+		[c/999999:Not usable currently]
+		[c/999999:{0}]
+		'''
 
 	PopupInfos: {
 		CantSubscribeForMissingPublishId: Can't subscribe! No mod info stored!

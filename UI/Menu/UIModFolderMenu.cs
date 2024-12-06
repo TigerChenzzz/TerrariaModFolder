@@ -1,3 +1,4 @@
+using Humanizer;
 using Microsoft.CodeAnalysis;
 using ModFolder.Configs;
 using ModFolder.Systems;
@@ -7,7 +8,6 @@ using ModFolder.UI.UIFolderItems.Folder;
 using ModFolder.UI.UIFolderItems.Mod;
 using ReLogic.Content;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -281,7 +281,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void ResetCategoryButtons() {
         for (int i = 0; i < categoryButtons.Length; ++i) {
             _topButtonData[i] = 0;
-            categoryButtons[i].SetCurrentState(0);
+            var button = categoryButtons[i];
+            button.SetCurrentState(0);
+            button.Disabled = false;
         }
         Filter = string.Empty;
         GenerateTopButtons();
@@ -315,17 +317,31 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (i - categoryButtonStartIndex < categoryButtons.Length) {
                 categoryButtons[i - categoryButtonStartIndex] = toggleImage;
             }
-            mouseOverTooltips.Add((toggleImage, () => Language.GetTextValue(_topButtonLocalizedKeys[currentIndex][_topButtonData[currentIndex]])));
+            mouseOverTooltips.Add((toggleImage, () => {
+                var result = Language.GetTextValue(_topButtonLocalizedKeys[currentIndex][_topButtonData[currentIndex]]);
+                if (topMenuButtons[currentIndex].Disabled) {
+                    return ModFolder.Instance.GetLocalizedValue("UI.CycleImageDisabled").FormatWith(result);
+                }
+                return result;
+            }));
         }
     }
     #region 按钮切换
-    // 当切换 ShowAllMods (index == 0) 时同时还要改变 CategoryButtons
+    // 当切换 ShowAllMods (index == 0) 时同时还要改变 FmSortMode 按钮的可用性
     // 同时 ShowAllMods 为真 (1) 时 SortMode (index = 2) 不能为 Custom (0)
 
+    private const int IndexShowFolderSystem = 0;
+    private const int IndexFmSortMode = 1;
+    private const int IndexSortMode = 2;
+    private const int IndexShowRamUsage = 5;
     private void SwitchTopButtonNext(int index) {
-        if (index == 2 && ShowAllMods) {
+        var button = topMenuButtons[index];
+        if (button.Disabled) {
+            return;
+        }
+        if (index == IndexSortMode && ShowAllMods) {
             _topButtonData[index] = _topButtonData[index] % (_topButtonLengths[index] - 1) + 1;
-            topMenuButtons[index].SetCurrentState(_topButtonData[index]);
+            button.SetCurrentState(_topButtonData[index]);
         }
         else {
             _topButtonData[index] = (_topButtonData[index] + 1) % _topButtonLengths[index];
@@ -334,10 +350,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ArrangeGenerate();
     }
     private void SwitchTopButtonPrevious(int index) {
-        if (index == 2 && ShowAllMods) {
+        var button = topMenuButtons[index];
+        if (button.Disabled) {
+            return;
+        }
+        if (index == IndexSortMode && ShowAllMods) {
             if (_topButtonData[index] <= 1) {
                 _topButtonData[index] = _topButtonLengths[index] - 1;
-                topMenuButtons[index].SetCurrentState(_topButtonData[index]);
+                button.SetCurrentState(_topButtonData[index]);
             }
             else {
                 _topButtonData[index] -= 1;
@@ -355,38 +375,42 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ArrangeGenerate();
     }
     private void ResetTopButton(int index) {
-        if (index == 2 && ShowAllMods) {
+        var button = topMenuButtons[index];
+        if (button.Disabled) {
+            return;
+        }
+        if (index == IndexSortMode && ShowAllMods) {
             if (_topButtonData[index] == 1) {
                 return;
             }
             _topButtonData[index] = 1;
-            topMenuButtons[index].SetCurrentState(1);
+            button.SetCurrentState(1);
         }
         else {
             if (_topButtonData[index] == 0) {
                 return;
             }
             _topButtonData[index] = 0;
-            topMenuButtons[index].SetCurrentState(0);
+            button.SetCurrentState(0);
         }
         CheckTopButtonChanged(index);
         ArrangeGenerate();
     }
     private void CheckTopButtonChanged(int index) {
-        if (index == 0) {
-            if (_topButtonData[2] == 0 && _topButtonData[0] == 1) {
-                ResetTopButton(2);
+        if (index == IndexShowFolderSystem) {
+            topMenuButtons[IndexFmSortMode].Disabled = ShowAllMods;
+            if (SortMode == FolderMenuSortMode.Custom && ShowAllMods) {
+                ResetTopButton(IndexSortMode);
             }
-            GenerateTopButtons();
             ResettleVertical();
         }
-        else if (index == 5) {
+        else if (index == IndexShowRamUsage) {
             ResettleVertical();
         }
     }
     #endregion
     #endregion
-    #region 打开与关闭和按钮数量控制
+    #region 打开与关闭
     private bool _showButtons;
     private bool _toCloseCategoryButtons;
     private void ArrangeCloseButtons() => _toCloseCategoryButtons = true;
@@ -429,24 +453,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             topButtonsBg.Width.Pixels = 0;
             goto ReadyToReturn;
         }
-        // 在文件夹系统下显示所有按钮
-        if (ShowFolderSystem) {
-            width = (32 + 4) * topMenuButtons.Length - 4;
-            topButtonsBg.Width.Pixels = width;
-            for (int i = 0; i < topMenuButtons.Length; ++i) {
-                var button = topMenuButtons[i];
-                button.Left.Pixels = i * (32 + 4);
-                topButtonsBg.Append(button);
-            }
-            goto ReadyToReturn;
-        }
-        // 否则剔除掉文件夹和模组之间的排序按钮
-        width = (32 + 4) * (topMenuButtons.Length - 1) - 4;
+
+        width = (32 + 4) * topMenuButtons.Length - 4;
         topButtonsBg.Width.Pixels = width;
-        topButtonsBg.Append(topMenuButtons[0]);
-        for (int i = 2; i < topMenuButtons.Length; ++i) {
+        for (int i = 0; i < topMenuButtons.Length; ++i) {
             var button = topMenuButtons[i];
-            button.Left.Pixels = (i - 1) * (32 + 4);
+            button.Left.Pixels = i * (32 + 4);
             topButtonsBg.Append(button);
         }
     ReadyToReturn:
