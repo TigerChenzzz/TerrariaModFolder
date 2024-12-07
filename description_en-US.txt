@@ -1,6 +1,6 @@
 [h3]Summary[/h3]
 "Mod Folder System" is designed to manage mods in folder system, making it convenient for players with a lot of mods subscribed.
-Rightclick at the "Manage Mods" button to open the folder system.
+Left-click at the "Manage Mods" button to open the folder system. (and right-click to enter the original mod manager. This can be switched by configuration)
 Double-click a mod to toggle it (disable a mod when pressing Shift would also disable its redundant dependencies (dependencies that are not used by other enabled mods)), or a folder to enter (first you should create a folder using the button "Create Folder" below).
 Rightclick and drag an item to move its position (when moving a mod into a folder, pressing shift to copy it). When at custom order, you can change the order of items; When at the folder system (not to show all mods), you can move an item in or out a folder (moving in a folder named ".." is equivalent to moving to the previous directory, or you can just move to a folder in the path).
 When deleting an item, you should press Ctrl or Shift or both. Pressing Ctrl means unsubscribe (for folder it means unsubscribe all mods in the folder), just like the vanilla; Pressing Shift means delete the index, so the mod or mods in the folder would go back to the root. If you just unsubscribe but not delete the index, the item would still be there, and you can continue to manage its location, but you nned to resubscribe to enable it again.

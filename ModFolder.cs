@@ -14,7 +14,6 @@ global using static TigerUtilsLib.TigerUtils;
 using ModFolder.Configs;
 using ModFolder.Systems;
 using ModFolder.UI.Menu;
-using System.Reflection;
 using Terraria.Audio;
 using Terraria.GameContent.UI.States;
 using Terraria.ModLoader.UI;
