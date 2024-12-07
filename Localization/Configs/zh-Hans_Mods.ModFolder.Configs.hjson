@@ -48,19 +48,19 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
-	ShowEnableStatusBackground: {
-		Label: 显示启用状态背景
-		Tooltip: ""
-	}
-
-	ShowEnableStatusText: {
-		Label: 显示启用状态文字
+	ShowEnableStatus: {
+		Label: 显示启用状态设置
 		Tooltip: ""
 	}
 
 	RemoveRedundantData: {
 		Label: 删除冗余数据
 		Tooltip: 删除没有订阅且没有保存在文件夹系统中的模组数据
+	}
+
+	TotallyReload: {
+		Label: 完全重载
+		Tooltip: 在再次进入文件夹系统时完全重载
 	}
 
 	LogModLoading: {
@@ -83,8 +83,18 @@ SeeChangelogClass: {
 	}
 }
 
-ShowEnableStatusTextClass: {
+ShowEnableStatusClass: {
 	Tooltip: ""
+
+	Headers: {
+		Background: 背景
+		Text: 文字
+	}
+
+	ShowBackground: {
+		Label: 显示背景
+		Tooltip: ""
+	}
 
 	ShowAllAlways: {
 		Label: 总是显示全部

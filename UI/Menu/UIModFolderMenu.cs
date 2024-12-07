@@ -22,7 +22,6 @@ using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Steam;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
-using static System.Net.Mime.MediaTypeNames;
 using FolderNode = ModFolder.Systems.FolderDataSystem.FolderNode;
 using ModNode = ModFolder.Systems.FolderDataSystem.ModNode;
 using Node = ModFolder.Systems.FolderDataSystem.Node;
@@ -39,12 +38,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     public static void EnterFrom(UIWorkshopHub hub) {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-#if DEBUG
-        // TODO: 做成选项
-        TotallyReload();
-        // TODO: 做成选项
-        FolderDataSystem.Reload();
-#endif
+        if (CommonConfig.Instance.TotallyReload) {
+            TotallyReload();
+            FolderDataSystem.Reload();
+        }
         Instance.PreviousUIState = hub;
         Main.MenuUI.SetState(Instance); // 如果没有初始化的话会在这里初始化
         Instance.ResetCategoryButtons();

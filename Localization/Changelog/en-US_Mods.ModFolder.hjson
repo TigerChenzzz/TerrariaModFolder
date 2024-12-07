@@ -1,9 +1,14 @@
 Changelog:
 	'''
+	[c/00ff00:v0.3.2]
+	[c/ff0000:- add an "Update Mods" button (in "More Buttons"), to directly check and update mods]
+	[c/999999:- configure whether to totally reload the folder system when entering again]
+	[c/999999:- seperate the configuration of folder's enable status into a single page]
+
 	[c/00ff00:v0.3.1]
-	[c/ffff00:- configure whether to delete redundant data]
-	[c/999999:- left click to enter folder system by default rather than right click]
-	[c/999999:- for mods that are enabled or in a mod pack, delete button would fade out and give tooltips for not deletable]
+	[c/999999:- configure whether to delete redundant data]
+	- left click to enter folder system by default rather than right click
+	- for mods that are enabled or in a mod pack, delete button would fade out and give tooltips for not deletable
 	[c/999999:- when showing all mods (not using folder system), the sort button of folders and mods becomes gray rather than just disappears]
 
 	[c/00ff00:v0.3.0.4]

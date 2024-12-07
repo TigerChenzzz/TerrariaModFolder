@@ -343,8 +343,8 @@ public class UIFolder : UIFolderItem {
         if (tooltip != null) {
             return tooltip;
         }
-        if (CommonConfig.Instance.ShowEnableStatusText.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
-            !CommonConfig.Instance.ShowEnableStatusText.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
+        if (CommonConfig.Instance.ShowEnableStatus.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
+            !CommonConfig.Instance.ShowEnableStatus.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
             return ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
         }
         return null;
@@ -357,7 +357,7 @@ public class UIFolder : UIFolderItem {
     }
     private int RandomStartOffset => FolderNode?.EnableStatusRandomOffset ?? 0;
     private void UpdateEnableStatusText() {
-        var config = CommonConfig.Instance.ShowEnableStatusText;
+        var config = CommonConfig.Instance.ShowEnableStatus;
         if (FolderNode == null) {
             return;
         }

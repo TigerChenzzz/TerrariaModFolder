@@ -123,7 +123,7 @@ public static class FolderDataSystem {
         public int EnableStatusRandomOffset { get; } = Main.rand.Next(0, 10000);
 
         #region Refresh Counts
-        public static bool NeedToRefreshCounts => CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatusText.ShowAny;
+        public static bool NeedToRefreshCounts => CommonConfig.Instance.ShowEnableStatusBackground || CommonConfig.Instance.ShowEnableStatus.ShowAny;
         public void RefreshCounts() {
             ChildrenCount = 0;
             EnabledCount = 0;

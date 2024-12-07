@@ -114,17 +114,20 @@ public class CommonConfig : ModConfig {
     public bool ShowModVersion { get; set; }
     #endregion
     #region 显示文件夹内的启用状态
-    [DefaultValue(true)]
-    public bool ShowEnableStatusBackground { get; set; }
-    public ShowEnableStatusTextClass ShowEnableStatusText { get; set; } = new();
-    public class ShowEnableStatusTextClass {
+    [JsonIgnore]
+    public bool ShowEnableStatusBackground => ShowEnableStatus.ShowBackground;
+    [SeparatePage]
+    public ShowEnableStatusClass ShowEnableStatus { get; set; } = new();
+    public class ShowEnableStatusClass {
         public enum ShowType {
             Never,
             WhenNotZero,
             Always
         }
-        [JsonIgnore]
-        public bool ShowAny => !ShowNone;
+        [Header("Background")]
+        [DefaultValue(true)]
+        public bool ShowBackground { get; set; } = true;
+        [Header("Text")]
         [ShowDespiteJsonIgnore, JsonIgnore]
         public bool ShowAllAlways {
             get => AllMods == ShowType.Always && Enabled == ShowType.Always && ToEnable == ShowType.Always && ToDisable == ShowType.Always;
@@ -161,6 +164,8 @@ public class CommonConfig : ModConfig {
                 }
             }
         }
+        [JsonIgnore]
+        public bool ShowAny => !ShowNone;
         [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
         public ShowType AllMods { get; set; } = ShowType.WhenNotZero;
         [DrawTicks, DefaultValue(ShowType.WhenNotZero)]
@@ -195,6 +200,9 @@ public class CommonConfig : ModConfig {
         }
         _removeRedundantDataOld = RemoveRedundantData;
     }
+    #endregion
+    #region 完全重载
+    public bool TotallyReload { get; set; } // 默认不完全重载 (false)
     #endregion
 
     #region 是否在模组加载时打印日志
@@ -284,8 +292,8 @@ public class CommonConfig : ModConfig {
 }
 
 public static class ShoeEnableStatusTextClassShowTypeExtensions {
-    public static bool Never(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Never;
-    public static bool WhenNotZero(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.WhenNotZero;
-    public static bool Always(this CommonConfig.ShowEnableStatusTextClass.ShowType self) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Always;
-    public static bool Check(this CommonConfig.ShowEnableStatusTextClass.ShowType self, int value) => self == CommonConfig.ShowEnableStatusTextClass.ShowType.Always || self == CommonConfig.ShowEnableStatusTextClass.ShowType.WhenNotZero && value != 0;
+    public static bool Never(this CommonConfig.ShowEnableStatusClass.ShowType self) => self == CommonConfig.ShowEnableStatusClass.ShowType.Never;
+    public static bool WhenNotZero(this CommonConfig.ShowEnableStatusClass.ShowType self) => self == CommonConfig.ShowEnableStatusClass.ShowType.WhenNotZero;
+    public static bool Always(this CommonConfig.ShowEnableStatusClass.ShowType self) => self == CommonConfig.ShowEnableStatusClass.ShowType.Always;
+    public static bool Check(this CommonConfig.ShowEnableStatusClass.ShowType self, int value) => self == CommonConfig.ShowEnableStatusClass.ShowType.Always || self == CommonConfig.ShowEnableStatusClass.ShowType.WhenNotZero && value != 0;
 }

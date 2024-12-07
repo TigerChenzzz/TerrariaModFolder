@@ -48,19 +48,19 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
-	ShowEnableStatusBackground: {
-		Label: Show Enable Status Background
-		Tooltip: ""
-	}
-
-	ShowEnableStatusText: {
-		Label: Show Enable Status Text
+	ShowEnableStatus: {
+		Label: Show Enable Status Settings
 		Tooltip: ""
 	}
 
 	RemoveRedundantData: {
 		Label: Remove Redundant Data
 		Tooltip: Remove data of mods that are neither subscribed nor in the folder system
+	}
+
+	TotallyReload: {
+		Label: Totally Reload
+		Tooltip: Tatally reload the folder system when entering again
 	}
 
 	LogModLoading: {
@@ -83,8 +83,18 @@ SeeChangelogClass: {
 	}
 }
 
-ShowEnableStatusTextClass: {
+ShowEnableStatusClass: {
 	Tooltip: ""
+
+	Headers: {
+		Background: Background
+		Text: Text
+	}
+
+	ShowBackground: {
+		Label: Show Background
+		Tooltip: ""
+	}
 
 	ShowAllAlways: {
 		Label: Show All Always
