@@ -1,4 +1,5 @@
 ﻿using Humanizer;
+using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
@@ -138,6 +139,8 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
 
     #region 订阅 (下载)
+    // TODO: 检查 SteamedWraps.SteamAvailable 以判断是否可以下载
+
     Task? SubscribeTask { get; set; }
     private void TrySubscribeMod(UIMouseEvent evt, UIElement listeningElement) {
         SoundEngine.PlaySound(SoundID.MenuTick);
@@ -146,7 +149,6 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             return;
         }
         SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
-
 
         // 翻源码:
         // ModDownloadItem 由来:
@@ -196,43 +198,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             return;
         }
         #endregion
-        #region 查找依赖
-        // 取自 UIModBrowser
-        HashSet<ModDownloadItem> set = [modDownloadItem];
-        Interface.modBrowser.SocialBackend.GetDependenciesRecursive(set);
-
-        var fullList = ModDownloadItem.NeedsInstallOrUpdate(set).ToArray();
-        if (fullList.Length == 0)
-            return;
-        #endregion
-        #region 下载模组
-        // 取自 UIModBrowser
-        try {
-            foreach (var mod in fullList) {
-                await Task.Yield();
-                if (UIModFolderMenu.Instance.Downloads.ContainsKey(mod.ModName)) {
-                    continue;
-                }
-                bool wasInstalled = mod.IsInstalled;
-
-                if (ModLoader.TryGetMod(mod.ModName, out var loadedMod)) {
-                    loadedMod.Close();
-                    // We must clear the Installed reference in ModDownloadItem to facilitate downloading, in addition to disabling - Solxan
-                    mod.Installed = null;
-                    UIModFolderMenu.Instance.ForceRoadRequired();
-                }
-
-                #region 下载模组 (摘自 WorkshopBrowserModule.DownloadItem)
-                mod.UpdateInstallState();
-                UIModFolderMenu.Instance.AddDownload(mod.ModName, new(mod));
-                #endregion
-            }
-        }
-        catch (Exception e) {
-            UIModFolderMenu.Instance.PopupInfo("下载模组时发生错误! 具体错误请查看日志");
-            ModFolder.Instance.Logger.Error("Downloading mod error!", e);
-        }
-        #endregion
+        await DownloadHelper.DownloadMods([modDownloadItem]);
     }
 
     private static async IAsyncEnumerable<ModDownloadItem?> QueryItemsAsync(QueryInstance query, List<string> missingMods, [EnumeratorCancellation] CancellationToken token) {
@@ -337,40 +303,6 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         }
         #endregion
     }
-
-    public override void DrawSelf(SpriteBatch spriteBatch) {
-        base.DrawSelf(spriteBatch);
-        if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progress)) {
-            DrawDownloadStatus(spriteBatch, progress);
-        }
-    }
-    #region 画下载状态
-    private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
-        Rectangle rectangle = GetDimensions().ToRectangle();
-        Rectangle progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, (int)((rectangle.Width - 2) * progress.Progress), rectangle.Height - 2);
-        Rectangle progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
-
-        spriteBatch.DrawBox(rectangle, Color.White * 0.5f, default);
-        spriteBatch.Draw(MTextures.White, progressRectangle, Color.White * 0.2f);
-
-        int timePassed = UIModFolderMenu.Instance.Timer - progress.CreateTimeRandomized;
-        int realTimePassed = UIModFolderMenu.Instance.Timer - progress.CreateTime;
-        int totalWidthToPass = rectangle.Width * 3;
-        int goThroughWidth = rectangle.Width * 2 / 3;
-        int passSpeed = 12;
-        int end = timePassed * passSpeed % totalWidthToPass;
-        if (end < 0) {
-            end += totalWidthToPass;
-        }
-        if (end > realTimePassed * passSpeed) {
-            return;
-        }
-        int start = end - goThroughWidth;
-
-        DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
-        DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
-    }
-    #endregion
 
     #region 删除
     private void QuickModDelete(UIMouseEvent evt, UIElement listeningElement) {

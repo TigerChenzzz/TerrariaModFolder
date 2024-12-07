@@ -89,6 +89,15 @@ UI: {
 				CantDeleteInModPack: Can't delete a mod in a mod pack
 			}
 		}
+
+		Update: {
+			DisplayName: Update Mods
+			Tooltip: ""
+			UpdateItemPattern: "{0}: {1} -> {2}"
+			NewItemPattern: "{0}: {1}"
+			SearchingForMods: Searching for mods to update...
+			DialogText: Are you sure to update the mods below?
+		}
 	}
 
 	SortButtons: {

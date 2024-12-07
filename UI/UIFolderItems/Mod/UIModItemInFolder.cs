@@ -105,5 +105,35 @@ public abstract class UIModItemInFolder : UIFolderItem {
     public override void DrawSelf(SpriteBatch spriteBatch) {
         CheckReplace();
         base.DrawSelf(spriteBatch);
+        if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModName, out var progress)) {
+            DrawDownloadStatus(spriteBatch, progress);
+        }
     }
+    #region 画下载状态
+    private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
+        Rectangle rectangle = GetDimensions().ToRectangle();
+        Rectangle progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, (int)((rectangle.Width - 2) * progress.Progress), rectangle.Height - 2);
+        Rectangle progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
+
+        spriteBatch.DrawBox(rectangle, Color.White * 0.5f);
+        spriteBatch.Draw(MTextures.White, progressRectangle, Color.White * 0.2f);
+
+        int timePassed = UIModFolderMenu.Instance.Timer - progress.CreateTimeRandomized;
+        int realTimePassed = UIModFolderMenu.Instance.Timer - progress.CreateTime;
+        int totalWidthToPass = rectangle.Width * 3;
+        int goThroughWidth = rectangle.Width * 2 / 3;
+        int passSpeed = 12;
+        int end = timePassed * passSpeed % totalWidthToPass;
+        if (end < 0) {
+            end += totalWidthToPass;
+        }
+        if (end > realTimePassed * passSpeed) {
+            return;
+        }
+        int start = end - goThroughWidth;
+
+        DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
+        DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
+    }
+    #endregion
 }

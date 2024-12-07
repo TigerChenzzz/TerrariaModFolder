@@ -1,6 +1,7 @@
 using Humanizer;
 using Microsoft.CodeAnalysis;
 using ModFolder.Configs;
+using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.UIFolderItems;
@@ -8,6 +9,7 @@ using ModFolder.UI.UIFolderItems.Folder;
 using ModFolder.UI.UIFolderItems.Mod;
 using ReLogic.Content;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -17,8 +19,10 @@ using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.ModBrowser;
+using Terraria.Social.Steam;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
+using static System.Net.Mime.MediaTypeNames;
 using FolderNode = ModFolder.Systems.FolderDataSystem.FolderNode;
 using ModNode = ModFolder.Systems.FolderDataSystem.ModNode;
 using Node = ModFolder.Systems.FolderDataSystem.Node;
@@ -155,7 +159,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonMore             { get => buttons[5]; set => buttons[5] = value; }
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyEnabled      { get => buttons[6]; set => buttons[6] = value; }
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get => buttons[7]; set => buttons[7] = value; }
-    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[8];
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonUpdate           { get => buttons[8]; set => buttons[8] = value; }
+
+    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[9];
     private readonly UIAutoScaleTextTextPanel<string>[] buttonPlaceHolders = new UIAutoScaleTextTextPanel<string>[6];
     int buttonPage;
     readonly int buttonPageMax = 2;
@@ -543,7 +549,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _showModVersion = CommonConfig.Instance.ShowModVersion;
             configChanged = true;
         }
-        if (configChanged) { 
+        if (configChanged) {
             Populate();
         }
     }
@@ -568,7 +574,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private FolderNode? nodeToRename;
     #endregion
     #region 确认弹窗
-    private readonly List<UIElement> _confirmPanels = [];
+    private readonly List<(UIElement panel, Action? onRemoved)> _confirmPanels = [];
     private UIImage? _confirmPanelCover;
     private UIImage ConfirmPanelCover {
         get {
@@ -592,8 +598,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return _confirmPanelCover;
         }
     }
-    public void AppendConfirmPanel(UIElement panel) {
-        _confirmPanels.Add(panel);
+    public void AppendConfirmPanel(UIElement panel, Action? onRemoved = null) {
+        _confirmPanels.Add((panel, onRemoved));
         Append(ConfirmPanelCover);
         Append(panel);
     }
@@ -604,7 +610,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (_confirmPanels.Count == 0) {
             return;
         }
-        _confirmPanels[^1].Remove();
+        var (panel, onRemoved) = _confirmPanels[^1];
+        panel.Remove();
+        onRemoved?.Invoke();
         _confirmPanels.RemoveAt(_confirmPanels.Count - 1);
         for (int i = Elements.Count - 1; i >= 0; --i) {
             if (Elements[i] == ConfirmPanelCover) {
@@ -623,7 +631,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             SoundEngine.PlaySound(SoundID.MenuClose);
         }
         for (int i = _confirmPanels.Count - 1; i >= 0; --i) {
-            _confirmPanels[i].Remove();
+            var (panel, onRemoved) = _confirmPanels[i];
+            panel.Remove();
+            onRemoved?.Invoke();
             ConfirmPanelCover.Remove();
         }
         _confirmPanels.Clear();
@@ -878,6 +888,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ButtonDisableRedundant.OnLeftClick += (_, _) => DisableRedundant(false);
         ButtonDisableRedundant.OnRightClick += (_, _) => DisableRedundant(true);
         mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.Tooltip").Value));
+        #endregion
+        #region 更新模组
+        ButtonUpdate = new(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DisplayName"));
+        ButtonUpdate.OnLeftClick += (_, _) => ButtonUpdateClicked();
+        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Update.Tooltip").Value));
         #endregion
 
         #region 按钮占位符
@@ -1571,11 +1586,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     public override void OnDeactivate() {
         OnDeactivate_Loading();
+        OnDeactivate_Update();
         SetListViewPositionAfterGenerated(list.ViewPosition);
         FolderDataSystem.Save();
     }
 
-    #region 加载相关
+    #region 加载相关 (包含删除模组)
     #region 加载动画
     private UILoaderAnimatedImage uiLoader = null!;
     private bool _uiLoaderAppended;
@@ -1751,6 +1767,255 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _downloads.Remove(progress.ModDownloadItem.ModName);
             downloadProgressQueue.Dequeue();
         }
+    }
+    #endregion
+    #region 更新模组
+    private Task? updateTask;
+    private CancellationTokenSource? updateCts;
+    [MemberNotNull(nameof(updateCts))]
+    private void RefreshUpdateCts() {
+        if (updateCts != null) {
+            updateCts.Cancel();
+            updateCts.Dispose();
+        }
+        updateCts = new();
+    }
+    private void ClearUpdateCts() {
+        if (updateCts == null) {
+            return;
+        }
+        updateCts.Cancel();
+        updateCts.Dispose();
+        updateCts = null;
+    }
+    private void ButtonUpdateClicked() {
+        if (!SteamedWraps.SteamAvailable) {
+            return;
+        }
+        ModDownloadItem[]? modsToUpdate = null;
+        #region DOING: 弹出提示窗
+        #region 窗口
+        UIPanel updatePanel = new() {
+            Width = { Pixels = 500 },
+            Height = { Pixels = 500 },
+            HAlign = .5f,
+            VAlign = .7f,
+            BackgroundColor = new Color(63, 82, 151),
+            BorderColor = Color.Black
+        };
+        updatePanel.SetPadding(6);
+        AppendConfirmPanel(updatePanel, ClearUpdateCts);
+        #endregion
+        #region 文本
+        var dialogText = new UIText(ModFolder.Instance.GetLocalization("UI.Buttons.Update.SearchingForMods")) {
+            Width = { Percent = .85f },
+            HAlign = .5f,
+            Top = new(10, 0),
+            IsWrapped = true,
+        };
+        updatePanel.Append(dialogText);
+        #endregion
+        #region 列表
+        UpdateListItem[]? updateListItems = null;
+        bool updateListItemsAdded = false;
+        UIList updateModsList = new() {
+            Left = new(0, 0.05f),
+            Width = new(-20, 0.9f),
+            Top = new(50, 0),
+            Height = new(-120, 1),
+        };
+        UIScrollbar scrollbar = new() {
+            Width = new(20, 0),
+            HAlign = 1,
+            Top = new(50, 0),
+            Height = new(-120, 1),
+        };
+        updateModsList.SetScrollbar(scrollbar);
+        updateModsList.OnUpdate += _ => {
+            if (updateListItems != null && !updateListItemsAdded) {
+                updateListItemsAdded = true;
+                updateModsList.AddRange(updateListItems);
+            }
+        };
+        updatePanel.Append(updateModsList);
+        updatePanel.Append(scrollbar);
+        #endregion
+        #region 按钮是
+        var yesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.104")) {
+            TextColor = Color.Gray,
+            Width = new(-10f, 1f / 3),
+            HAlign = .15f,
+            Height = { Pixels = 40 },
+            Top = new(-60, 1),
+            IgnoresMouseInteraction = true,
+        }.WithFadedMouseOver();
+        yesButton.OnUpdate += _ => {
+            if (updateTask == null && modsToUpdate != null) {
+                yesButton.TextColor = Color.White;
+            }
+        };
+        yesButton.OnLeftClick += (_, _) => {
+            if (updateTask != null || modsToUpdate == null) {
+                return;
+            }
+            if (modsToUpdate.Length <= 0) {
+                RemoveConfirmPanel();
+                return;
+            }
+            var realUpdateListItems = updateListItems?.Where(i => i.Selecting).ToArray();
+            if (realUpdateListItems == null || realUpdateListItems.Length == 0) {
+                Task.Run(() => DownloadHelper.DownloadMods([.. modsToUpdate]));
+            }
+            else {
+                Task.Run(() => DownloadHelper.DownloadMods([.. realUpdateListItems.Select(i => i.Mod)]));
+            }
+            RemoveConfirmPanel();
+        };
+        updatePanel.Append(yesButton);
+        #endregion
+        #region 按钮否
+        var noButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
+            Width = new(-10f, 1f / 3),
+            HAlign = .85f,
+            Height = { Pixels = 40 },
+            Top = new(-60, 1),
+        }.WithFadedMouseOver();
+        noButton.OnLeftClick += (_, _) => RemoveConfirmPanel();
+        updatePanel.Append(noButton);
+        #endregion
+        updatePanel.Recalculate();
+        #endregion
+        RefreshUpdateCts();
+        var token = updateCts.Token;
+        updateTask = Task.Run(async () => {
+            modsToUpdate = DownloadHelper.GetFullDownloadList([.. Interface.modBrowser.SocialBackend.GetInstalledModDownloadItems().Where(item => item.NeedUpdate)]);
+            updateListItems = modsToUpdate.Select(ToUpdateListItem).ToArray();
+            foreach (var item in updateListItems) {
+                item.OnSelected += () => {
+                    foreach (var i in updateListItems) {
+                        if (item.ConnectedMods.Contains(i.Mod)) {
+                            i.SetSelectingQuick(true);
+                        }
+                    }
+                };
+                item.OnDeselected += () => {
+                    foreach (var i in updateListItems) {
+                        if (i.ConnectedMods.Contains(item.Mod)) {
+                            i.SetSelectingQuick(false);
+                        }
+                    }
+                };
+            }
+            while (!updateListItemsAdded) {
+                await Task.Yield();
+                if (token.IsCancellationRequested) {
+                    updateTask = null;
+                    ClearUpdateCts();
+                    return;
+                }
+            }
+            Thread.MemoryBarrier();
+            dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DialogText"));
+            yesButton.TextColor = Color.White;
+            yesButton.IgnoresMouseInteraction = false;
+            updateTask = null;
+            ClearUpdateCts();
+        });
+    }
+
+    private class UpdateListItem : UIPanel {
+        private bool _selecting;
+        public bool Selecting {
+            get => _selecting;
+            set {
+                if (_selecting == value) {
+                    return;
+                }
+                _selecting = value;
+                if (value) {
+                    Text.TextColor = new(255, 231, 69);
+                    BorderColor = IsMouseHovering ? BorderMouseOverAndSelecting : BorderSelecting;
+                    OnSelected?.Invoke();
+                }
+                else {
+                    Text.TextColor = Color.White;
+                    BorderColor = IsMouseHovering ? BorderMouseOver : BorderDefault;
+                    OnDeselected?.Invoke();
+                }
+            }
+        }
+        public void SetSelectingQuick(bool value) {
+            if (_selecting == value) {
+                return;
+            }
+            _selecting = value;
+            if (value) {
+                Text.TextColor = new(255, 231, 69);
+                BorderColor = IsMouseHovering ? BorderMouseOverAndSelecting : BorderSelecting;
+            }
+            else {
+                Text.TextColor = Color.White;
+                BorderColor = IsMouseHovering ? BorderMouseOver : BorderDefault;
+            }
+        }
+        public ModDownloadItem Mod { get; }
+        public HashSet<ModDownloadItem> ConnectedMods { get; }
+        public UIText Text { get; }
+        public event Action? OnSelected;
+        public event Action? OnDeselected;
+
+        public static Color BorderDefault => UICommon.DefaultUIBorder;
+        public static Color BorderMouseOver => new(255, 231, 69);
+        public static Color BorderSelecting => new(191, 173, 69);
+        public static Color BorderMouseOverAndSelecting => new(255, 231, 69);
+        public UpdateListItem(ModDownloadItem mod) {
+            Mod = mod;
+            ConnectedMods = [.. DownloadHelper.GetFullDownloadEnumerable([mod])];
+            ConnectedMods.Remove(mod);
+            SetPadding(4);
+            PaddingTop = PaddingBottom = 8;
+            string str = mod.Installed != null
+                ? ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.UpdateItemPattern").FormatWith(mod.ModName, mod.Installed.Version, mod.Version)
+                : ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.NewItemPattern").FormatWith(mod.ModName, mod.Version);
+            
+            Text = new(str) {
+                Width = new(-4, 1),
+                Height = new(10, 0),
+                TextOriginY = 0.5f,
+                IsWrapped = true,
+                WrappedTextBottomPadding = -12,
+            };
+            Append(Text);
+        }
+        public override void Recalculate() {
+            base.Recalculate();
+            Height.Pixels = (Text.MinHeight.Pixels + PaddingTop + PaddingBottom).WithMin(30);
+            Text.Height.Pixels = Height.Pixels - PaddingTop - PaddingBottom;
+            this.RecalculateSelf();
+        }
+        public override void MouseOver(UIMouseEvent evt) {
+            base.MouseOver(evt);
+            BorderColor = Selecting ? BorderMouseOverAndSelecting : BorderMouseOver;
+        }
+        public override void MouseOut(UIMouseEvent evt) {
+            base.MouseOut(evt);
+            BorderColor = Selecting ? BorderSelecting : BorderDefault;
+        }
+        public override void LeftClick(UIMouseEvent evt) {
+            base.LeftClick(evt);
+            Selecting = !Selecting;
+        }
+    }
+
+    private static UpdateListItem ToUpdateListItem(ModDownloadItem mod) {
+        return new(mod) {
+            Width = new(0, 1),
+            // panel 的 Height 在 Recalculate 时计算
+        };
+    }
+    private void OnDeactivate_Update() {
+        updateTask = null;
+        ClearUpdateCts();
     }
     #endregion
 
