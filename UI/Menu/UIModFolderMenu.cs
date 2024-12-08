@@ -1256,9 +1256,21 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         return result;
     }
     private IEnumerable<UIFolderItem> GetVisibleItems_AllMods(UIModsFilterResults filterResults) {
+        HashSet<string> modsCurrent = [];
         foreach (var item in ModItemDict.Values) {
+            modsCurrent.Add(item.ModName);
             if (item.PassFilters(filterResults)) {
                 yield return item;
+            }
+        }
+        foreach (var mod in FolderDataSystem.Root.ModNodesInTree) {
+            if (modsCurrent.Contains(mod.ModName)) {
+                continue;
+            }
+            modsCurrent.Add(mod.ModName);
+            UIModItemInFolderUnloaded uiModUnloaded = new(mod);
+            if (uiModUnloaded.PassFilters(filterResults)) {
+                yield return uiModUnloaded;
             }
         }
     }
