@@ -69,19 +69,22 @@ public class UIFolder : UIFolderItem {
     #endregion
     public override void OnInitialize() {
         #region 文件夹图标
-        _folderIcon = new(UICommon.ButtonOpenFolder) {
+        _folderIcon = new(UICommon.ButtonOpenFolder) { // 22 x 22
             Left = { Pixels = 1 },
             Top = { Pixels = 1 },
-            Width = { Pixels = 28 },
-            Height = { Pixels = 28 },
+            Width = { Pixels = 30 },
+            Height = { Pixels = 30 },
             ScaleToFit = true,
             AllowResizingDimensions = false,
         };
         Append(_folderIcon);
         #endregion
         #region 名称
-        _folderName = new(Name ?? string.Empty);
-        _folderName.Left.Pixels = 35;
+        int folderNameLeft = 37;
+        _folderName = new(Name ?? string.Empty) {
+            Left = new(folderNameLeft, 0),
+        };
+        _folderName.Left.Pixels = folderNameLeft;
         // _folderName.Top.Pixels = 7;
         _folderName.VAlign = 0.5f;
         _folderNameIndex = this.AppendAndGetIndex(_folderName);
@@ -146,10 +149,10 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 重命名输入框
         _renameText = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value) {
-            Left = { Pixels = 35 },
-            Top = { Pixels = 5 },
-            Height = { Pixels = -5, Percent = 1 },
-            Width = { Pixels = -35 + rightRowOffset, Percent = 1 },
+            Left = new(folderNameLeft, 0),
+            Height = new(-6, 1),
+            VAlign = 1,
+            Width = { Pixels = -folderNameLeft + rightRowOffset, Percent = 1 },
             UnfocusOnTab = true,
         };
         _renameText.OnUnfocus += OnUnfocus_TryRename;
@@ -337,9 +340,9 @@ public class UIFolder : UIFolderItem {
 
     private void OnUnfocus_TryRename(object sender, EventArgs e) {
         var newName = _renameText.CurrentString;
+        replaceToFolderName = true;
         // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
         if (FolderNode == null || newName == ".." || newName == string.Empty) {
-            replaceToFolderName = true;
             return;
         }
         if (Name == newName) {
@@ -348,7 +351,6 @@ public class UIFolder : UIFolderItem {
         FolderNode.FolderName = newName;
         Name = newName;
         _folderName.SetText(newName);
-        replaceToFolderName = true;
         UIModFolderMenu.Instance.ArrangeGenerate();
         FolderDataSystem.TrySaveWhenChanged();
     }
@@ -369,10 +371,10 @@ public class UIFolder : UIFolderItem {
         return null;
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
+        CheckReplace();
         base.DrawSelf(spriteBatch);
         DrawEnableStatus(spriteBatch);
         UpdateEnableStatusText();
-        CheckReplace();
     }
     private int RandomStartOffset => FolderNode?.EnableStatusRandomOffset ?? 0;
     private void UpdateEnableStatusText() {

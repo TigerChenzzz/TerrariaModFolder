@@ -13,7 +13,7 @@ namespace ModFolder.UI.UIFolderItems;
 public class UIFolderItem : UIElement {
     #region 构造
     public UIFolderItem() : base() {
-        Height.Pixels = 30;
+        Height.Pixels = 32;
         Width.Percent = 1f;
         OnRightMouseDown += (_, _) => {
             if (RightDraggable) {

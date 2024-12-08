@@ -44,23 +44,23 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     public override void OnInitialize() {
         #region 名字与重命名输入框
         OnInitialize_ProcessName(new(GetModDisplayName()) {
-            Left = { Pixels = 35 },
+            Left = { Pixels = 37 },
             Height = { Precent = 1 },
             TextOriginY = 0.5f,
         }, new(ModDisplayNameClean) {
-            Left = { Pixels = 35 },
-            Top = { Pixels = 5 },
-            Height = { Pixels = -5, Percent = 1 },
+            Left = { Pixels = 37 },
+            Top = { Pixels = 6 },
+            Height = { Pixels = -6, Percent = 1 },
             UnfocusOnTab = true,
         });
         #endregion
         #region 删除按钮
         int bottomRightRowOffset = -30;
         deleteModButton = new UIImage(MTextures.ButtonDelete) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            Left = { Pixels = bottomRightRowOffset, Precent = 1 },
-            Top = { Pixels = -12, Percent = 0.5f },
+            Width = new(24, 0),
+            Height = new(24, 0),
+            Left = new(bottomRightRowOffset, 1),
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -72,10 +72,10 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #region 重命名
         bottomRightRowOffset -= 24;
         renameButton = new(MTextures.ButtonRename) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            Left = { Pixels = bottomRightRowOffset, Precent = 1 },
-            Top = { Pixels = -12, Percent = 0.5f },
+            Width = new(24, 0),
+            Height = new(24, 0),
+            Left = new(bottomRightRowOffset, 1),
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -87,10 +87,10 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         bottomRightRowOffset -= 24;
         if (ModNode.PublishId != 0 && SteamedWraps.SteamAvailable) {
             subsribeButton = new(MTextures.ButtonSubscribe) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                Left = { Pixels = bottomRightRowOffset, Precent = 1 },
-                Top = { Pixels = -12, Percent = 0.5f },
+                Width = new(24, 0),
+                Height = new(24, 0),
+                Left = new(bottomRightRowOffset, 1),
+                VAlign = .5f,
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
@@ -136,7 +136,6 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         };
         return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;
     }
-
 
     #region 订阅 (下载)
     // TODO: 检查 SteamedWraps.SteamAvailable 以判断是否可以下载

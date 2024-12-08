@@ -97,6 +97,7 @@ UI: {
 			NewItemPattern: "{0}: {1}"
 			SearchingForMods: 正在搜索需要更新的模组...
 			DialogText: 确认要更新以下模组吗?
+			NoModsToUpdate: 没有模组需要更新。
 		}
 
 		Export.Tooltip:

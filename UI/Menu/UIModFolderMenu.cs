@@ -1839,11 +1839,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = new(-60, 1),
             IgnoresMouseInteraction = true,
         }.WithFadedMouseOver();
-        yesButton.OnUpdate += _ => {
-            if (updateTask == null && modsToUpdate != null) {
-                yesButton.TextColor = Color.White;
-            }
-        };
         yesButton.OnLeftClick += (_, _) => {
             if (updateTask != null || modsToUpdate == null) {
                 return;
@@ -1900,16 +1895,19 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 await Task.Yield();
                 if (token.IsCancellationRequested) {
                     updateTask = null;
-                    ClearUpdateCts();
                     return;
                 }
             }
             Thread.MemoryBarrier();
-            dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DialogText"));
-            yesButton.TextColor = Color.White;
-            yesButton.IgnoresMouseInteraction = false;
+            if (updateListItems.Length > 0) {
+                dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DialogText"));
+                yesButton.TextColor = Color.White;
+                yesButton.IgnoresMouseInteraction = false;
+            }
+            else {
+                dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.Update.NoModsToUpdate"));
+            }
             updateTask = null;
-            ClearUpdateCts();
         });
     }
 

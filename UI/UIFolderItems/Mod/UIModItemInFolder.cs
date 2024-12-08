@@ -11,7 +11,6 @@ namespace ModFolder.UI.UIFolderItems.Mod;
 /// </summary>
 public abstract class UIModItemInFolder : UIFolderItem {
     #region 名字, 显示名与别名
-
     public abstract string ModName { get; }
 
     public abstract string ModDisplayName { get; }

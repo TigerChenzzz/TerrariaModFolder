@@ -94,12 +94,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #endregion
 
         #region 图标
-        float leftOffset = 30;
+        float leftOffset = 32;
         _modIcon = new(Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon")) {
             Left = { Pixels = 1 },
             Top = { Pixels = 1 },
-            Width = { Pixels = 28 },
-            Height = { Pixels = 28 },
+            Width = { Pixels = 30 },
+            Height = { Pixels = 30 },
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -134,7 +134,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
         #endregion
         #region 名字
-        if (leftOffset == 30) {
+        if (leftOffset == 32) {
             leftOffset += 5;
         }
         else {
@@ -174,8 +174,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 重命名输入框
         _renameText = new(_mod.DisplayNameClean) {
             Left = { Pixels = leftOffset },
-            Top = { Pixels = 5 },
-            Height = { Pixels = -5, Percent = 1 },
+            Top = { Pixels = 6 },
+            Height = { Pixels = -6, Percent = 1 },
             UnfocusOnTab = true,
         };
         // leftOffset += _modName.MinWidth.Pixels;
@@ -209,7 +209,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             leftOffset += 8;
             updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
                 Left = { Pixels = leftOffset, Percent = 1 },
-                Top = { Pixels = 8, Percent = 0f },
+                VAlign = .5f,
                 Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212),
             };
             //_modName.Left.Pixels += 18; // use these 2 for left of the modname
@@ -244,6 +244,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             tMLUpdateRequired.BackgroundColor = updateColor * 0.7f;
             tMLUpdateRequired.Width.Pixels = 280;
             tMLUpdateRequired.Height.Pixels = 30;
+            tMLUpdateRequired.VAlign = 0.5f;
+            tMLUpdateRequired.Left.Pixels = 32;
             tMLUpdateRequired.OnLeftClick += (a, b) => {
                 Utils.OpenToURL(updateURL);
             };
@@ -260,7 +262,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         DeleteButton = new(MTextures.ButtonDelete) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
-            Top = { Pixels = -12, Percent = 0.5f },
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -284,7 +286,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         RenameButton = new(MTextures.ButtonRename) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
-            Top = { Pixels = -12, Percent = 0.5f },
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -296,7 +298,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         MoreInfoButton = new(UICommon.ButtonModInfoTexture) {
             Width = { Pixels = 24 },
             Height = { Pixels = 24 },
-            Top = { Pixels = -12, Percent = 0.5f },
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -310,7 +312,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             ConfigButton = new(UICommon.ButtonModConfigTexture) {
                 Width = { Pixels = 24 },
                 Height = { Pixels = 24 },
-                Top = { Pixels = -12, Percent = 0.5f },
+                VAlign = .5f,
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
@@ -329,7 +331,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         ModReferenceIcon = new(UICommon.ButtonDepsTexture) {
             Width = new(24, 0),
             Height = new(24, 0),
-            Top = new(-12, 0.5f),
+            VAlign = .5f,
             ScaleToFit = true,
             AllowResizingDimensions = false,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -345,7 +347,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             TranslationModIcon = new(icon) {
                 Width = new(24, 0),
                 Height = new(24, 0),
-                Top = new(-12, 0.5f),
+                VAlign = .5f,
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
                 RemoveFloatingPointsFromDrawPosition = true,
@@ -411,10 +413,11 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         // TODO: 修改这个
         if (loadedMod != null && _mod.modFile.path != loadedMod.File.path) {
             var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session") {
-                Left = new StyleDimension(0, 0f),
-                Width = new StyleDimension(0, 1f),
-                Height = new StyleDimension(30, 0f),
+                Width = new(0, 1f),
+                Height = new(30, 0f),
+                VAlign = .5f,
                 BackgroundColor = Color.Orange,
+                IgnoresMouseInteraction = true,
                 // Top = { Pixels = 82 },
             };
             Append(serverDiffMessage);

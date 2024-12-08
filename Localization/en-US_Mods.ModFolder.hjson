@@ -97,6 +97,7 @@ UI: {
 			NewItemPattern: "{0}: {1}"
 			SearchingForMods: Searching for mods to update...
 			DialogText: Are you sure to update the mods below?
+			NoModsToUpdate: No mods to update.
 		}
 
 		Export.Tooltip:
