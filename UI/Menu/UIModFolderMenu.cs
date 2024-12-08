@@ -70,8 +70,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     #region 文件夹路径
+    // Old: 若为空则代表处于根目录下
     /// <summary>
-    /// 当前处于哪个文件夹下, 若为空则代表处于根目录下
+    /// 当前处于哪个文件夹下
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
     public UIHorizontalList folderPathList = null!;
@@ -157,8 +158,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyEnabled      { get => buttons[6]; set => buttons[6] = value; }
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get => buttons[7]; set => buttons[7] = value; }
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonUpdate           { get => buttons[8]; set => buttons[8] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonImport           { get => buttons[9]; set => buttons[9] = value; }
 
-    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[9];
+    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[10];
     private readonly UIAutoScaleTextTextPanel<string>[] buttonPlaceHolders = new UIAutoScaleTextTextPanel<string>[6];
     int buttonPage;
     readonly int buttonPageMax = 2;
@@ -837,8 +839,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             CurrentFolderNode.SetChildAtTheTop(node);
             nodeToRename = node;
             list.ViewPosition = 0;
-            ArrangeGenerate();
-            FolderDataSystem.TrySaveWhenChanged();
         };
         #endregion
         #region 返回按钮
@@ -855,13 +855,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
             SoundEngine.PlaySound(SoundID.MenuTick);
             if (Main.keyState.PressingControl()) {
-                CurrentFolderNode.ClearChildren();
+                CurrentFolderNode.ClearChildrenF();
             }
             if (Main.keyState.PressingShift()) {
                 foreach (var mod in ModItemDict.Values) {
                     if (mod.TheLocalMod.Enabled) {
                         _ = new ModNode(mod.ModName) {
-                            Parent = CurrentFolderNode
+                            ParentF = CurrentFolderNode
                         };
                     }
                 }
@@ -870,13 +870,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 foreach (var mod in ModItemDict.Values) {
                     if (mod.Loaded) {
                         _ = new ModNode(mod.ModName) {
-                            Parent = CurrentFolderNode
+                            ParentF = CurrentFolderNode
                         };
                     }
                 }
             }
-            ArrangeGenerate();
-            FolderDataSystem.TrySaveWhenChanged();
+            FolderDataSystem.AfterChanged();
         };
         mouseOverTooltips.Add((ButtonCopyEnabled, () => ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.Tooltip").Value));
         #endregion
@@ -890,6 +889,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ButtonUpdate = new(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DisplayName"));
         ButtonUpdate.OnLeftClick += (_, _) => ButtonUpdateClicked();
         mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Update.Tooltip").Value));
+        #endregion
+        #region 导入文件夹
+        ButtonImport = new(ModFolder.Instance.GetLocalization("UI.Buttons.Import.DisplayName"));
+        ButtonImport.OnLeftClick += (_, _) => ShareHelper.Import(CurrentFolderNode, Main.keyState.PressingShift(), Main.keyState.PressingAlt());
+        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Import.Tooltip").Value));
         #endregion
 
         #region 按钮占位符
@@ -1296,7 +1300,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         if (nodesToRemove.Count != 0) {
             foreach (var nodeToRemove in nodesToRemove) {
-                nodeToRemove.Parent = null;
+                nodeToRemove.ParentF = null;
             }
             FolderDataSystem.TrySaveWhenChanged();
         }
@@ -1315,7 +1319,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
             created = true;
             ModNode m = new(value.TheLocalMod) {
-                Parent = FolderDataSystem.Root
+                ParentF = FolderDataSystem.Root
             };
             if (value.PassFilters(filterResults)) {
                 value.ModNode = m;
@@ -1533,38 +1537,27 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 node = new ModNode(mn);
             }
             else {
-                node.Parent = null;
+                node.ParentF = null;
             }
 
             if (node is ModNode modNode) {
                 foreach (var child in folder.Children) {
                     if (child is ModNode m && m.ModName == modNode.ModName) {
-                        ArrangeGenerate();
+                        FolderDataSystem.AfterChanged();
                         return;
                     }
                 }
             }
             node.Parent = folder;
-            ArrangeGenerate();
-            FolderDataSystem.TrySaveWhenChanged();
         }
         void MoveNodeBeforeNode(Node node, Node target) {
-            if (CurrentFolderNode.MoveChildBeforeChild(node, target)) {
-                ArrangeGenerate();
-                FolderDataSystem.TrySaveWhenChanged();
-            }
+            CurrentFolderNode.MoveChildBeforeChild(node, target);
         }
         void MoveNodeAfterNode(Node node, Node target) {
-            if (CurrentFolderNode.MoveChildAfterChild(node, target)) {
-                ArrangeGenerate();
-                FolderDataSystem.TrySaveWhenChanged();
-            }
+            CurrentFolderNode.MoveChildAfterChild(node, target);
         }
         void MoveNodeToTheStart(Node node) {
-            if (node.MoveToTheTop()) {
-                ArrangeGenerate();
-                FolderDataSystem.TrySaveWhenChanged();
-            }
+            node.MoveToTheTop();
         }
         #endregion
     }
@@ -1790,7 +1783,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         ModDownloadItem[]? modsToUpdate = null;
-        #region DOING: 弹出提示窗
+        #region 弹出提示窗
         #region 窗口
         UIPanel updatePanel = new() {
             Width = { Pixels = 500 },

@@ -98,6 +98,24 @@ UI: {
 			SearchingForMods: Searching for mods to update...
 			DialogText: Are you sure to update the mods below?
 		}
+
+		Export.Tooltip:
+			'''
+			Export to clipboard
+			Pressing Shift to not export the display names
+			Pressing Ctrl to export the aliases
+			Pressing Alt to export the favorite status
+			'''
+
+		Import: {
+			DisplayName: Import Folder
+			Tooltip:
+				'''
+				Import a folder from the clipboard to the current folder
+				Pressing Shift to allow to replace the existing display names and aliases
+				Pressing Alt to allow to import the favorite status
+				'''
+		}
 	}
 
 	SortButtons: {

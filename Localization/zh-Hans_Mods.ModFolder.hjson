@@ -98,6 +98,24 @@ UI: {
 			SearchingForMods: 正在搜索需要更新的模组...
 			DialogText: 确认要更新以下模组吗?
 		}
+
+		Export.Tooltip:
+			'''
+			导出到剪切板
+			按住 Shift 以不导出显示名
+			按住 Ctrl 以导出别名
+			按住 Alt 以导出收藏状态
+			'''
+
+		Import: {
+			DisplayName: 导入文件夹
+			Tooltip:
+				'''
+				从剪切板将一个文件夹导入到当前文件夹下
+				按住 Shift 以允许替换当前存在的显示名和别名
+				按住 Alt 以允许导入收藏状态
+				'''
+		}
 	}
 
 	SortButtons: {

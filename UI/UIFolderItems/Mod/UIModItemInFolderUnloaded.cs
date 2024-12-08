@@ -360,9 +360,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
     private void DeleteModNode(UIMouseEvent evt, UIElement listeningElement) {
         _modNode.Parent = null;
-        UIModFolderMenu.Instance.ArrangeGenerate();
         UIModFolderMenu.Instance.RemoveConfirmPanel();
-        FolderDataSystem.TrySaveWhenChanged();
     }
     #endregion
 }

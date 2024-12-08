@@ -1,4 +1,5 @@
 ﻿using ModFolder.Configs;
+using ModFolder.UI.Menu;
 using ModFolder.UI.UIFolderItems.Mod;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -13,6 +14,22 @@ public static class FolderDataSystem {
     public class Node {
         protected FolderNode? _parent;
         public FolderNode? Parent {
+            get => _parent;
+            set {
+                if (_parent == value) {
+                    return;
+                }
+                _parent?.ChildrenPublic.Remove(this);
+                _parent = value;
+                value?.ChildrenPublic.Add(this);
+                AfterChanged();
+            }
+        }
+        /// <summary>
+        /// <br/>不会自动调用 <see cref="AfterChanged"/>
+        /// <br/>但仍然会处理父子关系
+        /// </summary>
+        public FolderNode? ParentF {
             get => _parent;
             set {
                 if (_parent == value) {
@@ -43,11 +60,13 @@ public static class FolderDataSystem {
             for (int i = 0; i < children.Count; ++i) {
                 (node, children[i]) = (children[i], node);
                 if (node == this) {
+                    AfterChanged();
                     return true;
                 }
             }
             children.Add(node);
             ModFolder.Instance.Logger.Error("parent should contain the child at MoveToTheTop");
+            AfterChanged();
             return true;
         }
     }
@@ -205,10 +224,12 @@ public static class FolderDataSystem {
             }
         }
         #region 树操作
+        public void AddChild(Node child) => child.Parent = this;
         public void SetChildAtTheTop(Node child) {
-            child.Parent = null;
+            child.ParentF = null;
             child.ParentPublic = this;
             _children.Insert(0, child);
+            AfterChanged();
         }
         /// <summary>
         /// 返回是否有改变
@@ -236,6 +257,7 @@ public static class FolderDataSystem {
                     else {
                         _children.Insert(i, child);
                     }
+                    AfterChanged();
                     return true;
                 }
             }
@@ -265,6 +287,7 @@ public static class FolderDataSystem {
                     else {
                         _children.Insert(i + 1, child);
                     }
+                    AfterChanged();
                     return true;
                 }
             }
@@ -290,8 +313,10 @@ public static class FolderDataSystem {
             Parent._children.RemoveAt(index);
             Parent._children.InsertRange(index, _children);
             _parent = null;
+            AfterChanged();
         }
         public void ClearChildren() => _children.Clear();
+        public void ClearChildrenF() => _children.Clear();
         #endregion
     }
     public class RootNode : FolderNode {
@@ -406,7 +431,7 @@ public static class FolderDataSystem {
         }
         _root = LoadNode(data) is not FolderNode node ? new() : new(node);
     }
-    private static Node? LoadNode(JObject data) {
+    public static Node? LoadNode(JObject data) {
         if (data.TryGetValue("FolderName", out var folderNameToken) && folderNameToken is JValue folderNameValue && folderNameValue.Value?.ToString() is string folderNameString) {
             FolderNode folderNode = new(folderNameString);
             if (data.TryGetValue("Children", out var children)) {
@@ -427,7 +452,7 @@ public static class FolderDataSystem {
         foreach (var child in children.Children<JObject>()) {
             var childNode = LoadNode(child);
             if (childNode != null) {
-                childNode.Parent = folder;
+                childNode.ParentF = folder;
             }
         }
     }
@@ -489,5 +514,9 @@ public static class FolderDataSystem {
             toRemoves.Clear();
         }
         return anyRemoved;
+    }
+    public static void AfterChanged() {
+        TrySaveWhenChanged();
+        UIModFolderMenu.Instance.ArrangeGenerate();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Humanizer;
 using ModFolder.Configs;
+using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
@@ -16,6 +17,9 @@ namespace ModFolder.UI.UIFolderItems.Folder;
 /// </summary>
 public class UIFolder : UIFolderItem {
     public override FolderItemTypeEnum FolderItemType => FolderItemTypeEnum.Folder;
+    /// <summary>
+    /// 当此文件夹是返回上一级的文件夹时此值为空
+    /// </summary>
     public FolderDataSystem.FolderNode? FolderNode;
     public override FolderDataSystem.Node? Node => FolderNode;
     public string Name { get; set; }
@@ -28,6 +32,7 @@ public class UIFolder : UIFolderItem {
     private UIFocusInputTextFieldPro _renameText = null!;
     private UIImage? _deleteButton;
     private UIImage? _renameButton;
+    private UIImage? _exportButton;
     private UIText _enableStatusText = null!;
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
@@ -110,7 +115,23 @@ public class UIFolder : UIFolderItem {
             };
             _renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
             Append(_renameButton);
-            mouseOverTooltips.Add((_renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
+            mouseOverTooltips.Add((_renameButton, () => ModFolder.Instance.GetLocalizedValue("UI.Rename")));
+        }
+        #endregion
+        #region 导出按钮
+        rightRowOffset -= 24;
+        if (FolderNode != null) {
+            _exportButton = new UIImage(MTextures.ButtonExport) {
+                Width = { Pixels = 24 },
+                Height = { Pixels = 24 },
+                Left = { Pixels = rightRowOffset, Precent = 1 },
+                Top = { Pixels = -12, Percent = 0.5f },
+                ScaleToFit = true,
+                AllowResizingDimensions = false,
+            };
+            _exportButton.OnLeftClick += (_, _) => ShareHelper.Export(FolderNode, !Main.keyState.PressingShift(), Main.keyState.PressingControl(), Main.keyState.PressingAlt());
+            Append(_exportButton);
+            mouseOverTooltips.Add((_exportButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Export.Tooltip")));
         }
         #endregion
         #region 启用状态
@@ -249,8 +270,6 @@ public class UIFolder : UIFolderItem {
             else {
                 FolderNode.Parent = null;
             }
-            FolderDataSystem.TrySaveWhenChanged();
-            UIModFolderMenu.Instance.ArrangeGenerate();
         }
     }
     private void UnsubscribeAllDoubleConfirm() {

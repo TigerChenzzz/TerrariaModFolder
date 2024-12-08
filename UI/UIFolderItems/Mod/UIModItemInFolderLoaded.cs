@@ -26,37 +26,22 @@ namespace ModFolder.UI.UIFolderItems.Mod;
 public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     public override FolderDataSystem.Node? Node => ModNode;
     public FolderDataSystem.ModNode? ModNode { get; set; }
-    [MemberNotNull(nameof(ModNode))]
-    public FolderDataSystem.ModNode GetModNode() {
-        return ModNode ??= new(_mod) {
-            Parent = UIModFolderMenu.Instance.CurrentFolderNode
-        };
-    }
-    [MemberNotNull(nameof(ModNode))]
-    public bool TryGenerateModNode() {
-        if (ModNode != null) {
-            return false;
-        }
-        ModNode = new(_mod) {
-            Parent = UIModFolderMenu.Instance.CurrentFolderNode
-        };
-        return true;
-    }
-
     public LocalMod TheLocalMod => _mod;
     public bool Loaded => _loaded;
     public override DateTime LastModified => _mod.lastModified;
     public override bool Favorite {
-        get => ModNode?.Favorite ?? false;
+        get => FolderDataSystem.Favorites.Contains(ModName);
         set {
-            bool changed = TryGenerateModNode();
-            if (ModNode.Favorite != value) {
-                ModNode.Favorite = value;
-                changed = true;
+            if (Favorite == value) {
+                return;
             }
-            if (changed) {
-                FolderDataSystem.TrySaveWhenChanged();
+            if (value) {
+                FolderDataSystem.Favorites.Add(ModName);
             }
+            else {
+                FolderDataSystem.Favorites.Remove(ModName);
+            }
+            FolderDataSystem.TrySaveWhenChanged();
         }
     }
     private ulong? _publishId;
@@ -1009,8 +994,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         // TODO: 在显示全部界面不可以删除索引的提示
         if (UIModFolderMenu.Instance.ShowFolderSystem && Main.keyState.PressingShift() && ModNode != null) {
             ModNode.Parent = null;
-            UIModFolderMenu.Instance.ArrangeGenerate();
-            FolderDataSystem.TrySaveWhenChanged();
         }
         UIModFolderMenu.Instance.RemoveConfirmPanel();
     }
