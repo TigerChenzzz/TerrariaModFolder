@@ -1,5 +1,15 @@
 Changelog:
 	'''
+	[c/00ff00:v0.4.0]
+	[c/ff0000:- allow import and export folders via clipboard, the "Import Folder" button is in "More Buttons"]
+	[c/999999:- the mod item is a bit taller, make icon_small not compressed (30px -> 32px)]
+	[c/999999:- fix the rename input field of folder keeps existing when not actually renamed]
+	- "Update Mods" button now gives the tip when no mods need to update
+	[c/ffff00:- When showing all mods, the unloaded mods are also shown]
+	- folders and not loaded mods can also be sorted by last modified
+	[c/ff0000:- add popup infos, in some cases (such as import and export) a popup info would be shown at the bottom right]
+	[c/999999:- fix the big icon somethings not show up when hovering over the icon]
+
 	[c/00ff00:v0.3.2]
 	[c/ff0000:- add an "Update Mods" button (in "More Buttons"), to directly check and update mods]
 	[c/999999:- configure whether to totally reload the folder system when entering again]

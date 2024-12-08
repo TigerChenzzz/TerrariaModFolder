@@ -23,11 +23,10 @@ namespace ModFolder;
 
 // BUG: 启用时可能启用到过期的模组?
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
-// BUG: Generate 之后收藏等信息丢失
+// BUG: Generate 之后收藏等信息丢失?
 
 // TODO: 检查更新按钮 (提示有哪些模组需要更新? 筛选需要更新的模组?) / 更新全部 / 单个模组更新 (代码参见 UIModBrowser)
-// TODO: 筛选是否已订阅, 筛选模组位置 (steam, 本地, 整合包)
-// TODO: 显示全部模组中也显示未订阅的
+// TODO: 筛选模组位置 (steam, 本地, 整合包)
 
 // TODO: "单击以禁用 ? 和 ? 个依赖模组" (hjson 中的 ModsDisableAndDependents, ModsEnableAndDependencies)
 // TODO: 一键订阅按钮
@@ -57,8 +56,6 @@ namespace ModFolder;
 
 // TODO: 添加按钮是否筛选文件夹
 // TODO: 分组与筛选: 按类型 (客户端 / 服务端 / 文件夹), 按 Steam 还是本地文件, 按收藏, 筛选最近更新与新添加
-
-// TODO: 文件夹的最近更新属性
 
 // TODO: 搜索全部时同时搜索文件夹, 同时展示文件夹或模组的位置 (文件夹树中)
 //           搜索当前文件夹下的所有模组, 显示其位置

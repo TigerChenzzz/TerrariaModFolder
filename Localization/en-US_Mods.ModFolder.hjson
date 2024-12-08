@@ -186,5 +186,8 @@ UI: {
 		SteamNotAvailable: Steam not available!
 		DownloadModError: Download mods error! See log for more detailed info.
 		CantFindModInWorkshop: Can't find the mod in workshop: {0} ({1})
+		EnableNotAllowedWhenLoading: Can't enable mods when loading!
+		DisableNotAllowedWhenLoading: Can't disable mods when loading!
+		ResetNotAllowedWhenLoading: Can't reset mods when loading!
 	}
 }

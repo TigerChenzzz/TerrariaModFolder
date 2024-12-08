@@ -1086,8 +1086,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private void EnableMods() {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
+            PopupInfoByKey("UI.PopupInfos.EnableNotAllowedWhenLoading");
             return;
         }
         HashSet<string> enabled = [];
@@ -1113,8 +1113,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void DisableMods(bool disableRedundantDependencies, bool ignoreFavorite) {
         SoundEngine.PlaySound(SoundID.MenuTick);
         // TODO: 在同时取消收藏且全部取消时不用在乎是否加载完成, 可一键全部取消 (ModLoader.DisableAllMods();)
-        // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
+            PopupInfoByKey("UI.PopupInfos.DisableNotAllowedWhenLoading");
             return;
         }
         HashSet<string> disabled = [];
@@ -1134,8 +1134,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private void ResetMods() {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
+            PopupInfoByKey("UI.PopupInfos.ResetNotAllowedWhenLoading");
             return;
         }
         HashSet<string> enabled = [];
@@ -1164,8 +1164,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private void DisableRedundant(bool rightclick) {
         SoundEngine.PlaySound(SoundID.MenuTick);
-        // TODO: 未加载完成时给出(悬浮)提示
         if (!Loaded) {
+            PopupInfoByKey("UI.PopupInfos.DisableNotAllowedWhenLoading");
             return;
         }
         HashSet<string> disabled = [];
@@ -2069,7 +2069,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     public static void PopupInfo(string message) {
-        // TODO: 相关内容的本地化
         MenuNotificationsTracker.AddNotification(new TextNotification(message, new(0, 0.25f)));
     }
     public static void PopupInfoByKey(string keyFromMod) {
