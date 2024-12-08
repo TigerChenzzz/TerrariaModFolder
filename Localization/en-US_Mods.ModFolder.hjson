@@ -179,5 +179,12 @@ UI: {
 		CantSubscribeWhenDownloading: Downloading mod!
 		CantSubscribeWhenSubscribing: Already subscribing! Don't repeatly click!
 		CantSubscribeWhenLoading: Can't subscibe when loading! Please wait for loading complete!
+		Exported: Folder content exported to clipboard!
+		ImportNotAllowedWhenShowingAllMods: Import is not allowed when showing all mods, please use folder system!
+		ImportClipboardInvalid: Clipboard content is invalid!
+		Imported: A folder has been imported from clipbard to the current folder!
+		SteamNotAvailable: Steam not available!
+		DownloadModError: Download mods error! See log for more detailed info.
+		CantFindModInWorkshop: Can't find the mod in workshop: {0} ({1})
 	}
 }

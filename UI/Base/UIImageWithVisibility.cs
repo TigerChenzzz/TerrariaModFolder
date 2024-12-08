@@ -5,7 +5,17 @@ using Terraria.UI;
 namespace ModFolder.UI.Base;
 
 internal class UIImageWithVisibility(Asset<Texture2D> texture) : UIImage(texture) {
-    public float Visibility { get; set; } = 1;
+    private float _visibility = 1;
+    public float Visibility {
+        get => _visibility;
+        set {
+            if (_visibility == value) {
+                return;
+            }
+            _visibility = value;
+            IgnoresMouseInteraction = _visibility <= 0;
+        }
+    }
 
     public override void DrawSelf(SpriteBatch spriteBatch) {
         if (Visibility <= 0) {

@@ -179,5 +179,12 @@ UI: {
 		CantSubscribeWhenDownloading: 正在下载模组!
 		CantSubscribeWhenSubscribing: 正在尝试订阅! 请勿重复点击!
 		CantSubscribeWhenLoading: 暂时无法订阅! 请先等待加载完成!
+		Exported: 文件夹内容已导出到剪切板!
+		ImportNotAllowedWhenShowingAllMods: 当显示所有模组时无法导入, 请使用文件夹系统!
+		ImportClipboardInvalid: 剪切板内容不合法!
+		Imported: 一个文件夹已从剪切板导入到当前文件夹下!
+		SteamNotAvailable: Steam 不可用!
+		DownloadModError: 下载模组时发生错误! 具体错误请查看日志.
+		CantFindModInWorkshop: 未在创意工坊找到模组: {0} ({1})
 	}
 }

@@ -19,22 +19,35 @@ public static class ShareHelper {
         var obj = new ShareFormatClass(folder, includeDisplayNames, includeAliases, includeFavorites);
         ClipboardValue = JsonConvert.SerializeObject(obj);
     }
-    public static void Import(FolderNode currentFolder, bool replace, bool includeFavorites) {
+    public enum ImportResult {
+        Success,
+        InvalidClipboard,
+    }
+    public static ImportResult Import(FolderNode currentFolder, bool replace, bool includeFavorites) {
         JObject data;
         using (new Logging.QuietExceptionHandle()) {
             try {
                 if (ClipboardValue == null) {
-                    return;
+                    return ImportResult.InvalidClipboard;
                 }
                 var json = JsonConvert.DeserializeObject(ClipboardValue);
                 if (json is not JObject jObject) {
-                    return;
+                    return ImportResult.InvalidClipboard;
                 }
                 data = jObject;
             }
             catch (Exception e) when (e is JsonReaderException or JsonSerializationException) {
                 ModFolder.Instance.Logger.Warn("Load folder data failed!", e);
-                return;
+                return ImportResult.InvalidClipboard;
+            }
+        }
+        if (!data.TryGetValue(nameof(ShareFormatClass.Folder), out var folderToken)) {
+            return ImportResult.InvalidClipboard;
+        }
+        if (folderToken is JObject folderData) {
+            var node = LoadNode(folderData);
+            if (node != null) {
+                currentFolder.AddChild(node);
             }
         }
         if (data.TryGetValue(nameof(ShareFormatClass.PublishIds), out var publishIdsToken)) {
@@ -49,21 +62,13 @@ public static class ShareHelper {
             var modAliases = modAliasesToken.ToObject<Dictionary<string, string>>();
             SetData(modAliases, ModAliases, replace);
         }
-        if (data.TryGetValue(nameof(ShareFormatClass.Favorites), out var favoritesToken)) {
+        if (includeFavorites && data.TryGetValue(nameof(ShareFormatClass.Favorites), out var favoritesToken)) {
             var favorites = favoritesToken.ToObject<HashSet<string>>();
             if (favorites != null) {
                 Favorites.AddRange(favorites);
             }
         }
-        // DOING: folder
-        if (data.TryGetValue(nameof(ShareFormatClass.Folder), out var folderToken)) {
-            if (folderToken is JObject folderData) {
-                var node = LoadNode(folderData);
-                if (node != null) {
-                    currentFolder.AddChild(node);
-                }
-            }
-        }
+        return ImportResult.Success;
     }
     private static void SetData<T>(Dictionary<string, T>? from, Dictionary<string, T> to, bool replace) {
         if (from == null) {

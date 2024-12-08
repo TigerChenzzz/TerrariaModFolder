@@ -4,6 +4,7 @@ using ModFolder.Configs;
 using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
+using ModFolder.UI.Menu.Notification;
 using ModFolder.UI.UIFolderItems;
 using ModFolder.UI.UIFolderItems.Folder;
 using ModFolder.UI.UIFolderItems.Mod;
@@ -905,7 +906,22 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 导入文件夹
         ButtonImport = new(ModFolder.Instance.GetLocalization("UI.Buttons.Import.DisplayName"));
-        ButtonImport.OnLeftClick += (_, _) => ShareHelper.Import(CurrentFolderNode, Main.keyState.PressingShift(), Main.keyState.PressingAlt());
+        ButtonImport.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            if (ShowAllMods) {
+                PopupInfoByKey("UI.PopupInfos.ImportNotAllowedWhenShowingAllMods");
+                return;
+            }
+            var result = ShareHelper.Import(CurrentFolderNode, Main.keyState.PressingShift(), Main.keyState.PressingAlt());
+            switch (result) {
+            case ShareHelper.ImportResult.Success:
+                PopupInfoByKey("UI.PopupInfos.Imported");
+                break;
+            case ShareHelper.ImportResult.InvalidClipboard:
+                PopupInfoByKey("UI.PopupInfos.ImportClipboardInvalid");
+                break;
+            }
+        };
         mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Import.Tooltip").Value));
         #endregion
 
@@ -1191,6 +1207,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Timer += 1;
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
+        MenuNotificationsTracker.Update();
         Update_DetectConfigChange();
         Update_HandleDownloads();
         Update_HandleTask(); // 处理任务在添加或移除加载动画前
@@ -1367,6 +1384,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Draw_TryCloseButtons();
         SetDraggingPosition();
         base.Draw(spriteBatch);
+        MenuNotificationsTracker.Draw(spriteBatch);
         #region DrawMouseTexture
         if (_mouseTexture != null) {
 
@@ -1604,6 +1622,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public override void OnDeactivate() {
         OnDeactivate_Loading();
         OnDeactivate_Update();
+        MenuNotificationsTracker.Clear();
         SetListViewPositionAfterGenerated(list.ViewPosition);
         FolderDataSystem.Save();
     }
@@ -1819,7 +1838,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         updateCts = null;
     }
     private void ButtonUpdateClicked() {
+        SoundEngine.PlaySound(SoundID.MenuTick);
         if (!SteamedWraps.SteamAvailable) {
+            PopupInfoByKey("UI.PopupInfos.SteamNotAvailable");
             return;
         }
         ModDownloadItem[]? modsToUpdate = null;
@@ -2047,9 +2068,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
 
-    public void PopupInfo(string message) {
-        // TODO: 实现以及相关内容的本地化
-        _ = message;
+    public static void PopupInfo(string message) {
+        // TODO: 相关内容的本地化
+        MenuNotificationsTracker.AddNotification(new TextNotification(message, new(0, 0.25f)));
+    }
+    public static void PopupInfoByKey(string keyFromMod) {
+        PopupInfo(ModFolder.Instance.GetLocalizedValue(keyFromMod));
+    }
+    public static void PopupInfoByKey(string keyFromMod, params object?[] args) {
+        PopupInfo(ModFolder.Instance.GetLocalizedValue(keyFromMod).FormatWith(args));
     }
 
     [Conditional("DEBUG")]

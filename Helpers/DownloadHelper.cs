@@ -54,7 +54,7 @@ public static class DownloadHelper {
             }
         }
         catch (Exception e) {
-            UIModFolderMenu.Instance.PopupInfo("下载模组时发生错误! 具体错误请查看日志");
+            UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.DownloadModError");
             ModFolder.Instance.Logger.Error("Downloading mod error!", e);
         }
         #endregion

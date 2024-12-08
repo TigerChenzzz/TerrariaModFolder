@@ -146,7 +146,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     private void TrySubscribeMod(UIMouseEvent evt, UIElement listeningElement) {
         SoundEngine.PlaySound(SoundID.MenuTick);
         if (GetCantSubscribePopupInfo() is string popupInfo) {
-            UIModFolderMenu.Instance.PopupInfo(popupInfo);
+            UIModFolderMenu.PopupInfo(popupInfo);
             return;
         }
         SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
@@ -195,7 +195,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             break;
         }
         if (modDownloadItem == null) {
-            UIModFolderMenu.Instance.PopupInfo($"未在创意工坊找到模组: {ModDisplayNameClean} ({ModNode.ModName})");
+            UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.CantFindModInWorkshop" ,ModDisplayNameClean, ModNode.ModName);
             return;
         }
         #endregion
@@ -261,37 +261,37 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     }
     public string? GetCantSubscribePopupInfo() {
         if (ModNode.PublishId == 0) {
-            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeForMissingPublishId").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeForMissingPublishId");
         }
         if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
-            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenDownloading").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeWhenDownloading");
         }
         if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
-            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenSubscribing").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeWhenSubscribing");
         }
         if (UIModFolderMenu.Instance.Loading) {
-            return ModFolder.Instance.GetLocalization("UI.PopupInfos.CantSubscribeWhenLoading").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeWhenLoading");
         }
         return null;
     }
     public string GetSubscribeButtonTooltip() {
         if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModNode.ModName, out var progressForTooltip)) {
             // return "下载中 6.66 MB / 88.88 MB";
-            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Downloading").Value.FormatWith(
+            return ModFolder.Instance.GetLocalizedValue("UI.Buttons.Subscribe.Tooltips.Downloading").FormatWith(
                 UIMemoryBar.SizeSuffix(progressForTooltip.BytesReceived, 2),
                 UIMemoryBar.SizeSuffix(progressForTooltip.TotalBytesNeeded, 2));
         }
         else if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
             // return "订阅中...";
-            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribing").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.Buttons.Subscribe.Tooltips.Subscribing");
         }
         else if (UIModFolderMenu.Instance.Loading) {
             // return "加载中...";
-            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Loading").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.Buttons.Subscribe.Tooltips.Loading");
         }
         else {
             // return "订阅";
-            return ModFolder.Instance.GetLocalization("UI.Buttons.Subscribe.Tooltips.Subscribe").Value;
+            return ModFolder.Instance.GetLocalizedValue("UI.Buttons.Subscribe.Tooltips.Subscribe");
         }
     }
     #endregion

@@ -134,7 +134,11 @@ public class UIFolder : UIFolderItem {
                 ScaleToFit = true,
                 AllowResizingDimensions = false,
             };
-            _exportButton.OnLeftClick += (_, _) => ShareHelper.Export(FolderNode, !Main.keyState.PressingShift(), Main.keyState.PressingControl(), Main.keyState.PressingAlt());
+            _exportButton.OnLeftClick += (_, _) => {
+                SoundEngine.PlaySound(SoundID.MenuTick);
+                ShareHelper.Export(FolderNode, !Main.keyState.PressingShift(), Main.keyState.PressingControl(), Main.keyState.PressingAlt());
+                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.Exported");
+            };
             Append(_exportButton);
             mouseOverTooltips.Add((_exportButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Export.Tooltip")));
         }
