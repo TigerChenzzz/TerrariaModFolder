@@ -309,18 +309,22 @@ public class UIFolderItem : UIElement {
         FilteredBySearch,
         FilteredByModSide,
         FilteredByEnabled,
+        FilteredByLoaded,
     }
     public virtual PassFilterResults PassFiltersInner() => PassFilterResults.NotFiltered;
-    public bool PassFilters(UIModsFilterResults filterResults) {
+    public bool PassFilters(UIFolderItemFilterResults filterResults) {
         switch (PassFiltersInner()) {
         case PassFilterResults.FilteredBySearch:
-            filterResults.filteredBySearch += 1;
+            filterResults.FilteredBySearch += 1;
             return false;
         case PassFilterResults.FilteredByModSide:
-            filterResults.filteredByModSide += 1;
+            filterResults.FilteredByModSide += 1;
             return false;
         case PassFilterResults.FilteredByEnabled:
-            filterResults.filteredByEnabled += 1;
+            filterResults.FilteredByEnabled += 1;
+            return false;
+        case PassFilterResults.FilteredByLoaded:
+            filterResults.FilteredByLoaded += 1;
             return false;
         default:
             return true;

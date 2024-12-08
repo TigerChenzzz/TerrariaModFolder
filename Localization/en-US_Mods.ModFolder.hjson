@@ -132,6 +132,8 @@ UI: {
 		WouldBeDisabled.Tooltip: Show only mods that would be disabled
 		FolderSystem.Tooltip: Use folder system
 		AllMods.Tooltip: Show all mods
+		Loaded.Tooltip: Show loaded mods
+		Unloaded.Tooltip: Show unloaded mods
 	}
 
 	NewFolderDefaultName: New Folder
@@ -170,6 +172,7 @@ UI: {
 		[c/999999:Not usable currently]
 		[c/999999:{0}]
 		'''
+	FilteredByLoaded: "{0} mods filtered by loaded filter."
 
 	PopupInfos: {
 		CantSubscribeForMissingPublishId: Can't subscribe! No mod info stored!

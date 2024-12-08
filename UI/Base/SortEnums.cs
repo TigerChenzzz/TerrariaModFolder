@@ -14,6 +14,12 @@ public enum FolderModSortMode {
     ModFirst,
 }
 
+public enum ModLoadedFilter {
+    All,
+    Loaded,
+    Unloaded,
+}
+
 public enum FolderEnabledFilter {
     All,
     Enabled,

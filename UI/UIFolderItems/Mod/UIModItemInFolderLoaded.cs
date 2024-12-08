@@ -899,6 +899,9 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
+        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilter.Unloaded) {
+            return PassFilterResults.FilteredByLoaded;
+        }
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
             if ((int)_mod.properties.side != (int)UIModFolderMenu.Instance.ModSideFilterMode - 1) {
                 return PassFilterResults.FilteredByModSide;

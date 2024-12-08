@@ -173,20 +173,32 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public bool                ShowFolderSystem  { get => !_topButtonData[0].ToBoolean(); set => _topButtonData[0] = (!value).ToInt(); }
     public FolderModSortMode   FmSortMode        { get => (FolderModSortMode  )_topButtonData[1]; set => _topButtonData[1] = (int)value; }
     public FolderMenuSortMode  SortMode          { get => (FolderMenuSortMode )_topButtonData[2]; set => _topButtonData[2] = (int)value; }
-    public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_topButtonData[3]; set => _topButtonData[3] = (int)value; }
-    public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_topButtonData[4]; set => _topButtonData[4] = (int)value; }
-    public bool                ShowRamUsage      { get => _topButtonData[5].ToBoolean(); set => _topButtonData[5] = value.ToInt(); }
+    public ModLoadedFilter     LoadedFilterMode  { get => (ModLoadedFilter    )_topButtonData[3]; set => _topButtonData[3] = (int)value; }
+    public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_topButtonData[4]; set => _topButtonData[4] = (int)value; }
+    public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_topButtonData[5]; set => _topButtonData[5] = (int)value; }
+    public bool                ShowRamUsage      { get => _topButtonData[6].ToBoolean(); set => _topButtonData[6] = value.ToInt(); }
     #endregion
     #region 数据与常数
-    private readonly int[] _topButtonData = new int[6];
-    private readonly int[] _topButtonLengths = [2, 3, 5, 8, 5, 2];
+    // 0: 文件夹系统 / 显示全部模组
+    // 1: 文件夹和模组的排序
+    // 2: 排序
+    // 3: 启用状态
+    // 4: 客户端 / 服务端
+    // 5: 内存条
+    private const int IndexShowFolderSystem = 0;
+    private const int IndexFmSortMode = 1;
+    private const int IndexSortMode = 2;
+    private const int IndexShowRamUsage = 6;
+    private readonly int[] _topButtonData = new int[7];
+    private readonly int[] _topButtonLengths = [2, 3, 5, 3, 8, 5, 2];
     private readonly Point[] _topButtonPositionsInTexture = [
-        new(2, 6),
-        new(0, 5),
-        new(0, 0),
-        new(1, 0),
-        new(2, 0),
-        new(3, 2),
+        new(2, 6), // 0
+        new(0, 5), // 1
+        new(0, 0), // 2
+        new(3, 4), // 3
+        new(1, 0), // 4
+        new(2, 0), // 5
+        new(3, 2), // 6
     ];
     private readonly string[][] _topButtonLocalizedKeys = [
         [
@@ -204,6 +216,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             "Mods.ModFolder.UI.SortButtons.ReverseRecently.Tooltip",
             "tModLoader.ModsSortNamesAlph",
             "tModLoader.ModsSortNamesReverseAlph",
+        ],
+        [
+            "tModLoader.ModsShowAllMods",
+            "Mods.ModFolder.UI.SortButtons.Loaded.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.Unloaded.Tooltip",
         ],
         [
             "tModLoader.ModsShowAllMods",
@@ -307,9 +324,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
     #region 其余按钮
-    private readonly UICycleImage[] topMenuButtons = new UICycleImage[6];
+    private readonly UICycleImage[] topMenuButtons = new UICycleImage[7];
     private readonly int categoryButtonStartIndex = 0;
-    private readonly UICycleImage[] categoryButtons = new UICycleImage[5];
+    private readonly UICycleImage[] categoryButtons = new UICycleImage[6];
     private void OnInitialize_TopButtons(Asset<Texture2D> texture) {
         UICycleImage toggleImage;
         for (int i = 0; i < _topButtonData.Length; i++) {
@@ -332,13 +349,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #region 按钮切换
-    // 当切换 ShowAllMods (index == 0) 时同时还要改变 FmSortMode 按钮的可用性
-    // 同时 ShowAllMods 为真 (1) 时 SortMode (index = 2) 不能为 Custom (0)
+    // 当切换 ShowAllMods 时同时还要改变 FmSortMode 按钮的可用性
+    // 同时 ShowAllMods 为真时 SortMode 不能为 Custom (0)
 
-    private const int IndexShowFolderSystem = 0;
-    private const int IndexFmSortMode = 1;
-    private const int IndexSortMode = 2;
-    private const int IndexShowRamUsage = 5;
     private void SwitchTopButtonNext(int index) {
         var button = topMenuButtons[index];
         if (button.Disabled) {
@@ -1200,19 +1213,21 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         list.StopMoving();
         DraggingTarget = null;
         ClearConfirmPanels(true);
-        var filterResults = new UIModsFilterResults();
+        UIFolderItemFilterResults filterResults = new();
         var visibleItems = GetVisibleItems(filterResults);
         #region 若有任何被过滤的, 则在列表中添加一个元素提示过滤了多少东西
         if (filterResults.AnyFiltered) {
             var panel = new UIPanel();
             panel.Width.Set(0, 1f);
             var filterMessages = new List<string>();
-            if (filterResults.filteredByEnabled > 0)
-                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByEnabled", filterResults.filteredByEnabled));
-            if (filterResults.filteredByModSide > 0)
-                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByModSide", filterResults.filteredByModSide));
-            if (filterResults.filteredBySearch > 0)
-                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredBySearch", filterResults.filteredBySearch));
+            if (filterResults.FilteredByLoaded > 0)
+                filterMessages.Add(ModFolder.Instance.GetLocalizedValue("UI.FilteredByLoaded").FormatWith(filterResults.FilteredByLoaded));
+            if (filterResults.FilteredByEnabled > 0)
+                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByEnabled", filterResults.FilteredByEnabled));
+            if (filterResults.FilteredByModSide > 0)
+                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByModSide", filterResults.FilteredByModSide));
+            if (filterResults.FilteredBySearch > 0)
+                filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredBySearch", filterResults.FilteredBySearch));
             string filterMessage = string.Join("\n", filterMessages);
             var text = new UIText(filterMessage);
             text.Width.Set(0, 1f);
@@ -1244,7 +1259,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             _listViewPositionToSetAfterGenerated = null;
         }
     }
-    private List<UIFolderItem> GetVisibleItems(UIModsFilterResults filterResults) {
+    private List<UIFolderItem> GetVisibleItems(UIFolderItemFilterResults filterResults) {
         List<UIFolderItem> result;
         if (ShowAllMods) {
             result = [.. GetVisibleItems_AllMods(filterResults)];
@@ -1255,7 +1270,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         nodeToRename = null;
         return result;
     }
-    private IEnumerable<UIFolderItem> GetVisibleItems_AllMods(UIModsFilterResults filterResults) {
+    private IEnumerable<UIFolderItem> GetVisibleItems_AllMods(UIFolderItemFilterResults filterResults) {
         HashSet<string> modsCurrent = [];
         foreach (var item in ModItemDict.Values) {
             modsCurrent.Add(item.ModName);
@@ -1274,7 +1289,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
         }
     }
-    private IEnumerable<UIFolderItem> GetVisibleItems_InFolderSystem(UIModsFilterResults filterResults) {
+    private IEnumerable<UIFolderItem> GetVisibleItems_InFolderSystem(UIFolderItemFilterResults filterResults) {
         HashSet<string> modsCurrent = [];
         List<ModNode> nodesToRemove = [];
         foreach (var node in CurrentFolderNode.Children) {

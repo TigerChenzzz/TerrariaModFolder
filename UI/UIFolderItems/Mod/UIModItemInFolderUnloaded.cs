@@ -124,6 +124,9 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
+        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilter.Loaded) {
+            return PassFilterResults.FilteredByLoaded;
+        }
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
             return PassFilterResults.FilteredByModSide;
         }

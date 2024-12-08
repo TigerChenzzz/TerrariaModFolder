@@ -132,6 +132,8 @@ UI: {
 		WouldBeDisabled.Tooltip: 只显示将禁用的模组
 		FolderSystem.Tooltip: 使用文件夹系统
 		AllMods.Tooltip: 显示所有模组
+		Loaded.Tooltip: 显示已加载的模组
+		Unloaded.Tooltip: 显示未加载的模组
 	}
 
 	NewFolderDefaultName: 新建文件夹
@@ -170,6 +172,7 @@ UI: {
 		[c/999999:现不可用]
 		[c/999999:{0}]
 		'''
+	FilteredByLoaded: "{0}个模组 因“是否已加载”而隐藏"
 
 	PopupInfos: {
 		CantSubscribeForMissingPublishId: 无法订阅! 未存有模组信息!
