@@ -98,7 +98,7 @@ public abstract class UIModItemInFolder : UIFolderItem {
             FolderDataSystem.ModAliases[ModName] = newName;
         }
         UIModFolderMenu.Instance.ArrangeGenerate();
-        FolderDataSystem.TrySaveWhenChanged();
+        FolderDataSystem.DataChanged();
     }
     #endregion
     public override void DrawSelf(SpriteBatch spriteBatch) {

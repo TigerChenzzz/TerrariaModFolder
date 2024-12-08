@@ -875,7 +875,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                     }
                 }
             }
-            FolderDataSystem.AfterChanged();
+            FolderDataSystem.TreeChanged();
         };
         mouseOverTooltips.Add((ButtonCopyEnabled, () => ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.Tooltip").Value));
         #endregion
@@ -1285,7 +1285,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 }
                 modsCurrent.Add(m.ModName);
                 if (ModItemDict.TryGetValue(m.ModName, out var uiMod)) {
-                    m.ReceiveDataFrom(uiMod);
+                    m.ReceiveDataFromF(uiMod);
                     if (uiMod.PassFilters(filterResults)) {
                         uiMod.ModNode = m;
                         yield return uiMod;
@@ -1314,7 +1314,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             foreach (var nodeToRemove in nodesToRemove) {
                 nodeToRemove.ParentF = null;
             }
-            FolderDataSystem.TrySaveWhenChanged();
+            FolderDataSystem.DataChanged();
         }
         #region 在根目录下时将文件夹树未包含的 Mod 全部放进来
         if (CurrentFolderNode != FolderDataSystem.Root) {
@@ -1339,7 +1339,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
         }
         if (created) {
-            FolderDataSystem.TrySaveWhenChanged();
+            FolderDataSystem.DataChanged();
         }
         #endregion
     }
@@ -1555,7 +1555,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (node is ModNode modNode) {
                 foreach (var child in folder.Children) {
                     if (child is ModNode m && m.ModName == modNode.ModName) {
-                        FolderDataSystem.AfterChanged();
+                        FolderDataSystem.TreeChanged();
                         return;
                     }
                 }
@@ -1721,8 +1721,21 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (CommonConfig.Instance.RemoveRedundantData) {
             FolderDataSystem.RemoveRedundantData();
         }
-        // TODO: 遍历一遍 Root 来做各种事情
-        ;
+        #region 遍历一遍 Root 来做各种事情
+        bool modified = false;
+        foreach (var mod in FolderDataSystem.Root.ModNodesInTree) {
+            if (ModItemDict.TryGetValue(mod.ModName, out var uiMod)) {
+                modified = true;
+                mod.ReceiveDataFromF(uiMod);
+            }
+        }
+        if (modified) {
+            FolderDataSystem.DataChanged();
+        }
+        FolderDataSystem.UpdateLastModified();
+        // TODO: 更多...
+        #endregion
+        ArrangeGenerate();
     }
     #endregion
     #endregion

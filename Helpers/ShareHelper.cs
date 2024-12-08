@@ -82,6 +82,7 @@ public static class ShareHelper {
         public Dictionary<string, string>? ModAliases { get; private set; } = [];
         [JsonProperty(DefaultValueHandling=DefaultValueHandling.Ignore, NullValueHandling = NullValueHandling.Ignore)]
         public HashSet<string>? Favorites { get; private set; } = [];
+        // LastModifieds 不分享
         public FolderNode Folder { get; private set; }
 
         public ShareFormatClass(FolderNode folder, bool includeDisplayNames, bool includeAliases, bool includeFavorites) {

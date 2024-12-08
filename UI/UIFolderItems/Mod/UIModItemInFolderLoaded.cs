@@ -41,7 +41,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             else {
                 FolderDataSystem.Favorites.Remove(ModName);
             }
-            FolderDataSystem.TrySaveWhenChanged();
+            FolderDataSystem.DataChanged();
         }
     }
     private ulong? _publishId;

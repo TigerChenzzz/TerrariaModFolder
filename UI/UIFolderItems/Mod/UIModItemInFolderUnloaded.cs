@@ -32,8 +32,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     private readonly FolderDataSystem.ModNode _modNode = modNode;
     public FolderDataSystem.ModNode ModNode => _modNode;
     public override FolderDataSystem.Node? Node => ModNode;
-    // TODO
-    public override DateTime LastModified => base.LastModified;
+    public override DateTime LastModified => FolderDataSystem.LastModifieds.GetValueOrDefault(ModName);
     public override bool Favorite {
         get => ModNode.Favorite;
         set {

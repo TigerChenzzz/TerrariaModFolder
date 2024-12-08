@@ -21,11 +21,13 @@ public class UIFolder : UIFolderItem {
     /// 当此文件夹是返回上一级的文件夹时此值为空
     /// </summary>
     public FolderDataSystem.FolderNode? FolderNode;
+    /// <summary>
+    /// 当此文件夹是返回上一级的文件夹时此值为空
+    /// </summary>
     public override FolderDataSystem.Node? Node => FolderNode;
     public string Name { get; set; }
     public override string NameToSort => Name;
-    // TODO
-    public override DateTime LastModified => base.LastModified;
+    public override DateTime LastModified => FolderNode?.LastModified ?? default;
     private UIImage _folderIcon = null!;
     private UIText _folderName = null!;
     private int _folderNameIndex;
@@ -352,7 +354,7 @@ public class UIFolder : UIFolderItem {
         Name = newName;
         _folderName.SetText(newName);
         UIModFolderMenu.Instance.ArrangeGenerate();
-        FolderDataSystem.TrySaveWhenChanged();
+        FolderDataSystem.DataChanged();
     }
 
     public override void Update(GameTime gameTime) {

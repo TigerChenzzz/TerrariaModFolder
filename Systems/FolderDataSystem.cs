@@ -11,7 +11,7 @@ namespace ModFolder.Systems;
 public static class FolderDataSystem {
     #region 类型
     [JsonObject(MemberSerialization.OptIn)]
-    public class Node {
+    public abstract class Node {
         protected FolderNode? _parent;
         public FolderNode? Parent {
             get => _parent;
@@ -22,11 +22,11 @@ public static class FolderDataSystem {
                 _parent?.ChildrenPublic.Remove(this);
                 _parent = value;
                 value?.ChildrenPublic.Add(this);
-                AfterChanged();
+                TreeChanged();
             }
         }
         /// <summary>
-        /// <br/>不会自动调用 <see cref="AfterChanged"/>
+        /// <br/>不会自动调用 <see cref="TreeChanged"/>
         /// <br/>但仍然会处理父子关系
         /// </summary>
         public FolderNode? ParentF {
@@ -44,6 +44,9 @@ public static class FolderDataSystem {
         /// 危险! 不要随意修改它的值
         /// </summary>
         public FolderNode? ParentPublic { get => _parent; set => _parent = value; }
+
+        public abstract DateTime LastModified { get; set; }
+
         /// <summary>
         /// 将自己挪到最顶上
         /// 返回是否有改变 (如果 <see cref="Parent"/> 为空或者本来就是第一位那么就不改变)
@@ -60,13 +63,13 @@ public static class FolderDataSystem {
             for (int i = 0; i < children.Count; ++i) {
                 (node, children[i]) = (children[i], node);
                 if (node == this) {
-                    AfterChanged();
+                    TreeChanged();
                     return true;
                 }
             }
             children.Add(node);
             ModFolder.Instance.Logger.Error("parent should contain the child at MoveToTheTop");
-            AfterChanged();
+            TreeChanged();
             return true;
         }
     }
@@ -76,6 +79,7 @@ public static class FolderDataSystem {
             if (WorkshopHelper.GetPublishIdLocal(mod.modFile, out ulong publishId)) {
                 PublishId = publishId;
             }
+            LastModified = mod.lastModified;
             DisplayName = mod.DisplayName;
         }
         public ModNode(string modName) => ModName = modName;
@@ -91,7 +95,18 @@ public static class FolderDataSystem {
                     PublishIds.Remove(ModName);
                 }
                 else {
-                    PublishIds.TryAdd(ModName, value);
+                    PublishIds[ModName] = value;
+                }
+            }
+        }
+        public override DateTime LastModified {
+            get => LastModifieds.GetValueOrDefault(ModName);
+            set {
+                if (value == default) {
+                    LastModifieds.Remove(ModName);
+                }
+                else {
+                    LastModifieds[ModName] = value;
                 }
             }
         }
@@ -114,9 +129,10 @@ public static class FolderDataSystem {
                 }
             }
         }
-        public void ReceiveDataFrom(UIModItemInFolderLoaded uiMod) {
+        public void ReceiveDataFromF(UIModItemInFolderLoaded uiMod) {
             ModName = uiMod.ModName;
             PublishId = uiMod.PublishId;
+            LastModified = uiMod.LastModified;
             DisplayName = uiMod.TheLocalMod.DisplayName;
         }
     }
@@ -133,6 +149,8 @@ public static class FolderDataSystem {
         public List<Node> ChildrenPublic { get => _children; set => _children = value; }
         public IReadOnlyList<Node> Children => _children;
         protected List<Node> _children = [];
+
+        public override DateTime LastModified { get; set; }
 
         public int ChildrenCount { get; set; }
         public int EnabledCount { get; set; }
@@ -229,7 +247,7 @@ public static class FolderDataSystem {
             child.ParentF = null;
             child.ParentPublic = this;
             _children.Insert(0, child);
-            AfterChanged();
+            TreeChanged();
         }
         /// <summary>
         /// 返回是否有改变
@@ -257,7 +275,7 @@ public static class FolderDataSystem {
                     else {
                         _children.Insert(i, child);
                     }
-                    AfterChanged();
+                    TreeChanged();
                     return true;
                 }
             }
@@ -287,7 +305,7 @@ public static class FolderDataSystem {
                     else {
                         _children.Insert(i + 1, child);
                     }
-                    AfterChanged();
+                    TreeChanged();
                     return true;
                 }
             }
@@ -313,7 +331,7 @@ public static class FolderDataSystem {
             Parent._children.RemoveAt(index);
             Parent._children.InsertRange(index, _children);
             _parent = null;
-            AfterChanged();
+            TreeChanged();
         }
         public void ClearChildren() => _children.Clear();
         public void ClearChildrenF() => _children.Clear();
@@ -338,6 +356,8 @@ public static class FolderDataSystem {
         private Dictionary<string, string> DisplayNames => FolderDataSystem.DisplayNames;
         [JsonProperty]
         private Dictionary<string, string> ModAliases => FolderDataSystem.ModAliases;
+        [JsonProperty]
+        private Dictionary<string, DateTime> LastModifieds => FolderDataSystem.LastModifieds;
 #pragma warning restore CA1822 // 将成员标记为 static
 #pragma warning restore IDE0051 // 删除未使用的私有成员
     }
@@ -346,10 +366,12 @@ public static class FolderDataSystem {
     public static Dictionary<string, ulong> PublishIds { get; private set; } = [];
     public static Dictionary<string, string> DisplayNames { get; private set; } = [];
     public static Dictionary<string, string> ModAliases { get; private set; } = [];
+    public static Dictionary<string, DateTime> LastModifieds { get; private set; } = [];
     // 如果还要添加什么类似的东西:
     // - 在 RootNode 中添加对应的带有 [JsonProperty] 的属性
     // - 在 LoadRoot(...) 中添加其加载
     // - 在 RemoveRedundantData() 中添加
+    // - 在 ShareHelper 中检查是否需要添加
 
     private static RootNode? _root;
     public static RootNode Root => _root ?? Reload();
@@ -429,6 +451,12 @@ public static class FolderDataSystem {
                 ModAliases = modAliases;
             }
         }
+        if (data.TryGetValue(nameof(LastModifieds), out var lastModifiedsToken)) {
+            var lastModifieds = lastModifiedsToken.ToObject<Dictionary<string, DateTime>>();
+            if (lastModifieds != null) {
+                LastModifieds = lastModifieds;
+            }
+        }
         _root = LoadNode(data) is not FolderNode node ? new() : new(node);
     }
     public static Node? LoadNode(JObject data) {
@@ -477,6 +505,7 @@ public static class FolderDataSystem {
             }
             toRemoves.Clear();
         }
+
         foreach (var mod in PublishIds.Keys) {
             if (!mods.Contains(mod)) {
                 toRemoves.Add(mod);
@@ -489,6 +518,7 @@ public static class FolderDataSystem {
             }
             toRemoves.Clear();
         }
+
         foreach (var mod in DisplayNames.Keys) {
             if (!mods.Contains(mod)) {
                 toRemoves.Add(mod);
@@ -501,6 +531,7 @@ public static class FolderDataSystem {
             }
             toRemoves.Clear();
         }
+
         foreach (var mod in ModAliases.Keys) {
             if (!mods.Contains(mod)) {
                 toRemoves.Add(mod);
@@ -513,10 +544,44 @@ public static class FolderDataSystem {
             }
             toRemoves.Clear();
         }
+        
+        foreach (var mod in LastModifieds.Keys) {
+            if (!mods.Contains(mod)) {
+                toRemoves.Add(mod);
+            }
+        }
+        if (toRemoves.Count != 0) {
+            anyRemoved = true;
+            foreach (var toRemove in toRemoves) {
+                LastModifieds.Remove(toRemove);
+            }
+            toRemoves.Clear();
+        }
+        if (anyRemoved) {
+            DataChanged();
+        }
         return anyRemoved;
     }
-    public static void AfterChanged() {
-        TrySaveWhenChanged();
+
+    public static void UpdateLastModified(FolderNode? folder = null) {
+        folder ??= Root;
+        DateTime latest = default;
+        foreach (var child in folder.Children) {
+            if (child is FolderNode folderChild) {
+                UpdateLastModified(folderChild);
+            }
+            latest.ClampMinTo(child.LastModified);
+        }
+        folder.LastModified = latest;
+    }
+
+    public static void TreeChanged() {
+        DataChanged();
         UIModFolderMenu.Instance.ArrangeGenerate();
+    }
+    public static void DataChanged() {
+        if (CommonConfig.Instance.SaveWhenChanged) {
+            Save();
+        }
     }
 }
