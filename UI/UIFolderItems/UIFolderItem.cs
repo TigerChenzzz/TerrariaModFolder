@@ -15,11 +15,8 @@ public class UIFolderItem : UIElement {
     public UIFolderItem() : base() {
         Height.Pixels = 32;
         Width.Percent = 1f;
-        OnRightMouseDown += (_, _) => {
-            if (RightDraggable) {
-                UIModFolderMenu.Instance.DraggingTarget = this;
-            }
-        };
+        OnLeftMouseDown += OnLeftMouseDown_TrySelect;
+        OnRightMouseDown += OnRightMouseDown_TryDrag;
     }
     #endregion
     public enum FolderItemTypeEnum {
@@ -31,7 +28,9 @@ public class UIFolderItem : UIElement {
     public virtual FolderItemTypeEnum FolderItemType => FolderItemTypeEnum.Mod;
     public virtual bool Favorite { get => false; set { } }
     public virtual FolderDataSystem.Node? Node { get => null; }
-    public bool RightDraggable { get; set; } = true;
+    public bool Selectable { get; set; } = true;
+    // 在本层中的序号
+    public int IndexCache { get; set; }
     #region MouseoverTooltip
     protected readonly List<(UIElement, Func<string?>)> mouseOverTooltips = [];
     protected virtual string? GetTooltip() {
@@ -53,6 +52,7 @@ public class UIFolderItem : UIElement {
     }
     #endregion
     #region Draw
+    #region 颜色
     public static Color EnabledColor { get; } = Color.White;
     public static Color EnabledBorderColor { get; } = Color.White * 0.6f;
     public static Color EnabledInnerColor { get; } = Color.White * 0.2f;
@@ -66,18 +66,20 @@ public class UIFolderItem : UIElement {
     // TODO: 和收藏的颜色冲突了
     public static Color ConfigNeedReloadBorderColor { get; } = Color.Yellow * 0.6f;
     public static Color ConfigNeedReloadInnerColor { get; } = Color.Yellow * 0.2f;
+    #endregion
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
         #region 画分割线
         Rectangle dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4);
         spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
+        UIModFolderMenu menu = UIModFolderMenu.Instance;
         #endregion
         #region 收藏
         if (Favorite) {
             // TODO: 金光闪闪冒粒子
             var gold = Color.Gold;
-            int a = UIModFolderMenu.Instance.Timer % 180;
+            int a = menu.Timer % 180;
             if (a < 0) {
                 a += 180;
             }
@@ -89,24 +91,30 @@ public class UIFolderItem : UIElement {
         }
         #endregion
         #region 鼠标在上面时高亮; 当为拖动对象时虚线显示, 为拖动目的地时显示高亮或上下
-        if (UIModFolderMenu.Instance.DraggingTarget != null) {
-            if (UIModFolderMenu.Instance.DraggingTarget == this) {
-                spriteBatch.DrawDashedOutline(rectangle, Color.White * 0.8f, start: UIModFolderMenu.Instance.Timer / 3);
+        bool isDraggingTo = menu.DraggingTo == this;
+        var realDraggingTo = menu.RealDraggingTo(this);
+        if (menu.SelectingItems.Count != 0) {
+            if (menu.SelectingItems.Contains(this)) {
+                spriteBatch.DrawDashedOutline(rectangle, Color.White * 0.8f, start: menu.Timer / 3);
             }
-            else if (UIModFolderMenu.Instance.DraggingTo == this) {
-                switch (UIModFolderMenu.Instance.DraggingDirection) {
+            if (isDraggingTo && menu.RealDraggingTo(this)) {
+                switch (menu.DraggingDirection) {
                 case > 0:
+                    // 在下方画线
                     spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                     break;
                 case < 0:
+                    // 若是返回上一级则仍然在下方画线
                     if (this is UIFolder f && f.Name == "..") {
                         spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                         break;
                     }
+                    // 在上方画线
                     Rectangle r = new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4);
                     spriteBatch.Draw(MTextures.White, r, Color.White);
                     break;
                 default:
+                    // 拖入时高亮
                     spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
                     break;
                 }
@@ -349,5 +357,9 @@ public class UIFolderItem : UIElement {
             _ => base.CompareTo(obj),
         };
     }
+    #endregion
+    #region 选择与拖动
+    private void OnLeftMouseDown_TrySelect(UIMouseEvent evt, UIElement listeningElement) => UIModFolderMenu.Instance.LeftMouseDownOnFolderItem(this);
+    private void OnRightMouseDown_TryDrag(UIMouseEvent evt, UIElement listeningElement) => UIModFolderMenu.Instance.RightMouseDownOnFolderItem(this);
     #endregion
 }

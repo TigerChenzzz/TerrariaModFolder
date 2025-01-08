@@ -346,6 +346,7 @@ public static class FolderDataSystem {
                 child.ParentPublic = this;
             }
         }
+#pragma warning disable IDE0079 // 请删除不必要的忽略
 #pragma warning disable CA1822 // 将成员标记为 static
 #pragma warning disable IDE0051 // 删除未使用的私有成员
         [JsonProperty]
@@ -360,6 +361,112 @@ public static class FolderDataSystem {
         private Dictionary<string, DateTime> LastModifieds => FolderDataSystem.LastModifieds;
 #pragma warning restore CA1822 // 将成员标记为 static
 #pragma warning restore IDE0051 // 删除未使用的私有成员
+#pragma warning restore IDE0079 // 请删除不必要的忽略
+    }
+    #endregion
+    #region 树操作
+    /// <summary>
+    /// 需要确保所有节点的父节点相同, 且按顺序排列
+    /// </summary>
+    /// <param name="nodes"></param>
+    public static void MoveNodesToTop(List<Node> nodes) {
+        int nodesCount = nodes.Count;
+        if (nodesCount == 0) {
+            return;
+        }
+        var parent = nodes[0].Parent;
+        if (parent == null) {
+            return;
+        }
+        var children = parent.ChildrenPublic;
+        int childrenCount = children.Count;
+        if (childrenCount < nodesCount) {
+            return; // 不应该
+        }
+        Queue<Node> cache = new(nodesCount);
+        int cacheIndex = 0, i = 0;
+        for (; i < nodesCount; ++i) {
+            cache.Enqueue(children[i]);
+            children[i] = nodes[i];
+        }
+                
+        while (true) {
+            var self = cache.Dequeue();
+            while(self == children[cacheIndex] && cache.TryDequeue(out self)) {
+                cacheIndex += 1;
+            }
+            if (self == null || i >= childrenCount) {
+                break;
+            }
+            cache.Enqueue(children[i]);
+            children[i] = self;
+            i += 1;
+        }
+        TreeChanged();
+    }
+    /// <summary>
+    /// 需要确保所有节点的父节点相同, 且按顺序排列
+    /// </summary>
+    /// <param name="nodes"></param>
+    public static void MoveNodesAroundNode(List<Node> nodes, Node node, bool after = false) {
+        int nodesCount = nodes.Count;
+        if (nodesCount == 0) {
+            return;
+        }
+        var parent = nodes[0].Parent;
+        if (parent == null) {
+            return;
+        }
+        var children = parent.ChildrenPublic;
+        int childrenCount = children.Count;
+        if (childrenCount < nodesCount) {
+            return; // 不应该
+        }
+        //TODO: 算法优化
+        int insertIndex = -1;
+        int removeIndex = 0;
+        int i;
+        for (i = 0; i < childrenCount; ++i) {
+            var item = children[i];
+            if (item == node) {
+                if (item == nodes[removeIndex]) {
+                    insertIndex = i;
+                    goto RemoveChild;
+                }
+                insertIndex = i + (after ? 1 : 0);
+                continue;
+            }
+            if (removeIndex == nodes.Count || item != nodes[removeIndex]) {
+                continue;
+            }
+        RemoveChild:
+            children.RemoveAt(i--);
+            childrenCount -= 1;
+            if (++removeIndex == nodesCount) {
+                break;
+            }
+        }
+        if (insertIndex == -1) {
+            for(; i < childrenCount; ++i) {
+                if (children[i] == node) {
+                    insertIndex = i + (after ? 1 : 0);
+                    break;
+                }
+            }
+        }
+        if (insertIndex == -1) {
+            var removedSpan = nodes.ToSpan()[..removeIndex];
+            if (after) {
+                children.AddRange(removedSpan);
+            }
+            else {
+                children.InsertRange(0, removedSpan);
+            }
+        }
+        else {
+            children.InsertRange(insertIndex, nodes.ToSpan()[..removeIndex]);
+        }
+        TreeChanged();
     }
     #endregion
     public static HashSet<string> Favorites { get; private set; } = [];
@@ -394,7 +501,9 @@ public static class FolderDataSystem {
     }
     #region 保存
     public static void Save() {
-        File.WriteAllText(DataPath, JsonConvert.SerializeObject(_root));
+        if (_root != null) {
+            File.WriteAllText(DataPath, JsonConvert.SerializeObject(_root));
+        }
     }
     public static void TrySaveWhenChanged() {
         if (CommonConfig.Instance.SaveWhenChanged) {
@@ -403,6 +512,11 @@ public static class FolderDataSystem {
     }
     #endregion
     #region 加载
+    public static void Clear() {
+        Save();
+        _root = null;
+    }
+
     public static RootNode Reload() {
         Reload_Inner();
         return _root ??= new();

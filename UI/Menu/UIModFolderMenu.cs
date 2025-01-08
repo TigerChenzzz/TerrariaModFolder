@@ -11,6 +11,8 @@ using ModFolder.UI.UIFolderItems.Mod;
 using ReLogic.Content;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -34,6 +36,10 @@ namespace ModFolder.UI.Menu;
 public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public static UIModFolderMenu Instance { get; private set; } = new();
     public int Timer { get; private set; }
+    private static void Clear() {
+        FolderDataSystem.Clear();
+        Instance = new();
+    }
     public static void TotallyReload() {
         Instance = new();
     }
@@ -50,24 +56,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     public const int MyMenuMode = 47133;
 
-    #region 拖动相关
-    UIElement? _draggingTo;
-    public UIElement? DraggingTo {
-        get => DraggingTarget == null ? null : _draggingTo;
-        private set => _draggingTo = value;
-    }
-    /// <summary>
-    /// -1 为上面, 1 为下面, 0 为进入
-    /// 只有当 DraggingTo 非空时有意义
-    /// </summary>
-    public int DraggingDirection { get; private set; }
-    #endregion
-
     #region 所有模组 ModItems
     /// <summary>
-    /// 当找完模组后, 这里会存有所有的模组
+    /// <br/>当找完模组后, 这里会存有所有的模组
+    /// <br/>对于当前显示在列表中的项见 <see cref="VisibleItems"/>
     /// </summary>
     public Dictionary<string, UIModItemInFolderLoaded> ModItemDict { get; set; } = [];
+    public UIModItemInFolderLoaded? FindUIModItem(string modName) {
+        return ModItemDict.GetValueOrDefault(modName);
+    }
     #endregion
 
     #region 文件夹路径
@@ -183,9 +180,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     // 0: 文件夹系统 / 显示全部模组
     // 1: 文件夹和模组的排序
     // 2: 排序
-    // 3: 启用状态
-    // 4: 客户端 / 服务端
-    // 5: 内存条
+    // 3: 加载状态
+    // 4: 启用状态
+    // 5: 客户端 / 服务端
+    // 6: 内存条
     private const int IndexShowFolderSystem = 0;
     private const int IndexFmSortMode = 1;
     private const int IndexSortMode = 2;
@@ -547,6 +545,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public string Filter { get => filterTextBox.Text; set => filterTextBox.Text = value; }
     private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => Filter = string.Empty;
     #endregion
+
+    private bool CanCustomizeOrder() {
+        for (int i = 0; i < _topButtonData.Length - 1; ++i) {
+            if (_topButtonData[i] != 0) {
+                return false;
+            }
+        }
+        return Filter == string.Empty;
+    }
     #endregion
 
     #region 检测配置修改
@@ -566,25 +573,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Populate();
         }
     }
-    #endregion
-    #region 杂项
-    public UIState? PreviousUIState { get; set; }
-    private Texture2D? _mouseTexture;
-    private int _mouseTextureWidth;
-    private int _mouseTextureHeight;
-    private int _mouseTextureOffsetX;
-    private int _mouseTextureOffsetY;
-    private Color _mouseTextureColor;
-    public void SetMouseTexture(Texture2D mouseTexture, int width = 0, int height = 0, int offsetX = 0, int offsetY = 0, Color color = default) {
-        _mouseTexture = mouseTexture;
-        _mouseTextureWidth = width == 0 ? mouseTexture.Width : width;
-        _mouseTextureHeight = height == 0 ? mouseTexture.Height : height;
-        _mouseTextureOffsetX = offsetX;
-        _mouseTextureOffsetY = offsetY;
-        _mouseTextureColor = color == default ? Color.White : color;
-    }
-    private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
-    private FolderNode? nodeToRename;
     #endregion
     #region 确认弹窗
     private readonly List<(UIElement panel, Action? onRemoved)> _confirmPanels = [];
@@ -652,7 +640,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         _confirmPanels.Clear();
     }
     #endregion
-
+    #region OnInitialize, OnActivate, OnDeactivate
     public override void OnInitialize() {
         #region 全部元素的容器
         // UICommon.MaxPanelWidth  // 600
@@ -795,6 +783,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 启用与禁用按钮
         ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
+        ButtonAllMods.OnLeftMouseDown += (_, _) => {
+            suppressLeftMouseDownClearSelecting = true;
+        };
+        ButtonAllMods.OnRightMouseDown += (_, _) => {
+            suppressRightMouseDownClearSelecting = true;
+        };
         ButtonAllMods.OnLeftClick += (_, _) => {
             if (!Main.keyState.PressingControl()) {
                 EnableMods();
@@ -839,6 +833,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         #region 更多按钮按钮
         ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
+        ButtonMore.OnLeftMouseDown += (_, _) => {
+            suppressLeftMouseDownClearSelecting = true;
+        };
         ButtonMore.OnLeftClick += (_, _) => {
             SoundEngine.PlaySound(SoundID.MenuTick);
             buttonPage = (buttonPage + 1) % buttonPageMax;
@@ -942,17 +939,99 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         #endregion
         #endregion
-        #region 右键松开时尝试移动位置
-        OnRightMouseUp += OnRightMouseUp_RightDrag;
-        #endregion
-        #region 鼠标 4 键返回
-        OnXButton1MouseDown += (_, _) => GotoUpperFolder();
-        #endregion
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         uiPanel.Append(upperMenuContainer);
         Append(uiElement);
         OnInitialize_Debug();
     }
+    [Conditional("DEBUG")]
+    private void OnInitialize_Debug() {
+        var debugTextPanel = new UIElementCustom {
+            Width = { Percent = 1f },
+            Height = { Percent = 1f },
+            IgnoresMouseInteraction = true,
+        };
+        var debugTextUI = new UIText(string.Empty) {
+            Left = { Pixels = 20 },
+            Top = { Pixels = 100 },
+            TextOriginX = 0,
+        };
+        debugTextPanel.Append(debugTextUI);
+        debugTextPanel.OnUpdate += _ => {
+            StringBuilder builder = new($"Task is null: {loadTask == null}");
+            if (loadTask != null) {
+                builder.AppendFormat(",\nTask.IsCompleted: {0}", loadTask.IsCompleted);
+                builder.AppendFormat(",\nTask.IsCompletedSuccessfully: {0}", loadTask.IsCompletedSuccessfully);
+                builder.AppendFormat(",\nTask.IsFaulted: {0}", loadTask.IsFaulted);
+                builder.AppendFormat(",\nTask.IsCanceled: {0}", loadTask.IsCanceled);
+                builder.AppendFormat(",\nloadingState: {0}", loadingState);
+            }
+            debugTextUI.SetText(builder.ToString());
+        };
+        Append(debugTextPanel);
+    }
+
+    public override void OnActivate() {
+        // 在 OnInitialize 之后执行
+        ArrangeGenerate();
+        Main.clrInput();
+        list.Clear();
+        if (!_loaded) {
+            ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
+            Populate();
+        }
+    }
+    public override void OnDeactivate() {
+        OnDeactivate_Loading();
+        OnDeactivate_Update();
+        MenuNotificationsTracker.Clear();
+        SetListViewPositionAfterGenerated(list.ViewPosition);
+        FolderDataSystem.Save();
+    }
+    #endregion
+    #region 注册按键
+    public override void LeftMouseDown(UIMouseEvent evt) {
+        LeftMouseDown_SelectAndDrag(); // 左键按下时尝试清空选中
+        base.LeftMouseDown(evt);
+    }
+    public override void RightMouseDown(UIMouseEvent evt) {
+        RightMoseDown_SelectAndDrag(); // 右键按下的选择拖拽相关逻辑
+        base.RightMouseDown(evt);
+    }
+    public override void LeftMouseUp(UIMouseEvent evt) {
+        LeftMouseUp_SelectAndDrag();
+        base.LeftMouseUp(evt);
+    }
+    public override void RightMouseUp(UIMouseEvent evt) {
+        RightMouseUp_SelectAndDrag();
+        base.RightMouseUp(evt);
+    }
+    public override void XButton1MouseDown(UIMouseEvent evt) {
+        GotoUpperFolder(); // 鼠标 4 键返回
+    }
+    private void MouseMove() {
+        MouseMove_SelectAndDrag();
+    }
+    public override void ScrollWheel(UIScrollWheelEvent evt) {
+        ScrollWheel_SelectAndDrag();
+        base.ScrollWheel(evt);
+    }
+
+    public void LeftMouseDownOnFolderItem(UIFolderItem item) {
+        LeftMouseDownOnFolderItem_SelectAndDrag(item);
+    }
+    public void RightMouseDownOnFolderItem(UIFolderItem item) {
+        RightMouseDownOnFolderItem_SelectAndDrag(item);
+    }
+
+    #region 检测 MouseMove 的实现
+    private void Update_MonitorMouseMovation() {
+        if (Main.mouseX != Main.lastMouseX || Main.mouseY != Main.lastMouseY) {
+            MouseMove();
+        }
+    }
+    #endregion
+    #endregion
 
     private void ResettleVertical() {
         float upperPixels = upperMenuContainer.Top.Pixels + upperMenuContainer.Height.Pixels;
@@ -1018,10 +1097,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             GotoUpperFolder();
             return;
         }
-        // TODO: 在 Deactivate 中也有, 检查是否冗余
-        FolderDataSystem.Save();
+        // 在 OnDeactivate 中有了
+        // FolderDataSystem.Save();
         FolderPath.Clear();
         list.ViewPosition = 0;
+        ClearSelectingItems();
 
         #region 强制重载
         if (_forceReloadRequired) {
@@ -1049,12 +1129,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
 
         ConfigManager.OnChangedAll();
-
+        if (CommonConfig.Instance.TotallyReload) {
+            Clear();
+        }
         IHaveBackButtonCommand.GoBackTo(PreviousUIState);
     }
     void IHaveBackButtonCommand.HandleBackButtonUsage() {
         BackButtonClicked();
     }
+    public static bool IsPreviousUIStateOfConfigList { get; set; }
+    public UIState? PreviousUIState { get; set; }
     #endregion
     #region 强制重载
     private bool _forceReloadRequired;
@@ -1071,18 +1155,37 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             result = ModItemDict.Values;
         }
         else if (!Main.keyState.PressingAlt()) {
-            result = list._items.Select(i => i as UIModItemInFolderLoaded).WhereNotNull();
+            if (SelectingItems.Count == 0) {
+                result = VisibleItems.OfType<UIModItemInFolderLoaded>();
+            }
+            else {
+                result = GetAffectedMods_Selected();
+            }
         }
         else if (CurrentFolderNode == FolderDataSystem.Root) {
             result = ModItemDict.Values;
         }
         else {
-            result = CurrentFolderNode.ModNodesInTree.ToHashSet().Select(m => ModItemDict.TryGetValue(m.ModName, out var mod) ? mod : null).WhereNotNull();
+            result = CurrentFolderNode.ModNodesInTree.Select(m => m.ModName).ToHashSet().Filter(n => ModItemDict.TryGetValue(n, out var mod) ? NewExistable(mod) : default);
         }
         if (ignoreFavorite) {
             result = result.Where(i => !i.Favorite);
         }
         return result;
+    }
+    private IEnumerable<UIModItemInFolderLoaded> GetAffectedMods_Selected(bool ignoreFavorite = false) {
+        HashSet<string> affectedModNames = [];
+        foreach (var item in SelectingItems) {
+            if (item is UIModItemInFolderLoaded loaded) {
+                affectedModNames.Add(loaded.ModName);
+            }
+            else if (item is UIFolder folder && folder.FolderNode is { } folderNode) {
+                foreach (ModNode node in folderNode.ModNodesInTree) {
+                    affectedModNames.Add(node.ModName);
+                }
+            }
+        }
+        return affectedModNames.Filter(n => ModItemDict.TryGetValue(n, out var mod) ? NewExistable(mod) : default);
     }
     private void EnableMods() {
         SoundEngine.PlaySound(SoundID.MenuTick);
@@ -1189,24 +1292,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
 
-    private void Refresh(UIMouseEvent mouse, UIElement element) {
-        SoundEngine.PlaySound(SoundID.MenuTick);
-        if (Loading) {
-            return;
-        }
-        Populate();
-    }
-
-    public static bool IsPreviousUIStateOfConfigList { get; set; }
-
-    public UIModItemInFolderLoaded? FindUIModItem(string modName) {
-        return ModItemDict.GetValueOrDefault(modName);
-    }
-
     public override void Update(GameTime gameTime) {
         Timer += 1;
         Update_RemoveChildrenToRemove();
         base.Update(gameTime);
+        Update_MonitorMouseMovation();
         MenuNotificationsTracker.Update();
         Update_DetectConfigChange();
         Update_HandleDownloads();
@@ -1217,18 +1307,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
 
     #region 生成 Generate
-    private bool _generateNeeded;
-    public void ArrangeGenerate() => _generateNeeded = true;
-    private void Update_Generate() {
-        if (_generateNeeded) {
-            _generateNeeded = false;
-            Generate();
-        }
-    }
     private void Generate() {
         list.Clear();
         list.StopMoving();
-        DraggingTarget = null;
+        StashSelectingItems(true);
         ClearConfirmPanels(true);
         UIFolderItemFilterResults filterResults = new();
         var visibleItems = GetVisibleItems(filterResults);
@@ -1261,21 +1343,40 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (ShowFolderSystem && CurrentFolderNode != FolderDataSystem.Root) {
             UIFolder upperFolder = new("..");
             list.Add(upperFolder);
-            upperFolder.RightDraggable = false;
+            upperFolder.Selectable = false;
             upperFolder.Activate();
         }
         #endregion
         visibleItems = visibleItems.HeapSort((u1, u2) => u1.CompareTo(u2));
         list.AddRange(visibleItems);
+        int i = 0;
         foreach (var item in visibleItems) {
+            item.IndexCache = i++;
             item.Activate();
         }
+        VisibleItems = visibleItems;
         Recalculate();
+        UnstashSelectingItems();
         if (_listViewPositionToSetAfterGenerated != null) {
             list.ViewPosition = _listViewPositionToSetAfterGenerated.Value;
             _listViewPositionToSetAfterGenerated = null;
         }
     }
+    private bool _generateNeeded;
+    public void ArrangeGenerate() => _generateNeeded = true;
+    private void Update_Generate() {
+        if (_generateNeeded) {
+            _generateNeeded = false;
+            Generate();
+        }
+    }
+    private FolderNode? nodeToRename;
+    #region VisibleItems
+    /// <summary>
+    /// <br/>当前列表中的项
+    /// <br/>不包含返回上一级的文件夹
+    /// </summary>
+    public IReadOnlyList<UIFolderItem> VisibleItems { get; private set; } = [];
     private List<UIFolderItem> GetVisibleItems(UIFolderItemFilterResults filterResults) {
         List<UIFolderItem> result;
         if (ShowAllMods) {
@@ -1378,11 +1479,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private float? _listViewPositionToSetAfterGenerated;
     private void SetListViewPositionAfterGenerated(float value) => _listViewPositionToSetAfterGenerated = value;
     #endregion
-
+    #endregion
+    #region Draw
     public override void Draw(SpriteBatch spriteBatch) {
         UILinkPointNavigator.Shortcuts.BackButtonCommand = 7;
         Draw_TryCloseButtons();
-        SetDraggingPosition();
+        Draw_UpdateDraggingTo();
         base.Draw(spriteBatch);
         MenuNotificationsTracker.Draw(spriteBatch);
         #region DrawMouseTexture
@@ -1399,6 +1501,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         ShowTooltips();
     }
+    #region 鼠标的悬浮提示和悬浮图片
+    private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
     /// <summary>
     /// 当鼠标在一些东西上时显示悬浮提示
     /// </summary>
@@ -1410,8 +1514,241 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
         }
     }
-    #region 右键拖动
+    private Texture2D? _mouseTexture;
+    private int _mouseTextureWidth;
+    private int _mouseTextureHeight;
+    private int _mouseTextureOffsetX;
+    private int _mouseTextureOffsetY;
+    private Color _mouseTextureColor;
+    public void SetMouseTexture(Texture2D mouseTexture, int width = 0, int height = 0, int offsetX = 0, int offsetY = 0, Color color = default) {
+        _mouseTexture = mouseTexture;
+        _mouseTextureWidth = width == 0 ? mouseTexture.Width : width;
+        _mouseTextureHeight = height == 0 ? mouseTexture.Height : height;
+        _mouseTextureOffsetX = offsetX;
+        _mouseTextureOffsetY = offsetY;
+        _mouseTextureColor = color == default ? Color.White : color;
+    }
+    #endregion
+    #endregion
+    #region 拖动和选择相关
+    #region 判断是否真的在拖拽
+    private bool _isLeftDragging;
+    private bool _isRightDragging;
+    private bool movedForDragging;
+    public bool IsLeftDragging {
+        get => _isLeftDragging;
+        private set {
+            if (_isLeftDragging == value) {
+                return;
+            }
+            if (value) {
+                movedForDragging = false;
+            }
+            _isLeftDragging = value;
+        }
+    }
+    public bool IsRightDragging {
+        get => _isRightDragging;
+        private set {
+            if (_isRightDragging == value) {
+                return;
+            }
+            if (value) {
+                movedForDragging = false;
+            }
+            _isRightDragging = value;
+        }
+    }
+    public bool IsReadyToDrag {
+        get {
+            if (!IsLeftDragging && !_isRightDragging) {
+                return false;
+            }
+            if (!movedForDragging) {
+                return false;
+            }
+            if (InnerDraggingTo == null) {
+                return false;
+            }
+            if (lastDownedFolderItem != InnerDraggingTo) {
+                return true;
+            }
+            return LastDownedTimeEnoughCheck;
+        }
+    }
+    private bool IsInnerDragging {
+        get {
+            if (!IsLeftDragging && !_isRightDragging) {
+                return false;
+            }
+            if (!movedForDragging) {
+                return false;
+            }
+            if (_selectingItems.Count == 0) {
+                return false;
+            }
+            return true;
+        }
+    }
+    #endregion
+    #region 拖拽目标
+    UIElement? _draggingTo;
+    private UIElement? InnerDraggingTo => _draggingTo;
+    public UIElement? DraggingTo {
+        get => IsReadyToDrag ? _draggingTo : null;
+        private set => _draggingTo = value;
+    }
+    /// <summary>
+    /// -1 为前面, 1 为后面, 0 为进入
+    /// 只有当 DraggingTo 非空时有意义
+    /// </summary>
+    public int DraggingDirection { get; private set; }
+    #endregion
+    #region SelectingItems
+    public IReadOnlySet<UIFolderItem> SelectingItems => _selectingItems;
+    private readonly HashSet<UIFolderItem> _selectingItems = [];
+    public UIFolderItem? LastSelectingItem => _lastSelectingItem;
+    private UIFolderItem? _lastSelectingItem;
+    public bool AddSelectingItems(UIFolderItem item) {
+        if (_selectingItems.Add(item)) {
+            _lastSelectingItem = item;
+            return true;
+        }
+        return false;
+    }
+    public void AddOrRemoveSelectingItems(UIFolderItem item) {
+        if (_selectingItems.Add(item)) {
+            _lastSelectingItem = item;
+            return;
+        }
+        _selectingItems.Remove(item);
+        if (_lastSelectingItem == item) {
+            _lastSelectingItem = null;
+        }
+    }
+    public void RemoveSelectingItems(UIFolderItem item) {
+        _selectingItems.Remove(item);
+        if (_lastSelectingItem == item) {
+            _lastSelectingItem = null;
+        }
+    }
+    public void ClearSelectingItems() {
+        _selectingItems.Clear();
+        _lastSelectingItem = null;
+    }
+
+    private readonly HashSet<Node> stashSelectingItems = [];
+    private Node? stashLastSelectingItem;
+    private void StashSelectingItems(bool clear = false) {
+        stashSelectingItems.Clear();
+        foreach (var item in _selectingItems) {
+            if (item.Node != null) {
+                stashSelectingItems.Add(item.Node);
+            }
+        }
+        stashLastSelectingItem = _lastSelectingItem?.Node;
+        if (clear) {
+            ClearSelectingItems();
+        }
+    }
+    private void UnstashSelectingItems(bool clear = false) {
+        if (clear) {
+            ClearSelectingItems();
+        }
+        foreach (var item in VisibleItems) {
+            if (item.Node != null && stashSelectingItems.Contains(item.Node)) {
+                _selectingItems.Add(item);
+            }
+            if (stashLastSelectingItem != null && item.Node == stashLastSelectingItem) {
+                _lastSelectingItem = item;
+            }
+        }
+        stashSelectingItems.Clear();
+        stashLastSelectingItem = null;
+    }
+
+    private UIFolderItem? FindClosest(UIFolderItem item) {
+        var selecting = SelectingItems;
+        int selectingCount = selecting.Count;
+        // 若为空, 则返回空
+        if (selectingCount == 0) {
+            return null;
+        }
+        // 若只有一个, 则返回这个
+        if (selectingCount == 1) {
+            return selecting.First();
+        }
+        // 若包含在选择中, 则返回自己
+        if (SelectingItems.Contains(item)) {
+            return item;
+        }
+        var index = item.IndexCache;
+        // 若选择数量不多, 则遍历所有选择, 寻找距离最小的返回
+        if (selectingCount <= 5) {
+            using var e = selecting.GetEnumerator();
+            if (!e.MoveNext()) {
+                return null; // 理应不应出现
+            }
+            var closest = e.Current;
+            int minDistance = Math.Abs(closest.IndexCache - index);
+            while (e.MoveNext()) {
+                int distance = Math.Abs(e.Current.IndexCache - index);
+                if (distance > minDistance) {
+                    continue;
+                }
+                // 若距离更小, 或距离相等但在前边则更新 (前边优先于后边)
+                if (distance < minDistance || e.Current.IndexCache < index) {
+                    closest = e.Current;
+                    minDistance = distance;
+                }
+            }
+            return closest;
+        }
+        var visibles = VisibleItems;
+        var visiblesCount = visibles.Count;
+        // 向两侧查找
+        foreach (var i in SpreadForeach(visiblesCount, index, 1)) {
+            var v = visibles[i];
+            if (selecting.Contains(v)) {
+                return v;
+            }
+        }
+        return null; // 不该出现
+    }
+    private static IEnumerable<int> SpreadForeach(int length, int index, int spread) {
+        if (index - spread < 0) {
+            for (index = (index + spread).WithMin(0); index < length; ++index) {
+                yield return index;
+            }
+            yield break;
+        }
+        if (index + spread >= length) {
+            for (index = (index - spread).WithMax(length - 1); index >= 0; --index) {
+                yield return index;
+            }
+            yield break;
+        }
+        for (; ; ++spread) {
+            if (index < spread) {
+                for (index += spread; index < length; ++index) {
+                    yield return index;
+                }
+                yield break;
+            }
+            yield return index - spread;
+            if (index + spread >= length) {
+                for (index -= spread + 1; index >= 0; --index) {
+                    yield return index;
+                }
+                yield break;
+            }
+            yield return index + spread;
+        }
+    }
+    #endregion
+
     private UIFolderItem? _draggingTarget;
+    [Obsolete("Use Selecting Items Instead")]
     public UIFolderItem? DraggingTarget {
         get => ShowFolderSystem ? _draggingTarget : null;
         set {
@@ -1421,16 +1758,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     // 在 Draw 之前执行
-    private void SetDraggingPosition() {
-        if (DraggingTarget == null) {
+    private void Draw_UpdateDraggingTo() {
+        if (!IsInnerDragging) {
             return;
         }
-        #region 将要拖动的元素转为 Node
-        Node? node = DraggingTarget.Node;
-        if (node == null) {
-            return;
-        }
-        #endregion
         #region 根据现在的排序和过滤方式判断是否可以自定义排序
         bool canCustomizeOrder = CanCustomizeOrder();
         #endregion
@@ -1514,119 +1845,292 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
     }
-    private bool CanCustomizeOrder() {
-        for (int i = 0; i < _topButtonData.Length; ++i) {
-            if (_topButtonData[i] != 0) {
+    #region 刚刚按下的项和按下的时间
+    private UIFolderItem? lastDownedFolderItem;
+    private double lastDownedOnFolderItemTime;
+    private static double TimeNowForDrag => Main.gameTimeCache.TotalGameTime.TotalMicroseconds;
+    private static readonly double TimeToleranceForDrag = 500;
+    private bool LastDownedTimeEnoughCheck => TimeNowForDrag - lastDownedOnFolderItemTime > TimeToleranceForDrag;
+    #endregion
+
+    private enum WaitingForSelectTypes {
+        NotWaiting,
+        LeftNormal,
+        LeftCtrl,
+    }
+    private WaitingForSelectTypes waitingForSelectType;
+    public void ClearWaitingForSelect() => waitingForSelectType = WaitingForSelectTypes.NotWaiting;
+    public void LeftMouseDownOnFolderItem_SelectAndDrag(UIFolderItem item) {
+        if (!item.Selectable) {
+            return;
+        }
+        if (ShowAllMods) {
+            return;
+        }
+        lastDownedFolderItem = item;
+        lastDownedOnFolderItemTime = TimeNowForDrag;
+        suppressLeftMouseDownClearSelecting = true;
+        IsLeftDragging = true;
+        var selecting = SelectingItems;
+        bool shift = Main.keyState.PressingShift();
+        bool ctrl = Main.keyState.PressingControl();
+        switch ((shift, ctrl)) {
+        case (false, false):
+            if (selecting.Contains(item)) {
+                waitingForSelectType = WaitingForSelectTypes.LeftNormal;
+                break;
+            }
+            // 什么都不按, 清空所选, 转为选择这一项
+            ClearSelectingItems();
+            AddSelectingItems(item);
+            break;
+        case (false, true):
+            // TODO: 此情况下不能直接清空. 需要等待松开或移动
+            // 按住 Ctrl 反选
+            waitingForSelectType = WaitingForSelectTypes.LeftCtrl;
+            break;
+        case (true, false): { // only shift
+            // 按住 Shift 直接框选
+            var from = LastSelectingItem ?? FindClosest(item);
+            if (from == null) { // 此时应该没有选项, 直接添加此项
+                AddSelectingItems(item);
+                break;
+            }
+            int indexFrom = from.IndexCache, indexTo = item.IndexCache;
+            var visibles = VisibleItems;
+            _lastSelectingItem = visibles[indexTo];
+            if (indexFrom > indexTo) {
+                (indexFrom, indexTo) = (indexTo, indexFrom);
+            }
+            indexTo.ClampMaxTo(visibles.Count - 1);
+            for (int i = indexFrom; i <= indexTo; ++i) {
+                _selectingItems.Add(visibles[i]);
+            }
+            break;
+        }
+        case (true, true): {
+            // 按住 Ctrl 和 Shift, 框选反选
+            var from = LastSelectingItem ?? FindClosest(item);
+            if (from == null) { // 此时应该没有选项, 直接添加此项
+                AddSelectingItems(item);
+                break;
+            }
+            int indexFrom = from.IndexCache, indexTo = item.IndexCache;
+            var visibles = VisibleItems;
+            _lastSelectingItem = SelectingItems.Contains(visibles[indexTo]) ? null : visibles[indexTo];
+            if (indexFrom <= indexTo) {
+                indexFrom += 1;
+            }
+            else {
+                indexFrom -= 1;
+                (indexFrom, indexTo) = (indexTo, indexFrom);
+            }
+            indexTo.ClampMaxTo(visibles.Count - 1);
+            for (int i = indexFrom; i <= indexTo; ++i) {
+                _selectingItems.AddOrRemove(visibles[i]);
+            }
+            break;
+        }
+        }
+    }
+    public void RightMouseDownOnFolderItem_SelectAndDrag(UIFolderItem item) {
+        if (!item.Selectable) {
+            return;
+        }
+        if (ShowAllMods) {
+            return;
+        }
+        lastDownedFolderItem = item;
+        lastDownedOnFolderItemTime = TimeNowForDrag;
+        suppressRightMouseDownClearSelecting = true;
+        // IsRightDragging = true;
+    }
+
+    public bool RealDraggingTo(UIFolderItem item) {
+        if (item == lastDownedFolderItem) {
+            if (!LastDownedTimeEnoughCheck) {
                 return false;
             }
         }
-        return Filter == string.Empty;
+        return true;
     }
 
-    private void OnRightMouseUp_RightDrag(UIMouseEvent mouse, UIElement element) {
-        if (DraggingTarget == null) {
+    private bool suppressLeftMouseDownClearSelecting;
+    private bool suppressRightMouseDownClearSelecting;
+    private void LeftMouseDown_SelectAndDrag() {
+        IsRightDragging = false;
+        if (suppressLeftMouseDownClearSelecting) {
+            suppressLeftMouseDownClearSelecting = false;
             return;
         }
-        var draggingTarget = DraggingTarget;
-        DraggingTarget = null;
+        ClearSelectingItems();
+    }
+    private void RightMoseDown_SelectAndDrag() {
+        IsLeftDragging = false;
+        if (suppressRightMouseDownClearSelecting) {
+            suppressRightMouseDownClearSelecting = false;
+            return;
+        }
+        ClearSelectingItems();
+    }
+    private void LeftMouseUp_SelectAndDrag() {
+        if (!IsLeftDragging) {
+            return;
+        }
+        var draggingTo = DraggingTo;
+        IsLeftDragging = false;
+        var selecting = SelectingItems;
+        bool readyToDrag = draggingTo != null;
+        LeftMouseUpForSelecting(readyToDrag);
+        ClearWaitingForSelect();
+        if (!readyToDrag || selecting.Count == 0) {
+            return;
+        }
         #region 将要拖动的元素转为 Node
-        Node? node = draggingTarget.Node;
-        if (node == null) {
+        List<Node> nodes = selecting.OrderBy(i => i.IndexCache).Filter(i => i.Node != null ? NewExistable(i.Node) : default).ToList();
+        if (nodes.Count == 0) {
             return;
         }
         #endregion
-        if (_draggingTo == null) {
-            return;
-        }
         Node? aimNode = null;
-        if (_draggingTo is UIFolderItem fi) {
+        if (draggingTo is UIFolderItem fi) {
             aimNode = fi.Node;
         }
-        else if (_draggingTo is UIFolderPathItem pi) {
+        else if (draggingTo is UIFolderPathItem pi) {
             aimNode = pi.FolderNode;
         }
         if (aimNode == null) {
-            if (_draggingTo is UIFolder folder && folder.Name == "..") {
+            if (draggingTo is UIFolder folder && folder.Name == "..") {
                 if (DraggingDirection == 0) {
                     // 保险起见判断一下, 理应总是符合该条件的
                     if (FolderPath.Count > 1)
-                        MoveNodeIntoFolder(node, FolderPath[^2]);
+                        MoveNodesIntoFolder(nodes, FolderPath[^2]);
                 }
                 else {
-                    MoveNodeToTheStart(node);
+                    MoveNodesToTheStart(nodes);
                 }
             }
             return;
         }
         if (DraggingDirection < 0) {
-            MoveNodeBeforeNode(node, aimNode);
+            MoveNodesBeforeNode(nodes, aimNode);
         }
         else if (DraggingDirection > 0) {
-            MoveNodeAfterNode(node, aimNode);
+            MoveNodesAfterNode(nodes, aimNode);
         }
         else {
             if (aimNode is FolderNode aimFolder) {
-                MoveNodeIntoFolder(node, aimFolder);
+                MoveNodesIntoFolder(nodes, aimFolder);
             }
         }
         #region 辅助方法
-        void MoveNodeIntoFolder(Node node, FolderNode folder) {
-            if (node == folder) {
-                return;
-            }
-            if (node.Parent != CurrentFolderNode) {
-                ModFolder.Instance.Logger.Error("node's parent should be the current folder at MoveNodeIntoFolder");
-                // return;
-            }
-            if (Main.keyState.PressingControl() && node is ModNode mn) {
-                node = new ModNode(mn);
-            }
-            else {
-                node.ParentF = null;
-            }
+        void MoveNodesIntoFolder(List<Node> nodes, FolderNode folder) {
+            int length = nodes.Count;
+            var ctrl = Main.keyState.PressingControl();
+            for (int i = 0; i < length; ++i) {
+                var node = nodes[i];
+                if (node == folder) {
+                    continue;
+                }
+                if (node.Parent != CurrentFolderNode) {
+                    ModFolder.Instance.Logger.Error("node's parent should be the current folder at MoveNodeIntoFolder");
+                    // return;
+                }
+                if (ctrl && node is ModNode mn) {
+                    node = new ModNode(mn);
+                }
+                else {
+                    node.ParentF = null;
+                }
 
-            if (node is ModNode modNode) {
-                foreach (var child in folder.Children) {
-                    if (child is ModNode m && m.ModName == modNode.ModName) {
-                        FolderDataSystem.TreeChanged();
-                        return;
+                if (node is ModNode modNode) {
+                    foreach (var child in folder.Children) {
+                        if (child is ModNode m && m.ModName == modNode.ModName) {
+                            continue;
+                        }
                     }
                 }
+                node.ParentF = folder;
             }
-            node.Parent = folder;
+            FolderDataSystem.TreeChanged();
         }
-        void MoveNodeBeforeNode(Node node, Node target) {
-            CurrentFolderNode.MoveChildBeforeChild(node, target);
+        void MoveNodesBeforeNode(List<Node> nodes, Node target) {
+            FolderDataSystem.MoveNodesAroundNode(nodes, target);
         }
-        void MoveNodeAfterNode(Node node, Node target) {
-            CurrentFolderNode.MoveChildAfterChild(node, target);
+        void MoveNodesAfterNode(List<Node> nodes, Node target) {
+            FolderDataSystem.MoveNodesAroundNode(nodes, target, true);
         }
-        void MoveNodeToTheStart(Node node) {
-            node.MoveToTheTop();
+        void MoveNodesToTheStart(List<Node> nodes) {
+            FolderDataSystem.MoveNodesToTop(nodes);
         }
         #endregion
     }
-    #endregion
-
-    public override void OnActivate() {
-        // 在 OnInitialize 之后执行
-        ArrangeGenerate();
-        Main.clrInput();
-        list.Clear();
-        if (!_loaded) {
-            ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
-            Populate();
+    private void RightMouseUp_SelectAndDrag() {
+        if (!IsRightDragging) {
+            return;
+        }
+        IsRightDragging = false;
+        // TODO
+    }
+    private void MouseMove_SelectAndDrag() {
+        MoveForDraggingDetected();
+    }
+    private void ScrollWheel_SelectAndDrag() {
+        MoveForDraggingDetected();
+    }
+    private void MoveForDraggingDetected() {
+        movedForDragging = true;
+        if (waitingForSelectType == WaitingForSelectTypes.NotWaiting) {
+            return;
+        }
+        if (lastDownedFolderItem == null) {
+            return;
+        }
+        if (!IsReadyToDrag) {
+            return;
+        }
+        switch (waitingForSelectType) {
+        case WaitingForSelectTypes.LeftNormal:
+            ClearWaitingForSelect();
+            break;
+        case WaitingForSelectTypes.LeftCtrl:
+            ClearWaitingForSelect();
+            AddSelectingItems(lastDownedFolderItem);
+            break;
         }
     }
+    private void LeftMouseUpForSelecting(bool readyToDrag) {
+        if (waitingForSelectType == WaitingForSelectTypes.NotWaiting) {
+            return;
+        }
+        if (lastDownedFolderItem == null) {
+            return;
+        }
+        switch (waitingForSelectType) {
+        case WaitingForSelectTypes.LeftNormal:
+            // 如果此项没有入选不会等待
 
-    public override void OnDeactivate() {
-        OnDeactivate_Loading();
-        OnDeactivate_Update();
-        MenuNotificationsTracker.Clear();
-        SetListViewPositionAfterGenerated(list.ViewPosition);
-        FolderDataSystem.Save();
+            // 如果是左键单击以拖动则保持选择
+            if (readyToDrag) {
+                break;
+            }
+            // 如果不拖动则单选
+            ClearSelectingItems();
+            AddSelectingItems(lastDownedFolderItem);
+            break;
+        case WaitingForSelectTypes.LeftCtrl:
+            // 如果要拖动则同时入选
+            if (readyToDrag) {
+                AddSelectingItems(lastDownedFolderItem);
+                break;
+            }
+            // 否则反选
+            AddOrRemoveSelectingItems(lastDownedFolderItem);
+            break;
+        }
     }
-
+    #endregion
+    
     #region 加载相关 (包含删除模组)
     #region 加载动画
     private UILoaderAnimatedImage uiLoader = null!;
@@ -1658,6 +2162,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #endregion
+    private void Refresh(UIMouseEvent mouse, UIElement element) {
+        SoundEngine.PlaySound(SoundID.MenuTick);
+        if (Loading) {
+            return;
+        }
+        Populate();
+    }
     private Task? loadTask;
     private CancellationTokenSource? _cts;
     private bool _loaded;
@@ -2067,7 +2578,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ClearUpdateCts();
     }
     #endregion
-
+    #region PopupInfo
     public static void PopupInfo(string message) {
         MenuNotificationsTracker.AddNotification(new TextNotification(message, new(0, 0.25f)));
     }
@@ -2077,34 +2588,5 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public static void PopupInfoByKey(string keyFromMod, params object?[] args) {
         PopupInfo(ModFolder.Instance.GetLocalizedValue(keyFromMod).FormatWith(args));
     }
-
-    [Conditional("DEBUG")]
-    private void OnInitialize_Debug() {
-        var debugTextPanel = new UIElementCustom {
-            Width = { Percent = 1f },
-            Height = { Percent = 1f },
-            IgnoresMouseInteraction = true,
-        };
-        var debugTextUI = new UIText(string.Empty) {
-            Left = { Pixels = 20 },
-            Top = { Pixels = 100 },
-            TextOriginX = 0,
-        };
-        debugTextPanel.Append(debugTextUI);
-        debugTextPanel.OnUpdate += _ => {
-            string text = $"Task is null: {loadTask == null}";
-            if (loadTask != null) {
-                text += $"""
-                ,
-                Task.IsCompleted: {loadTask.IsCompleted},
-                Task.IsCompletedSuccessfully: {loadTask.IsCompletedSuccessfully},
-                Task.IsFaulted: {loadTask.IsFaulted},
-                Task.IsCanceled: {loadTask.IsCanceled}
-                loadingState: {loadingState}
-                """;
-            }
-            debugTextUI.SetText(text);
-        };
-        Append(debugTextPanel);
-    }
+    #endregion
 }

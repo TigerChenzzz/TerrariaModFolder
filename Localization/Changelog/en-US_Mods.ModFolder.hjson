@@ -1,5 +1,10 @@
 Changelog:
 	'''
+	[c/00ff00:v0.5.0]
+	[c/ff0000:- use left mouse to drag rather than right mouse]
+	[c/ff0000:- multi-select support, Ctrl + left click to invert select, Shift + left click to multi-select; the selected can be dragged, or mofidied by "Enable & Disable" button]
+	[c/999999:- fix the wrong behavior of double click when clicking on a mod multiple times]
+
 	[c/00ff00:v0.4.0]
 	[c/ff0000:- allow import and export folders via clipboard, the "Import Folder" button is in "More Buttons"]
 	[c/999999:- the mod item is a bit taller, make icon_small not compressed (30px -> 32px)]

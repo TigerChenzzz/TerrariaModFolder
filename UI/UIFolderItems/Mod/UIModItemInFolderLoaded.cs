@@ -396,11 +396,15 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #endregion
         #region 双击左键 启用 / 禁用
         OnLeftDoubleClick += (e, el) => {
+            Main.MenuUI.LeftMouse.LastDown = null;
             if (tMLUpdateRequired != null)
                 return;
             // TODO: 双击某些位置时不能切换
             ToggleEnabled();
-            UIModFolderMenu.Instance.CurrentFolderNode.TryRefreshCountsInThisFolder();
+            var menu = UIModFolderMenu.Instance;
+            menu.ClearSelectingItems();
+            menu.ClearWaitingForSelect();
+            menu.CurrentFolderNode.TryRefreshCountsInThisFolder();
         };
         #endregion
         #region alt 左键收藏
@@ -811,6 +815,17 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #endregion
     }
 
+    public bool TryToggleEnabled() {
+        if (tMLUpdateRequired != null)
+            return false;
+        // TODO: 双击某些位置时不能切换
+        ToggleEnabled();
+        var menu = UIModFolderMenu.Instance;
+        menu.ClearSelectingItems();
+        menu.ClearWaitingForSelect();
+        menu.CurrentFolderNode.TryRefreshCountsInThisFolder();
+        return true;
+    }
     private void ToggleEnabled() {
         SoundEngine.PlaySound(SoundID.MenuTick);
         if (!_mod.Enabled) {

@@ -32,7 +32,7 @@ public class UIFolderItemList : UIList {
             return;
         }
 
-        if (CommonConfig.Instance.AutoMoveListWhenDragging && UIModFolderMenu.Instance.DraggingTarget != null) {
+        if (CommonConfig.Instance.AutoMoveListWhenDragging && UIModFolderMenu.Instance.IsReadyToDrag) {
             float upDelta = _dimensions.Y + _dimensions.Height / 8 - Main.mouseY;
             if (upDelta > 0) {
                 scrollbarAim -= upDelta / 5;
