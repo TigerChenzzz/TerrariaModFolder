@@ -414,9 +414,10 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         };
         #endregion
         #region 服务器版本不同的提示
-        // TODO: 修改这个
+        //!!!!!!!!!!! TODO: 修改这个
         if (loadedMod != null && _mod.modFile.path != loadedMod.File.path) {
-            var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session") {
+            //!!!!!!!! 本地化和美化 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+            var serverDiffMessage = new UITextPanel<string>($"v{loadedMod.Version} currently loaded due to multiplayer game session or mod update") {
                 Width = new(0, 1f),
                 Height = new(30, 0f),
                 VAlign = .5f,
