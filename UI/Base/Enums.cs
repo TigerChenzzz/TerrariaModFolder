@@ -31,7 +31,12 @@ public enum FolderEnabledFilter {
     WouldBeDisabled,
 }
 
-public enum MenuShowType {
+public enum MenuShowTypes {
     FolderSystem,
     AllMods,
+}
+
+public enum LayoutTypes {
+    Stripe,
+    Block,
 }

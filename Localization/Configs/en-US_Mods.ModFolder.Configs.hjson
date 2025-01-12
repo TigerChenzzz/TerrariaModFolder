@@ -72,6 +72,11 @@ CommonConfig: {
 		Label: See Changelog
 		Tooltip: ""
 	}
+
+	UseBlockLayoutByDefault: {
+		Label: Use Block Layout By Default
+		Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {

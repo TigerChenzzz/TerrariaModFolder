@@ -10,7 +10,7 @@ namespace ModFolder.UI.UIFolderItems;
 /// <summary>
 /// 文件夹系统列表中的一件物品, 可能是文件夹, 可能是模组, 也可能是其它什么东西
 /// </summary>
-public class UIFolderItem : UIElement {
+public abstract class UIFolderItem : UIElement {
     #region 构造
     public UIFolderItem() : base() {
         Height.Pixels = 32;
@@ -70,10 +70,15 @@ public class UIFolderItem : UIElement {
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
+        UIModFolderMenu menu = UIModFolderMenu.Instance;
         #region 画分割线
         Rectangle dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4);
-        spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
-        UIModFolderMenu menu = UIModFolderMenu.Instance;
+        if (menu.LayoutType == LayoutTypes.Block) {
+            Utils.DrawInvBG(spriteBatch, dimensions.X, dimensions.Y, dimensions.Width, dimensions.Height, new Color(63, 65, 151, 255) * (0.785f * 0.5f));
+        }
+        else {
+            spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
+        }
         #endregion
         #region 收藏
         if (Favorite) {
@@ -92,7 +97,6 @@ public class UIFolderItem : UIElement {
         #endregion
         #region 鼠标在上面时高亮; 当为拖动对象时虚线显示, 为拖动目的地时显示高亮或上下
         bool isDraggingTo = menu.DraggingTo == this;
-        var realDraggingTo = menu.RealDraggingTo(this);
         if (menu.SelectingItems.Count != 0) {
             if (menu.SelectingItems.Contains(this)) {
                 spriteBatch.DrawDashedOutline(rectangle, Color.White * 0.8f, start: menu.Timer / 3);
@@ -361,5 +365,40 @@ public class UIFolderItem : UIElement {
     #region 选择与拖动
     private void OnLeftMouseDown_TrySelect(UIMouseEvent evt, UIElement listeningElement) => UIModFolderMenu.Instance.LeftMouseDownOnFolderItem(this);
     private void OnRightMouseDown_TryDrag(UIMouseEvent evt, UIElement listeningElement) => UIModFolderMenu.Instance.RightMouseDownOnFolderItem(this);
+    #endregion
+    #region 布局 Layout
+    protected static LayoutTypes MenuLayoutType => UIModFolderMenu.Instance.LayoutType;
+    protected LayoutTypes LayoutType { get; set; }
+    protected bool BlockLayout => LayoutType == LayoutTypes.Block;
+    protected bool StripeLayout => LayoutType == LayoutTypes.Stripe;
+    public override void Recalculate() {
+        if (LayoutType == MenuLayoutType) {
+            base.Recalculate();
+            return;
+        }
+        LayoutType = MenuLayoutType;
+        ForceRecalculateLayout();
+        base.Recalculate();
+    }
+    protected void ForceRecalculateLayout() {
+        if (LayoutType == LayoutTypes.Block) {
+            RecalculateBlockLayout();
+        }
+        else {
+            RecalculateStripeLayout();
+        }
+    }
+    protected virtual void RecalculateStripeLayout() {
+        Left.Set(0, 0);
+        Width.Set(0, 1);
+        Height.Set(32, 0);
+    }
+    protected virtual void RecalculateBlockLayout() {
+        Width.Set(90, 0);
+        Height.Set(90, 0);
+    }
+    protected static UIElement GetAPlaceHolderElement() => new() {
+        IgnoresMouseInteraction = true,
+    };
     #endregion
 }

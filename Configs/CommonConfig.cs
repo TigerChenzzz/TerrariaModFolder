@@ -25,6 +25,7 @@ public class CommonConfig : ModConfig {
 
     [DefaultValue(true)]
     public bool LeftClickToEnterFolderSystem { get; set; }
+    public bool UseBlockLayoutByDefault { get; set; }
     #region 显示模组来源
     [DefaultValue(true)]
     public bool ShowModLocation { get; set; }

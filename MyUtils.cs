@@ -28,6 +28,8 @@ public static class MyUtils {
         public static readonly Asset<Texture2D> ButtonDelete = UI("ButtonDelete"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
         public static readonly Asset<Texture2D> ButtonSubscribe = UI("ButtonSubscribe");
         public static readonly Asset<Texture2D> ButtonExport = UI("ButtonExport");
+        public static readonly Asset<Texture2D> Folder = UI("Folder");
+        public static readonly Asset<Texture2D> FolderBack = UI("FolderBack");
 
         public static Texture2D FromColors(int width, int height, Color[] colors) {
             Texture2D result = new(Main.instance.GraphicsDevice, width, height);

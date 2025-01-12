@@ -72,6 +72,11 @@ CommonConfig: {
 		Label: 查看更新日志
 		Tooltip: ""
 	}
+
+	UseBlockLayoutByDefault: {
+		// Label: Use Block Layout By Default
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {

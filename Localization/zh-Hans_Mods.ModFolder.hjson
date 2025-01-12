@@ -134,6 +134,8 @@ UI: {
 		AllMods.Tooltip: 显示所有模组
 		Loaded.Tooltip: 显示已加载的模组
 		Unloaded.Tooltip: 显示未加载的模组
+		// StripeLayout.Tooltip: Stripe layout
+		// BlockLayout.Tooltip: Block layout
 	}
 
 	NewFolderDefaultName: 新建文件夹

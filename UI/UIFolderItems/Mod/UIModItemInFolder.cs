@@ -58,7 +58,6 @@ public abstract class UIModItemInFolder : UIFolderItem {
     }
     protected void OnInitialize_ProcessRenameButton(UIElement renameButton) {
         renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
-        Append(renameButton);
     }
 
     private bool replaceToModName;
@@ -66,7 +65,7 @@ public abstract class UIModItemInFolder : UIFolderItem {
     private void SetReplaceToRenameText() => replaceToRenameText = true;
     private UIText uiModName = null!;
     private UIFocusInputTextFieldPro uiRenameText = null!;
-    private int _modNameIndex;
+    protected int _modNameIndex;
     private void CheckReplace() {
         if (replaceToModName) {
             replaceToModName = false;

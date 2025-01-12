@@ -1,5 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
+using ModFolder.UI.Base;
+using ModFolder.UI.UIFolderItems;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
@@ -65,11 +67,14 @@ public class UIFolderItemList : UIList {
         }
     }
     #endregion
+    #region Update
     public override void Update(GameTime gameTime) {
         Update_Scrollbar();
         base.Update(gameTime);
         Update_PageUpDownSupport();
     }
+    #endregion
+    #region PageUp / PageDown
     /// <summary>
     /// 改自 <see cref="UIModBrowser.PageUpDownSupport(UIList)"/>
     /// </summary>
@@ -84,4 +89,58 @@ public class UIFolderItemList : UIList {
             ViewPosition -= _innerDimensions.Height;
         }
     }
+    #endregion
+    #region Recalculate
+    public override void RecalculateChildren() {
+        if (UIModFolderMenu.Instance.LayoutType == LayoutTypes.Stripe) {
+            base.RecalculateChildren();
+            return;
+        }
+
+        // 块状布局:
+        foreach (var element in Elements) {
+            element.Recalculate();
+        }
+        float top = 0;
+        float endOffset = 0;
+        bool firstFolderItem = true;
+        float itemWidth = 96, itemHeight = 96;
+        float listWidth = _dimensions.Width;
+        float padding = ListPadding;
+        int columnCount = 6;
+        int currentColumnCount = 0;
+        foreach (var item in _items) {
+            var itemSize = item._dimensions;
+            if (item is not UIFolderItem) {
+                item.Top.Set(top, 0);
+                item.Recalculate();
+                top += itemSize.Height + padding;
+                endOffset = -padding;
+                continue;
+            }
+            if (firstFolderItem) {
+                firstFolderItem = false;
+                itemWidth = itemSize.Width;
+                itemHeight = itemSize.Height;
+                columnCount = ((int)((listWidth + padding) / (itemWidth + padding))).WithMin(1);
+            }
+            item.Top.Set(top, 0);
+            item.Left.Set(((currentColumnCount * 2 - columnCount) * (itemWidth + padding) + padding) / 2, 0.5f);
+            // totalWidth = columnCount * itemWidth + padding * (columnCount - 1) = (itemWidth + padding) * columnCount - padding
+            // offset = currentColumnCount * (itemWidth + padding)
+            // offset - totalWidth / 2 = (itemWidth + padding) * (currentColumnCount - columnCount / 2) + padding / 2
+            item.Recalculate();
+            currentColumnCount += 1;
+            if (currentColumnCount >= columnCount) {
+                currentColumnCount = 0;
+                top += itemHeight + padding;
+                endOffset = -padding;
+            }
+            else {
+                endOffset = itemHeight;
+            }
+        }
+        _innerListHeight = top + endOffset;
+    }
+    #endregion
 }

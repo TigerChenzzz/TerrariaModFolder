@@ -35,7 +35,11 @@ public class UIFolder : UIFolderItem {
     private UIImage? _deleteButton;
     private UIImage? _renameButton;
     private UIImage? _exportButton;
-    private UIText _enableStatusText = null!;
+    private UIText _enableStatusText = new(string.Empty) {
+        VAlign = 0.5f,
+        HAlign = 1,
+        TextOriginX = 1,
+    };
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
         FolderNode = folderNode;
@@ -145,12 +149,7 @@ public class UIFolder : UIFolderItem {
         #endregion
         #region 启用状态
         rightRowOffset -= 10;
-        _enableStatusText = new(string.Empty) {
-            Left = { Pixels = rightRowOffset, },
-            VAlign = 0.5f,
-            HAlign = 1,
-            TextOriginX = 1,
-        };
+        _enableStatusText.Left.Set(rightRowOffset, 0);
         Append(_enableStatusText);
         #endregion
         #region 重命名输入框

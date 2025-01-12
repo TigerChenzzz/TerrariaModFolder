@@ -80,6 +80,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             RemoveFloatingPointsFromDrawPosition = true,
         };
         OnInitialize_ProcessRenameButton(renameButton);
+        Append(renameButton);
         mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         #endregion
         #region 重新订阅按钮

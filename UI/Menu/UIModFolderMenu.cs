@@ -174,7 +174,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public ModLoadedFilter     LoadedFilterMode  { get => (ModLoadedFilter    )_topButtonData[3]; set => _topButtonData[3] = (int)value; }
     public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_topButtonData[4]; set => _topButtonData[4] = (int)value; }
     public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_topButtonData[5]; set => _topButtonData[5] = (int)value; }
-    public bool                ShowRamUsage      { get => _topButtonData[6].ToBoolean(); set => _topButtonData[6] = value.ToInt(); }
+    public LayoutTypes         LayoutType        { get => (LayoutTypes        )_topButtonData[6]; set => _topButtonData[6] = (int)value; }
+    public bool                ShowRamUsage      { get => _topButtonData[7].ToBoolean(); set => _topButtonData[7] = value.ToInt(); }
     #endregion
     #region 数据与常数
     // 0: 文件夹系统 / 显示全部模组
@@ -183,13 +184,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     // 3: 加载状态
     // 4: 启用状态
     // 5: 客户端 / 服务端
-    // 6: 内存条
+    // 6: <条状 / 块状>布局
+    // 7: 内存条
     private const int IndexShowFolderSystem = 0;
     private const int IndexFmSortMode = 1;
     private const int IndexSortMode = 2;
-    private const int IndexShowRamUsage = 6;
-    private readonly int[] _topButtonData = new int[7];
-    private readonly int[] _topButtonLengths = [2, 3, 5, 3, 8, 5, 2];
+    private const int IndexLayoutType = 6;
+    private const int IndexShowRamUsage = 7;
+    private const int TopMenuButtonsCount = 8;
+    private readonly int[] _topButtonData = new int[8];
+    private readonly int[] _topButtonLengths = [2, 3, 5, 3, 8, 5, 2, 2];
     private readonly Point[] _topButtonPositionsInTexture = [
         new(2, 6), // 0
         new(0, 5), // 1
@@ -197,31 +201,32 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         new(3, 4), // 3
         new(1, 0), // 4
         new(2, 0), // 5
-        new(3, 2), // 6
+        new(4, 0), // 6
+        new(3, 2), // 7
     ];
     private readonly string[][] _topButtonLocalizedKeys = [
-        [
+        /* 0 */[
             "Mods.ModFolder.UI.SortButtons.FolderSystem.Tooltip",
             "Mods.ModFolder.UI.SortButtons.AllMods.Tooltip",
         ],
-        [
+        /* 1 */[
             "Mods.ModFolder.UI.SortButtons.CustomFM.Tooltip",
             "Mods.ModFolder.UI.SortButtons.FolderFirst.Tooltip",
             "Mods.ModFolder.UI.SortButtons.ModFirst.Tooltip",
         ],
-        [
+        /* 2 */[
             "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
             "tModLoader.ModsSortRecently",
             "Mods.ModFolder.UI.SortButtons.ReverseRecently.Tooltip",
             "tModLoader.ModsSortNamesAlph",
             "tModLoader.ModsSortNamesReverseAlph",
         ],
-        [
+        /* 3 */[
             "tModLoader.ModsShowAllMods",
             "Mods.ModFolder.UI.SortButtons.Loaded.Tooltip",
             "Mods.ModFolder.UI.SortButtons.Unloaded.Tooltip",
         ],
-        [
+        /* 4 */[
             "tModLoader.ModsShowAllMods",
             "tModLoader.ModsShowEnabledMods",
             "tModLoader.ModsShowDisabledMods",
@@ -231,14 +236,18 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             "Mods.ModFolder.UI.SortButtons.WouldBeEnabled.Tooltip",
             "Mods.ModFolder.UI.SortButtons.WouldBeDisabled.Tooltip",
         ],
-        [
+        /* 5 */[
             "tModLoader.MBShowMSAll",
             "tModLoader.MBShowMSBoth",
             "tModLoader.MBShowMSClient",
             "tModLoader.MBShowMSServer",
             "tModLoader.MBShowMSNoSync",
         ],
-        [
+        /* 6 */[
+            "Mods.ModFolder.UI.SortButtons.StripeLayout.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.BlockLayout.Tooltip",
+        ],
+        /* 7 */[
             "tModLoader.ShowMemoryEstimatesNo",
             "tModLoader.ShowMemoryEstimatesYes",
         ],
@@ -301,9 +310,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     private void ResetCategoryButtons() {
         for (int i = 0; i < categoryButtons.Length; ++i) {
-            _topButtonData[i] = 0;
+            var defaultValue = GetCategoryDefaultValue(i);
+            _topButtonData[i] = defaultValue;
             var button = categoryButtons[i];
-            button.SetCurrentState(0);
+            button.SetCurrentState(defaultValue);
             button.Disabled = false;
         }
         Filter = string.Empty;
@@ -323,19 +333,19 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     #endregion
     #region 其余按钮
-    private readonly UICycleImage[] topMenuButtons = new UICycleImage[7];
+    private readonly UICycleImage[] topMenuButtons = new UICycleImage[TopMenuButtonsCount];
     private readonly int categoryButtonStartIndex = 0;
     private readonly UICycleImage[] categoryButtons = new UICycleImage[6];
     private void OnInitialize_TopButtons(Asset<Texture2D> texture) {
         UICycleImage toggleImage;
         for (int i = 0; i < _topButtonData.Length; i++) {
-            toggleImage = new(texture, _topButtonLengths[i], 32, 32, _topButtonPositionsInTexture[i].X * 34, _topButtonPositionsInTexture[i].Y * 34);
+            topMenuButtons[i] = toggleImage = new(texture, _topButtonLengths[i], 32, 32, _topButtonPositionsInTexture[i].X * 34, _topButtonPositionsInTexture[i].Y * 34);
+            ResetTopButton(i);
             int currentIndex = i;
             toggleImage.OnLeftClick += (_, _) => SwitchTopButtonNext(currentIndex);
             toggleImage.OnRightClick += (_, _) => SwitchTopButtonPrevious(currentIndex);
             toggleImage.OnMiddleClick += (_, _) => ResetTopButton(currentIndex);
-            topMenuButtons[i] = toggleImage;
-            if (i - categoryButtonStartIndex < categoryButtons.Length) {
+            if ((i - categoryButtonStartIndex).IsBetween(0, categoryButtons.Length)) {
                 categoryButtons[i - categoryButtonStartIndex] = toggleImage;
             }
             mouseOverTooltips.Add((toggleImage, () => {
@@ -396,20 +406,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (button.Disabled) {
             return;
         }
-        if (index == IndexSortMode && ShowAllMods) {
-            if (_topButtonData[index] == 1) {
-                return;
-            }
-            _topButtonData[index] = 1;
-            button.SetCurrentState(1);
+        var defaultValue = GetCategoryDefaultValue(index);
+        if (_topButtonData[index] == defaultValue) {
+            return;
         }
-        else {
-            if (_topButtonData[index] == 0) {
-                return;
-            }
-            _topButtonData[index] = 0;
-            button.SetCurrentState(0);
-        }
+        _topButtonData[index] = defaultValue;
+        button.SetCurrentState(defaultValue);
         CheckTopButtonChanged(index);
         ArrangeGenerate();
     }
@@ -424,6 +426,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         else if (index == IndexShowRamUsage) {
             ResettleVertical();
         }
+    }
+    private int GetCategoryDefaultValue(int index) {
+        if (index == IndexSortMode) {
+            return ShowAllMods ? 1 : 0;
+        }
+        if (index == IndexLayoutType) {
+            return CommonConfig.Instance.UseBlockLayoutByDefault ? (int)LayoutTypes.Block : (int)LayoutTypes.Stripe;
+        }
+        return 0;
     }
     #endregion
     #endregion
@@ -547,7 +558,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     private bool CanCustomizeOrder() {
-        for (int i = 0; i < _topButtonData.Length - 1; ++i) {
+        var end = categoryButtonStartIndex + categoryButtons.Length;
+        for (int i = categoryButtonStartIndex; i < _topButtonData.Length - 2; ++i) {
             if (_topButtonData[i] != 0) {
                 return false;
             }
