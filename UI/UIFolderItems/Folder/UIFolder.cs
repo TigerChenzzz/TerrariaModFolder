@@ -4,6 +4,7 @@ using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
@@ -25,17 +26,11 @@ public class UIFolder : UIFolderItem {
     /// 当此文件夹是返回上一级的文件夹时此值为空
     /// </summary>
     public override FolderDataSystem.Node? Node => FolderNode;
-    public string Name { get; set; }
-    public override string NameToSort => Name;
+    public string FolderName { get; set; }
+    public override string NameToSort => FolderName;
     public override DateTime LastModified => FolderNode?.LastModified ?? default;
-    private UIImage _folderIcon = null!;
-    private UIText _folderName = null!;
-    private int _folderNameIndex;
-    private UIFocusInputTextFieldPro _renameText = null!;
-    private UIImage? _deleteButton;
-    private UIImage? _renameButton;
-    private UIImage? _exportButton;
-    private UIText _enableStatusText = new(string.Empty) {
+    private readonly UIImage _folderIcon = new UIImage(UICommon.ButtonOpenFolder).SettleCommonly(); // 22 x 22
+    private readonly UIText _enableStatusText = new(string.Empty) {
         VAlign = 0.5f,
         HAlign = 1,
         TextOriginX = 1,
@@ -43,142 +38,76 @@ public class UIFolder : UIFolderItem {
 
     public UIFolder(FolderDataSystem.FolderNode folderNode) {
         FolderNode = folderNode;
-        Name = folderNode.FolderName;
+        FolderName = folderNode.FolderName ?? string.Empty;
     }
     public UIFolder(string name) {
-        Name = name;
+        FolderName = name;
     }
     #region 名字与输入框之间的替换
-    private bool replaceToFolderName;
-    private bool replaceToRenameText;
-    private bool directlyReplaceToRenameText;
-    public void SetReplaceToRenameText() => replaceToRenameText = true;
-    private void CheckReplace() {
-        if (replaceToFolderName) {
-            replaceToFolderName = false;
-            this.ReplaceChildrenByIndex(_folderNameIndex, _folderName);
-        }
-        if (replaceToRenameText) {
-            replaceToRenameText = false;
-            _renameText.CurrentString = _folderName.Text;
-            this.ReplaceChildrenByIndex(_folderNameIndex, _renameText);
-            _renameText.Focused = true;
-        }
-        if (directlyReplaceToRenameText) {
-            directlyReplaceToRenameText = false;
-            _renameText.CurrentString = string.Empty;
-            this.ReplaceChildrenByIndex(_folderNameIndex, _renameText);
-            _renameText.Focused = true;
-        }
-    }
-    public void DirectlyReplaceToRenameText() => directlyReplaceToRenameText = true;
+    public void DirectlyRename() => _name.DirectlyRename();
     #endregion
     public override void OnInitialize() {
         #region 文件夹图标
-        _folderIcon = new(UICommon.ButtonOpenFolder) { // 22 x 22
-            Left = { Pixels = 1 },
-            Top = { Pixels = 1 },
-            Width = { Pixels = 30 },
-            Height = { Pixels = 30 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-        };
         Append(_folderIcon);
         #endregion
         #region 名称
-        int folderNameLeft = 37;
-        _folderName = new(Name ?? string.Empty) {
-            Left = new(folderNameLeft, 0),
-        };
-        _folderName.Left.Pixels = folderNameLeft;
-        // _folderName.Top.Pixels = 7;
-        _folderName.VAlign = 0.5f;
-        _folderNameIndex = this.AppendAndGetIndex(_folderName);
+        OnInitialize_Name();
         #endregion
+        #region 右边的按钮
         #region 删除按钮
-        int rightRowOffset = -30;
         if (FolderNode != null) {
-            _deleteButton = new UIImage(MTextures.ButtonDelete) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                Left = { Pixels = rightRowOffset, Precent = 1 },
-                Top = { Pixels = -12, Percent = 0.5f },
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-            };
-            _deleteButton.OnLeftClick += QuickFolderDelete;
-            Append(_deleteButton);
-            mouseOverTooltips.Add((_deleteButton, () => Language.GetTextValue("UI.Delete")));
+            var deleteButton = DeleteButton = NewRightButton(MTextures.ButtonDelete);
+            deleteButton.OnLeftClick += QuickFolderDelete;
+            mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
         }
         #endregion
         #region 重命名按钮
-        rightRowOffset -= 24;
         if (FolderNode != null) {
-            _renameButton = new UIImage(MTextures.ButtonRename) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                Left = { Pixels = rightRowOffset, Precent = 1 },
-                Top = { Pixels = -12, Percent = 0.5f },
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-            };
-            _renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
-            Append(_renameButton);
-            mouseOverTooltips.Add((_renameButton, () => ModFolder.Instance.GetLocalizedValue("UI.Rename")));
+            var renameButton = RenameButton = NewRightButton(MTextures.ButtonRename);
+            _name.AttachRenameButtton(renameButton);
+            mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalizedValue("UI.Rename")));
         }
         #endregion
         #region 导出按钮
-        rightRowOffset -= 24;
         if (FolderNode != null) {
-            _exportButton = new UIImage(MTextures.ButtonExport) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                Left = { Pixels = rightRowOffset, Precent = 1 },
-                Top = { Pixels = -12, Percent = 0.5f },
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-            };
-            _exportButton.OnLeftClick += (_, _) => {
+            var exportButton = ExportButton = NewRightButton(MTextures.ButtonExport);
+            exportButton.OnLeftClick += (_, _) => {
                 SoundEngine.PlaySound(SoundID.MenuTick);
                 ShareHelper.Export(FolderNode, !Main.keyState.PressingShift(), Main.keyState.PressingControl(), Main.keyState.PressingAlt());
                 UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.Exported");
             };
-            Append(_exportButton);
-            mouseOverTooltips.Add((_exportButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Export.Tooltip")));
+            mouseOverTooltips.Add((exportButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Export.Tooltip")));
         }
         #endregion
-        #region 启用状态
-        rightRowOffset -= 10;
-        _enableStatusText.Left.Set(rightRowOffset, 0);
-        Append(_enableStatusText);
+        AppendRightButtonsPanel();
         #endregion
-        #region 重命名输入框
-        _renameText = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value) {
-            Left = new(folderNameLeft, 0),
-            Height = new(-6, 1),
-            VAlign = 1,
-            Width = { Pixels = -folderNameLeft + rightRowOffset, Percent = 1 },
-            UnfocusOnTab = true,
-        };
-        _renameText.OnUnfocus += OnUnfocus_TryRename;
+        #region 启用状态
+        Append(_enableStatusText);
         #endregion
         #region 双击进入文件夹
         // TODO: 双击某些位置时不进入文件夹 / 测试
         OnLeftDoubleClick += (e, target) => {
-            if (Name == "..") {
+            if (FolderName == "..") {
                 UIModFolderMenu.Instance.GotoUpperFolder();
                 return;
             }
             if (FolderNode == null) {
                 return;
             }
-            if (e.Target == _renameText || e.Target == _deleteButton || e.Target == _renameButton) {
+            if (e.Target == _name.RenameText || e.Target == DeleteButton || e.Target == RenameButton || e.Target == ExportButton) {
                 return;
             }
             UIModFolderMenu.Instance.EnterFolder(FolderNode);
         };
         #endregion
+        ForceRecalculateLayout();
     }
+    #region 右边的按钮
+    protected override int RightButtonsLength => 3;
+    private UIImageWithVisibility? DeleteButton { get => rightButtons[0]; set => rightButtons[0] = value; }
+    private UIImageWithVisibility? RenameButton { get => rightButtons[1]; set => rightButtons[1] = value; }
+    private UIImageWithVisibility? ExportButton { get => rightButtons[2]; set => rightButtons[2] = value; }
+    #endregion
     #region 删除
     private void QuickFolderDelete(UIMouseEvent evt, UIElement listeningElement) {
         bool loaded = UIModFolderMenu.Instance.Loaded;
@@ -342,41 +271,52 @@ public class UIFolder : UIFolderItem {
         UIModFolderMenu.Instance.ClearConfirmPanels();
     }
     #endregion
-
-    private void OnUnfocus_TryRename(object sender, EventArgs e) {
-        var newName = _renameText.CurrentString;
-        replaceToFolderName = true;
-        // TODO: 更加完备的新名字检测 (可能需要保存父节点?)
+    #region 名字与重命名
+    protected override bool ShouldHideNameWhenNotMouseOver => LayoutType != LayoutTypes.Stripe && FolderName == "..";
+    protected override string GetDisplayName() => FolderName;
+    protected override string GetRenameText() => FolderName;
+    protected override string GetRenameHintText() => ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value;
+    protected override Func<string> GetNameMouseOverTooltipFunc() => () => FolderName;
+    protected override bool TryRename(string newName) {
         if (FolderNode == null || newName == ".." || newName == string.Empty) {
-            return;
+            return false;
         }
-        if (Name == newName) {
-            return;
+        if (FolderName == newName) {
+            return false;
         }
         FolderNode.FolderName = newName;
-        Name = newName;
-        _folderName.SetText(newName);
+        FolderName = newName;
         UIModFolderMenu.Instance.ArrangeGenerate();
         FolderDataSystem.DataChanged();
+        return true;
     }
-
-    public override void Update(GameTime gameTime) {
-        base.Update(gameTime);
-    }
+    #endregion
     #region Draw
     protected override string? GetTooltip() {
         var tooltip = base.GetTooltip();
         if (tooltip != null) {
             return tooltip;
         }
-        if (CommonConfig.Instance.ShowEnableStatus.ShowAny && FolderNode != null && _enableStatusText.IsMouseHovering ||
-            !CommonConfig.Instance.ShowEnableStatus.ShowAny && CommonConfig.Instance.ShowEnableStatusBackground && FolderNode != null && IsMouseHovering) {
+        if (ShowEnableStatusWhenNoTooltipCondition()) {
             return ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
         }
         return null;
     }
+    [MemberNotNullWhen(true, nameof(FolderNode))]
+    private bool ShowEnableStatusWhenNoTooltipCondition() {
+        if (FolderNode == null) {
+            return false;
+        }
+        var config = CommonConfig.Instance;
+        if (config.ShowEnableStatus.ShowAny && StripeLayout) {
+            return _enableStatusText.IsMouseHovering;
+        }
+        if (config.ShowEnableStatusBackground) {
+            return true;
+        }
+        return false;
+    }
     public override void DrawSelf(SpriteBatch spriteBatch) {
-        CheckReplace();
         base.DrawSelf(spriteBatch);
         DrawEnableStatus(spriteBatch);
         UpdateEnableStatusText();
@@ -387,11 +327,12 @@ public class UIFolder : UIFolderItem {
         if (FolderNode == null) {
             return;
         }
-        if (!config.ShowAny) {
+        if (!config.ShowAny || NoStripeLayout) {
             _enableStatusText.SetText(string.Empty);
             return;
         }
-        StringBuilder sb = new();
+        StringBuilder sb = SharedStringBuilder;
+        sb.Clear();
         bool slashed = false;
         if (config.AllMods.Check(FolderNode.ChildrenCount)) {
             sb.AppendFormat("[c/{0}:{1}]", config.AllModsColor.Hex3(), FolderNode.ChildrenCount);
@@ -430,6 +371,7 @@ public class UIFolder : UIFolderItem {
             return;
         }
         _enableStatusText.SetText(sb.ToString());
+        sb.Clear();
     }
     private void DrawEnableStatus(SpriteBatch spriteBatch) {
         if (!CommonConfig.Instance.ShowEnableStatusBackground) {
@@ -468,6 +410,68 @@ public class UIFolder : UIFolderItem {
         DrawParallelogramLoop(spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
         DrawParallelogramLoop(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
         DrawParallelogramLoop(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
+    }
+    #endregion
+    #region Layout
+    protected override void RecalculateStripeLayout() {
+        base.RecalculateStripeLayout();
+        #region Icon
+        _folderIcon.SetImage(UICommon.ButtonOpenFolder);
+        _folderIcon.Left.Set(1, 0);
+        _folderIcon.Top.Set(1, 0);
+        _folderIcon.Width.Set(30, 0);
+        _folderIcon.Height.Set(30, 0);
+        #endregion
+        #region 右边的按钮
+        float rightOffset = SetRightButtonsPanelToStripeLayout();
+        #endregion
+        #region 启用状态
+        _enableStatusText.Left.Set(rightOffset -= 10, 0);
+        #endregion
+        #region 名字
+        _name.Left = new(37, 0);
+        _name.Width = new(-37 + rightOffset, 1);
+        _name.Height = new(0, 1);
+        _name.VAlign = 0;
+        #endregion
+    }
+    protected override void RecalculateBlockLayout() {
+        base.RecalculateBlockLayout();
+        #region Icon
+        _folderIcon.SetImage(FolderName == ".." ? MTextures.FolderBack : MTextures.Folder);
+        _folderIcon.Left.Set((BlockWidth - 80) / 2, 0);
+        _folderIcon.Top.Set((BlockHeight - 80) / 2, 0);
+        _folderIcon.Width.Set(80, 0);
+        _folderIcon.Height.Set(80, 0);
+        #endregion
+        #region 右边的按钮
+        SetRightButtonsPanelToBlockLayout();
+        #endregion
+        #region 名字
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        #endregion
+    }
+    protected override void RecalculateBlockWithNameLayout() {
+        base.RecalculateBlockWithNameLayout();
+        #region Icon
+        _folderIcon.SetImage(FolderName == ".." ? MTextures.FolderBack : MTextures.Folder);
+        _folderIcon.Left.Set((BlockWidth - 80) / 2, 0);
+        _folderIcon.Top.Set((BlockHeight - 80) / 2, 0);
+        _folderIcon.Width.Set(80, 0);
+        _folderIcon.Height.Set(80, 0);
+        #endregion
+        #region 右边的按钮
+        SetRightButtonsPanelToBlockWithNameLayout();
+        #endregion
+        #region 名字
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        #endregion
     }
     #endregion
 }

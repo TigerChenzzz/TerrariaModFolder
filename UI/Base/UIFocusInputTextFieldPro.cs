@@ -9,7 +9,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public delegate void EventHandler(object sender, EventArgs e);
     public bool Focused;
     public string CurrentString = "";
-    private readonly string _hintText = hintText;
+    public string HintText { get; set; } = hintText;
     private int _textBlinkerCount;
     private int _textBlinkerState;
     public bool UnfocusOnTab { get; set; }
@@ -82,7 +82,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         }
         CalculatedStyle dimensions = GetDimensions();
         if (CurrentString.Length == 0) {
-            Utils.DrawBorderString(spriteBatch, _hintText, new Vector2(dimensions.X, dimensions.Y), Color.Gray);
+            Utils.DrawBorderString(spriteBatch, HintText, new Vector2(dimensions.X, dimensions.Y), Color.Gray);
         }
         Utils.DrawBorderString(spriteBatch, text, new Vector2(dimensions.X, dimensions.Y), Color.White);
     }

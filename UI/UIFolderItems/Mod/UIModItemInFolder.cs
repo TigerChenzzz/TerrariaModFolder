@@ -1,8 +1,6 @@
 ﻿using ModFolder.Systems;
-using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
-using Terraria.GameContent.UI.Elements;
-using Terraria.UI;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ModFolder.UI.UIFolderItems.Mod;
 
@@ -20,6 +18,8 @@ public abstract class UIModItemInFolder : UIFolderItem {
     /// </summary>
     public string ModDisplayNameClean => _modDisplayNameClean ??= Utils.CleanChatTags(ModDisplayName);
 
+    [MemberNotNullWhen(true, nameof(Alias))]
+    public bool HasAlias => FolderDataSystem.ModAliases.ContainsKey(ModName);
     private string? _alias;
     public string? Alias {
         get {
@@ -42,66 +42,42 @@ public abstract class UIModItemInFolder : UIFolderItem {
 
     public override string NameToSort => AliasClean ?? ModDisplayNameClean;
 
-    /// <summary>
-    /// 考虑别名
-    /// </summary>
-    public virtual string GetModDisplayName() {
-        return Alias ?? ModDisplayName;
-    }
-    #endregion
-    #region 重命名
-    protected void OnInitialize_ProcessName(UIText modName, UIFocusInputTextFieldPro renameText) {
-        uiModName = modName;
-        _modNameIndex = this.AppendAndGetIndex(uiModName);
-        uiRenameText = renameText;
-        uiRenameText.OnUnfocus += OnUnfocus_TryRename;
-    }
-    protected void OnInitialize_ProcessRenameButton(UIElement renameButton) {
-        renameButton.OnLeftClick += (_, _) => SetReplaceToRenameText();
-    }
+    protected override string GetRenameText() => Alias ?? ModDisplayName;
+    protected override string GetRenameHintText() => ModDisplayNameClean;
+    protected override bool TryRename(string newName) {
+        var alias = Alias;
+        var displayName = ModDisplayName;
+        var modName = ModName;
+        // 有别名的情况下...
+        if (alias != null) {
+            // 如果取名与别名相同, 则没有变化, 直接返回.
+            if (alias == newName) {
+                return false;
+            }
+            // 如果取名为空或与原名相同, 则去除别名.
+            if (string.IsNullOrEmpty(newName) || newName == displayName) {
+                FolderDataSystem.ModAliases.Remove(modName);
+            }
+            // 否则设置新别名
+            else {
+                FolderDataSystem.ModAliases[modName] = newName;
+            }
+            goto NameChanged;
+        }
+        // 在没有别名的情况下, 若取名为空或与原名相同则没有变化直接返回, 否则设置新别名.
+        if (string.IsNullOrEmpty(newName) || newName == displayName) {
+            return false;
+        }
+        FolderDataSystem.ModAliases[modName] = newName;
 
-    private bool replaceToModName;
-    private bool replaceToRenameText;
-    private void SetReplaceToRenameText() => replaceToRenameText = true;
-    private UIText uiModName = null!;
-    private UIFocusInputTextFieldPro uiRenameText = null!;
-    protected int _modNameIndex;
-    private void CheckReplace() {
-        if (replaceToModName) {
-            replaceToModName = false;
-            this.ReplaceChildrenByIndex(_modNameIndex, uiModName);
-            UpdateUIModName();
-        }
-        if (replaceToRenameText) {
-            replaceToRenameText = false;
-            uiRenameText.CurrentString = Alias ?? ModDisplayName; // 这里不要用可能会被重写的 GetModDisplayName
-            this.ReplaceChildrenByIndex(_modNameIndex, uiRenameText);
-            uiRenameText.Focused = true;
-        }
-    }
-    private void UpdateUIModName() => UpdateUIModName(GetModDisplayName());
-    private void UpdateUIModName(string? name) {
-        if (uiModName.Text == name) {
-            return;
-        }
-        uiModName.SetText(name);
-        RecalculateChildren();
-    }
-    private void OnUnfocus_TryRename(object sender, EventArgs e) {
-        var newName = uiRenameText.CurrentString;
-        replaceToModName = true;
-        if (string.IsNullOrEmpty(newName) || newName == ModDisplayName) {
-            FolderDataSystem.ModAliases.Remove(ModName);
-        }
-        else {
-            FolderDataSystem.ModAliases[ModName] = newName;
-        }
+    NameChanged:
         UIModFolderMenu.Instance.ArrangeGenerate();
         FolderDataSystem.DataChanged();
+        return true;
     }
     #endregion
+    #region Draw
     public override void DrawSelf(SpriteBatch spriteBatch) {
-        CheckReplace();
         base.DrawSelf(spriteBatch);
         if (UIModFolderMenu.Instance.Downloads.TryGetValue(ModName, out var progress)) {
             DrawDownloadStatus(spriteBatch, progress);
@@ -133,5 +109,6 @@ public abstract class UIModItemInFolder : UIFolderItem {
         DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
         DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
     }
+    #endregion
     #endregion
 }

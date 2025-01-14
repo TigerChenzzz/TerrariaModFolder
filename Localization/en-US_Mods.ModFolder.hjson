@@ -136,6 +136,7 @@ UI: {
 		Unloaded.Tooltip: Show unloaded mods
 		StripeLayout.Tooltip: Stripe layout
 		BlockLayout.Tooltip: Block layout
+		BlockWithNameLayout.Tooltip: Block with name layout
 	}
 
 	NewFolderDefaultName: New Folder

@@ -440,11 +440,12 @@ public static class FolderDataSystem {
                 continue;
             }
         RemoveChild:
-            children.RemoveAt(i--);
+            children.RemoveAt(i);
             childrenCount -= 1;
             if (++removeIndex == nodesCount) {
                 break;
             }
+            i -= 1;
         }
         if (insertIndex == -1) {
             for(; i < childrenCount; ++i) {

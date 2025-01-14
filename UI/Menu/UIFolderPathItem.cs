@@ -24,7 +24,8 @@ public class UIFolderPathItem : UIElement {
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var rectangle = _dimensions.ToRectangle();
-        if (IsMouseHovering || (UIModFolderMenu.Instance.IsReadyToDrag && UIModFolderMenu.Instance.DraggingTo == this)) {
+        var draggingTo = UIModFolderMenu.Instance.DraggingTo;
+        if (draggingTo == null && IsMouseHovering || draggingTo == this) {
             spriteBatch.DrawBox(_dimensions.ToRectangle(), Color.White * 0.8f, Color.White * 0.2f);
         }
         //if (folder != Instance.CurrentFolderNode)

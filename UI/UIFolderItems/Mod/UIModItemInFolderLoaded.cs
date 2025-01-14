@@ -4,7 +4,7 @@ using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
 using ReLogic.Content;
-using SteelSeries.GameSense;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria.Audio;
@@ -53,64 +53,159 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
 
     #region 子元素
-    private UIImage _modIcon = null!;
-    private UIImageFramed? updatedModDot;
-    private UIHoverImage? _keyImage;
-    private UIHoverImage? _modDidNotFullyUnloadWarningImage;
-    private UIText _modName = null!;
-    private UIFocusInputTextFieldPro _renameText = null!;
-    private readonly UIElement _modNamePlaceHolder = GetAPlaceHolderElement();
+    #region 图标
+    private readonly static Asset<Texture2D> DefaultIcon = Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
+    private readonly UIImage _modIcon = new UIImage(DefaultIcon).SettleCommonly();
+    private void OnInitialize_ModIcon() => Append(_modIcon);
+    private Asset<Texture2D>? smallIcon;
+    private Asset<Texture2D>? bigIcon;
+    private void SetModIcon() {
+        Asset<Texture2D>? icon = LayoutType == LayoutTypes.Stripe ? smallIcon ?? bigIcon : bigIcon;
+        if (icon != null) {
+            _modIcon.SetImage(icon);
+        }
+    }
+    #endregion
+    #region 模组位置标志
     private UIImage? _modLocationIcon;
-    internal UIAutoScaleTextTextPanel<string>? tMLUpdateRequired;
-    #region 右边的按钮
-    private void AppendRightButtonsPanel() {
-        _rightButtonsPanelIndex = this.AppendAndGetIndex(_rightButtonsPanel);
-    }
-    private int _rightButtonsPanelIndex;
-    private readonly UIElementWithContainsPointByChildren _rightButtonsPanel = new() {
-        Width = new(0, 1),
-        Height = new(0, 1),
-    };
-    private readonly UIElement _rightButtonsPanelPlaceHolder = GetAPlaceHolderElement();
-    private bool _rightButtonsPanelIsPlaceHolder;
-    private void SetRightButtonsPanelToNormal() {
-        if (_rightButtonsPanelIsPlaceHolder) {
-            _rightButtonsPanelIsPlaceHolder = false;
-            this.ReplaceChildrenByIndex(_rightButtonsPanelIndex, _rightButtonsPanel);
-            ArrangeRecalculateChildren();
+    private void OnInitialize_ModLocationIcon() {
+        if (CommonConfig.Instance.ShowModLocation) {
+            // 24x24
+            var modLocationIconTexture = _mod.location switch {
+                ModLocation.Workshop => TextureAssets.Extra[243],
+                ModLocation.Modpack => UICommon.ModLocationModPackIcon,
+                ModLocation.Local => UICommon.ModLocationLocalIcon,
+                _ => throw new NotImplementedException(),
+            };
+            _modLocationIcon = new UIImage(modLocationIconTexture) {
+                Width = new(24, 0),
+                Height = new(24, 0),
+            }.SettleCommonly();
+            Append(_modLocationIcon);
+            mouseOverTooltips.Add((_modLocationIcon, () => Language.GetTextValue("tModLoader.ModFrom" + _mod.location)));
         }
     }
-    private void SetRightButtonsPanelToPlaceHolder() {
-        if (!_rightButtonsPanelIsPlaceHolder) {
-            _rightButtonsPanelIsPlaceHolder = true;
-            this.ReplaceChildrenByIndex(_rightButtonsPanelIndex, _rightButtonsPanelPlaceHolder);
-            ArrangeRecalculateChildren();
-        }
-    }
-    private void MouseOver_RightButtons() {
-    }
-    private void MouseOut_RightButtons() {
-    }
-    private void Draw_UpdateRightButtons() {
-        if (LayoutType == LayoutTypes.Block) {
-            if (IsMouseHovering) {
-                SetRightButtonsPanelToNormal();
-            }
-            else {
-                SetRightButtonsPanelToPlaceHolder();
-            }
-        }
-    }
+    #endregion
+    #region 升级小点
+    private UIImageFramed? _updatedModDot;
+    private void OnInitialize_UpdatedModDot() {
+        var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
+        if (oldModVersionData != default) {
+            previousVersionHint = oldModVersionData.previousVersion;
+            var toggleImage = Main.Assets.Request<Texture2D>("Images/UI/Settings_Toggle");   // 大小: 30 x 14
+            _updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
+                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212),
+            };
+            //_modName.Left.Pixels += 18; // use these 2 for left of the modname
 
-    private readonly UIImageWithVisibility?[] rightButtons = new UIImageWithVisibility[6];
+            Append(_updatedModDot);
+            mouseOverTooltips.Add((_updatedModDot, () => previousVersionHint == null
+                ? Language.GetTextValue("tModLoader.ModAddedSinceLastLaunchMessage")
+                : Language.GetTextValue("tModLoader.ModUpdatedSinceLastLaunchMessage", previousVersionHint)));
+        }
+    }
+    #endregion
+    #region 未完全卸载
+    private UIImage? _modDidNotFullyUnloadWarningImage;
+    private void OnInitialize_ModDidNotFullyUnloadWarningImage() {
+        // Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
+        // TODO: 测试它的位置
+        if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
+            _modDidNotFullyUnloadWarningImage = new(UICommon.ButtonErrorTexture) {
+                RemoveFloatingPointsFromDrawPosition = true,
+            };
+            Append(_modDidNotFullyUnloadWarningImage);
+            mouseOverTooltips.Add(_modDidNotFullyUnloadWarningImage, () => Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning"));
+        }
+    }
+    #endregion
+    #region ModStableOnPreview
+    private UIImage? _modStableOnPreviewWarning;
+    private void OnInitialize_ModStableOnPreviewWarning() {
+        if (ModOrganizer.CheckStableBuildOnPreview(_mod)) {
+            _modStableOnPreviewWarning = new UIImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name)) {
+                RemoveFloatingPointsFromDrawPosition = true,
+            };
+            Append(_modStableOnPreviewWarning);
+            mouseOverTooltips.Add(_modStableOnPreviewWarning, () => Language.GetTextValue("tModLoader.ModStableOnPreviewWarning"));
+        }
+    }
+    #endregion
+    #region 更新提示
+    [MemberNotNullWhen(true, nameof(_tMLUpdateRequiredInStripeLayout), nameof(_tMLUpdateRequiredInBlockLayout))]
+    public bool HasUpdateRequired { get; set; }
+    private UIAutoScaleTextTextPanel<string>? _tMLUpdateRequiredInStripeLayout;
+    private UIImage? _tMLUpdateRequiredInBlockLayout;
+    private int _tMLUpdateRequiredIndex;
+    private void OnInitialize_TMLUpdateRequired() {
+        // TODO: 美化
+        // Don't show the Enable/Disable button if there is no loadable version
+        string? updateVersion = null;
+        Color updateColor = Color.Orange;
+
+        // Detect if it's for a preview or stable version ahead of our time
+        if (BuildInfo.tMLVersion.MajorMinorBuild() < _mod.tModLoaderVersion.MajorMinorBuild()) {
+            updateVersion = $"v{_mod.tModLoaderVersion}";
+
+            if (_mod.tModLoaderVersion.Build == 2)
+                updateVersion = $"Preview {updateVersion}";
+        }
+
+        // Detect if it's for a different browser version entirely
+        if (!CheckIfPublishedForThisBrowserVersion(out var modBrowserVersion)) {
+            updateVersion = $"{modBrowserVersion} v{_mod.tModLoaderVersion}";
+            updateColor = Color.Yellow;
+        }
+
+        if (updateVersion == null) {
+            return;
+        }
+        HasUpdateRequired = true;
+        _tMLUpdateRequiredInStripeLayout = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)).WithFadedMouseOver(updateColor, updateColor * 0.7f);
+        _tMLUpdateRequiredInStripeLayout.BackgroundColor = updateColor * 0.7f;
+        _tMLUpdateRequiredInStripeLayout.Width.Pixels = 280;
+        _tMLUpdateRequiredInStripeLayout.Height.Pixels = 30;
+        _tMLUpdateRequiredInStripeLayout.VAlign = 0.5f;
+        _tMLUpdateRequiredInStripeLayout.Left.Pixels = 32;
+        _tMLUpdateRequiredInStripeLayout.OnLeftClick += (_, _) => {
+            Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
+        };
+        _tMLUpdateRequiredInBlockLayout = new(MTextures.Deprecated) {
+            RemoveFloatingPointsFromDrawPosition = true,
+            VAlign = 0.5f,
+            HAlign = 0.5f,
+        };
+        _tMLUpdateRequiredInBlockLayout.OnLeftClick += (_, _) => {
+            Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
+        };
+        if (BlockLayout) {
+            _tMLUpdateRequiredIndex = this.AppendAndGetIndex(_tMLUpdateRequiredInBlockLayout);
+        }
+        else {
+            _tMLUpdateRequiredIndex = this.AppendAndGetIndex(_tMLUpdateRequiredInStripeLayout);
+        }
+        mouseOverTooltips.Add((_tMLUpdateRequiredInStripeLayout, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
+        mouseOverTooltips.Add((_tMLUpdateRequiredInBlockLayout, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
+    }
+    private void SwitchTMLUpdateRequiredToStripeLayout() {
+        if (HasUpdateRequired) {
+            this.ReplaceChildrenByIndex(_tMLUpdateRequiredIndex, _tMLUpdateRequiredInStripeLayout);
+        }
+    }
+    private void SwitchTMLUpdateRequiedToBlockLayout() {
+        if (HasUpdateRequired) {
+            this.ReplaceChildrenByIndex(_tMLUpdateRequiredIndex, _tMLUpdateRequiredInBlockLayout);
+        }
+    }
+    #endregion
+    #region 右边的按钮
+    protected override int RightButtonsLength => 6;
     private UIImageWithVisibility? DeleteButton       { get => rightButtons[0] ; set => rightButtons[0] = value; }
     private UIImageWithVisibility  RenameButton       { get => rightButtons[1]!; set => rightButtons[1] = value; }
     private UIImageWithVisibility  MoreInfoButton     { get => rightButtons[2]!; set => rightButtons[2] = value; }
     private UIImageWithVisibility? ConfigButton       { get => rightButtons[3] ; set => rightButtons[3] = value; }
     private UIImageWithVisibility  ModReferenceIcon   { get => rightButtons[4]!; set => rightButtons[4] = value; }
     private UIImageWithVisibility? TranslationModIcon { get => rightButtons[5] ; set => rightButtons[5] = value; }
-
-    
     #endregion
     #endregion
     // private bool modFromLocalModFolder;
@@ -128,229 +223,52 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     public override void OnInitialize() {
         base.OnInitialize();
-
         #region 前置判断
         if (ModLoader.TryGetMod(ModName, out var loadedMod)) {
             _loaded = true;
         }
         #endregion
 
-        #region 图标
-        float leftOffset = 32;
-        _modIcon = new(Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon")) {
-            Left = { Pixels = 1 },
-            Top = { Pixels = 1 },
-            Width = { Pixels = 30 },
-            Height = { Pixels = 30 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        Append(_modIcon);
-        #endregion
-        #region 模组位置标志
-        if (CommonConfig.Instance.ShowModLocation) {
-            // 24x24
-            var modLocationIconTexture = _mod.location switch {
-                ModLocation.Workshop => TextureAssets.Extra[243],
-                ModLocation.Modpack => UICommon.ModLocationModPackIcon,
-                ModLocation.Local => UICommon.ModLocationLocalIcon,
-                _ => throw new NotImplementedException(),
-            };
-            leftOffset += 2;
-            _modLocationIcon = new(modLocationIconTexture) {
-                RemoveFloatingPointsFromDrawPosition = true,
-                Left = new(leftOffset, 0),
-                VAlign = 0.5f,
-            };
-            leftOffset += _modLocationIcon.Width.Pixels;
-            Append(_modLocationIcon);
-            mouseOverTooltips.Add((_modLocationIcon, () => Language.GetTextValue("tModLoader.ModFrom" + _mod.location)));
-        }
-        #endregion
-        #region 已升级小点
-        var oldModVersionData = ModOrganizer.modsThatUpdatedSinceLastLaunch.FirstOrDefault(x => x.ModName == ModName);
-        if (oldModVersionData != default) {
-            previousVersionHint = oldModVersionData.previousVersion;
-            var toggleImage = Main.Assets.Request<Texture2D>("Images/UI/Settings_Toggle");   // 大小: 30 x 14
-            leftOffset += 8;
-            updatedModDot = new UIImageFramed(toggleImage, toggleImage.Frame(2, 1, 1, 0)) {
-                Left = { Pixels = leftOffset, Percent = 1 },
-                VAlign = .5f,
-                Color = previousVersionHint == null ? Color.Green : new Color(6, 95, 212),
-            };
-            //_modName.Left.Pixels += 18; // use these 2 for left of the modname
-
-            Append(updatedModDot);
-            mouseOverTooltips.Add((updatedModDot, () => previousVersionHint == null
-                ? Language.GetTextValue("tModLoader.ModAddedSinceLastLaunchMessage")
-                : Language.GetTextValue("tModLoader.ModUpdatedSinceLastLaunchMessage", previousVersionHint)));
-        }
-        #endregion
-        #region 未完全卸载
-        // Keep this feature locked to Dev for now until we are sure modders are at fault for this warning.
-        // TODO: 测试它的位置
-        if (BuildInfo.IsDev && ModCompile.DeveloperMode && ModLoader.IsUnloadedModStillAlive(ModName)) {
-            leftOffset += 2;
-            _modDidNotFullyUnloadWarningImage = new(UICommon.ButtonErrorTexture, Language.GetTextValue("tModLoader.ModDidNotFullyUnloadWarning")) {
-                Left = { Pixels = leftOffset },
-                VAlign = 0.5f,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
-            leftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
-            Append(_modDidNotFullyUnloadWarningImage);
-        }
-        #endregion
-        #region ModStableOnPreviewWarning
-        if (ModOrganizer.CheckStableBuildOnPreview(_mod)) {
-            leftOffset += 2;
-            _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.Item[ItemID.LavaSkull].Name), Language.GetTextValue("tModLoader.ModStableOnPreviewWarning")) {
-                Left = { Pixels = leftOffset },
-                VAlign = 0.5f,
-                UseTooltipMouseText = true,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
-            leftOffset += _keyImage.Width.Pixels;
-            Append(_keyImage);
-        }
-        #endregion
-        #region 名字
-        if (leftOffset == 32) {
-            leftOffset += 5;
-        }
-        else {
-            leftOffset += 2;
-        }
-        // TODO: 名字太长怎么办 (UIHorizontalList?)
-        //           滚动显示 (左右移动) 可配置 (显示开头还是来回显示)
-        //           文本输入框的适配
-        _modName = new(GetModDisplayName()) {
-            Left = { Pixels = leftOffset },
-            Height = { Precent = 1 },
-            TextOriginY = 0.5f,
-        };
-        mouseOverTooltips.Add((_modName, () => {
-            if (string.IsNullOrEmpty(_mod.properties.author)) {
-                return GetOriginalModDisplayNameWithVersion();
-            }
-            return string.Join('\n',
-                GetOriginalModDisplayNameWithVersion(),
-                Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)
-            );
-        }
-        ));
-        #endregion
-        #region 重命名输入框
-        _renameText = new(_mod.DisplayNameClean) {
-            Left = { Pixels = leftOffset },
-            Top = { Pixels = 6 },
-            Height = { Pixels = -6, Percent = 1 },
-            UnfocusOnTab = true,
-        };
-        // leftOffset += _modName.MinWidth.Pixels;
-        OnInitialize_ProcessName(_modName, _renameText);
-        #endregion
-        #region 升级版本提示
-        // TODO: 美化
-        // Don't show the Enable/Disable button if there is no loadable version
-        string? updateVersion = null;
-        string updateURL = "https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches";
-        Color updateColor = Color.Orange;
-
-        // Detect if it's for a preview or stable version ahead of our time
-        if (BuildInfo.tMLVersion.MajorMinorBuild() < _mod.tModLoaderVersion.MajorMinorBuild()) {
-            updateVersion = $"v{_mod.tModLoaderVersion}";
-
-            if (_mod.tModLoaderVersion.Build == 2)
-                updateVersion = $"Preview {updateVersion}";
-        }
-
-        // Detect if it's for a different browser version entirely
-        if (!CheckIfPublishedForThisBrowserVersion(out var modBrowserVersion)) {
-            updateVersion = $"{modBrowserVersion} v{_mod.tModLoaderVersion}";
-            updateColor = Color.Yellow;
-        }
-
-        // Hide the Enabled button if it's not for this built version
-        if (updateVersion != null) {
-            tMLUpdateRequired = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)).WithFadedMouseOver(updateColor, updateColor * 0.7f);
-            tMLUpdateRequired.BackgroundColor = updateColor * 0.7f;
-            tMLUpdateRequired.Width.Pixels = 280;
-            tMLUpdateRequired.Height.Pixels = 30;
-            tMLUpdateRequired.VAlign = 0.5f;
-            tMLUpdateRequired.Left.Pixels = 32;
-            tMLUpdateRequired.OnLeftClick += (a, b) => {
-                Utils.OpenToURL(updateURL);
-            };
-            Append(tMLUpdateRequired);
-            mouseOverTooltips.Add((tMLUpdateRequired, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
-        }
-        else {
-            // Append(_uiModStateCheckBoxHitbox);
-        }
-        #endregion
+        OnInitialize_ModIcon(); // 图标
+        OnInitialize_ModLocationIcon(); // 模组位置标志
+        OnInitialize_UpdatedModDot(); // 升级小点
+        OnInitialize_ModDidNotFullyUnloadWarningImage(); // 未完全卸载
+        OnInitialize_ModStableOnPreviewWarning(); // stable on preview
+        OnInitialize_Name(); // 名字与重命名
+        OnInitialize_TMLUpdateRequired(); // TML升级提示
 
         #region 右边的按钮
-        AppendRightButtonsPanel();
         #region 删除
-        DeleteButton = new(MTextures.ButtonDelete) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        _rightButtonsPanel.Append(DeleteButton);
+        var deleteButton = DeleteButton = NewRightButton(MTextures.ButtonDelete);
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            DeleteButton.OnLeftClick += QuickModDelete;
-            mouseOverTooltips.Add((DeleteButton, () => Language.GetTextValue("UI.Delete")));
+            deleteButton.OnLeftClick += QuickModDelete;
+            mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
         }
         else {
-            DeleteButton.Visibility = 0.4f;
+            deleteButton.Visibility = 0.4f;
             if (_loaded) {
-                mouseOverTooltips.Add((DeleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteEnabled")));
+                mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteEnabled")));
             }
             else {
-                mouseOverTooltips.Add((DeleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteInModPack")));
+                mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteInModPack")));
             }
         }
         #endregion
         #region 重命名
-        RenameButton = new(MTextures.ButtonRename) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        OnInitialize_ProcessRenameButton(RenameButton);
-        _rightButtonsPanel.Append(RenameButton);
-        mouseOverTooltips.Add((RenameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
+        var renameButton = RenameButton = NewRightButton(MTextures.ButtonRename);
+        _name.AttachRenameButtton(renameButton);
+        mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         #endregion
         #region 更多信息
-        MoreInfoButton = new(UICommon.ButtonModInfoTexture) {
-            Width = { Pixels = 24 },
-            Height = { Pixels = 24 },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        MoreInfoButton.OnLeftClick += ShowMoreInfo;
-        _rightButtonsPanel.Append(MoreInfoButton);
-        mouseOverTooltips.Add((MoreInfoButton, () => Language.GetTextValue("tModLoader.ModsMoreInfo")));
+        var moreInfoButton = MoreInfoButton = NewRightButton(UICommon.ButtonModInfoTexture);
+        moreInfoButton.OnLeftClick += ShowMoreInfo;
+        mouseOverTooltips.Add((moreInfoButton, () => Language.GetTextValue("tModLoader.ModsMoreInfo")));
         #endregion
         #region 配置按钮
         if (loadedMod != null && ConfigManager.Configs.ContainsKey(loadedMod)) {
-            ConfigButton = new(UICommon.ButtonModConfigTexture) {
-                Width = { Pixels = 24 },
-                Height = { Pixels = 24 },
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
-            ConfigButton.OnLeftClick += OpenConfig;
-            _rightButtonsPanel.Append(ConfigButton);
-            mouseOverTooltips.Add((ConfigButton, () => Language.GetTextValue("tModLoader.ModsOpenConfig")));
+            var configButton = ConfigButton = NewRightButton(UICommon.ButtonModConfigTexture);
+            configButton.OnLeftClick += OpenConfig;
+            mouseOverTooltips.Add((configButton, () => Language.GetTextValue("tModLoader.ModsOpenConfig")));
             // TODO: 在合适的情况下更新此值
             // TODO: 看看这个类中还有没有这种可能会发生变化的值
             if (ConfigManager.ModNeedsReload(loadedMod)) {
@@ -359,36 +277,20 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
         #endregion
         #region 需求与引用
-        ModReferenceIcon = new(UICommon.ButtonDepsTexture) {
-            Width = new(24, 0),
-            Height = new(24, 0),
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-            Visibility = 0,
-        };
-        _rightButtonsPanel.Append(ModReferenceIcon);
-        mouseOverTooltips.Add((ModReferenceIcon, () => _modRequiresTooltip));
+        var modReferenceIcon = ModReferenceIcon = NewRightButton(UICommon.ButtonDepsTexture, 0);
+        mouseOverTooltips.Add((modReferenceIcon, () => _modRequiresTooltip));
         #endregion
         #region 翻译
         // if (_mod.properties.RefNames(true).Any() && _mod.properties.translationMod)
         if (_mod.properties.translationMod) {
-            var icon = UICommon.ButtonTranslationModTexture;
-            TranslationModIcon = new(icon) {
-                Width = new(24, 0),
-                Height = new(24, 0),
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
-            _rightButtonsPanel.Append(TranslationModIcon);
+            TranslationModIcon = NewRightButton(UICommon.ButtonTranslationModTexture);
             mouseOverTooltips.Add((TranslationModIcon, () => {
                 string refs = string.Join(", ", _mod.properties.RefNames(true)); // Translation mods can be strong or weak references.
                 return Language.GetTextValue("tModLoader.TranslationModTooltip", refs);
             }));
         }
         #endregion
-        SettleRightButtons();
+        AppendRightButtonsPanel();
         #endregion
 
         #region 加载的物品 / NPC / ...
@@ -412,12 +314,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
             for (int i = 0; i < values.Length; i++) {
                 if (values[i] > 0) {
-                    _keyImage = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.InfoIcon[i].Name), Language.GetTextValue($"tModLoader.{localizationKeys[i]}", values[i])) {
+                    _modStableOnPreviewWarning = new UIHoverImage(Main.Assets.Request<Texture2D>(TextureAssets.InfoIcon[i].Name), Language.GetTextValue($"tModLoader.{localizationKeys[i]}", values[i])) {
                         Left = { Pixels = xOffset, Percent = 1f },
                         RemoveFloatingPointsFromDrawPosition = true,
                     };
 
-                    Append(_keyImage);
+                    Append(_modStableOnPreviewWarning);
                     xOffset -= 18;
                 }
             }
@@ -426,7 +328,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 双击左键 启用 / 禁用
         OnLeftDoubleClick += (e, el) => {
             Main.MenuUI.LeftMouse.LastDown = null;
-            if (tMLUpdateRequired != null)
+            if (_tMLUpdateRequiredInStripeLayout != null)
                 return;
             // TODO: 双击某些位置时不能切换
             ToggleEnabled();
@@ -463,70 +365,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         ForceRecalculateLayout();
     }
 
-    private void SettleRightButtons() {
-        // TODO: 配置右边这堆按钮是否向右缩紧
-        bool leanToTheRight = true;
-        float rightOffset = 0;
-        if (BlockLayout) {
-            float topOffset = 0;
-            for (int i = 0; i < rightButtons.Length; ++i) {
-                var button = rightButtons[i];
-                if (button != null && button.Visibility > 0) {
-                    rightOffset -= 24;
-                    if (rightOffset < -24 && -rightOffset > 90 - 4 /* _rightButtonsPanel._dimensions.Width */) {
-                        rightOffset = -24;
-                        topOffset += 24;
-                    }
-                    button.Left = new(rightOffset, 1);
-                    button.Top = new(topOffset, 0);
-                    button.VAlign = 0;
-                }
-                else if (!leanToTheRight) {
-                    rightOffset -= 24;
-                }
-            }
-        }
-        else {
-            for (int i = 0; i < rightButtons.Length; ++i) {
-                var button = rightButtons[i];
-                if (button != null && button.Visibility > 0) {
-                    rightOffset -= 24;
-                    button.Left = new(rightOffset, 1);
-                    button.Top = new();
-                    button.VAlign = 0.5f;
-                }
-                else if (!leanToTheRight) {
-                    rightOffset -= 24;
-                }
-            }
-        }
-        ArrangeRecalculateChildren();
-    }
-    private void SettleRightButtonsWhenLayoutChanged() {
-        if (BlockLayout) {
-            foreach (var button in rightButtons) {
-                if (button is not null) {
-                    button.VAlign = 0;
-                }
-            }
-        }
-        else {
-            foreach (var button in rightButtons) {
-                if (button is not null) {
-                    button.VAlign = 0.5f;
-                }
-            }
-        }
-    }
-
     #region 异步加载
     public bool Generated => generateTask == null;
     Task? generateTask;
     private async Task GenerateAsync() {
         await Task.Yield();
         #region 加载图标
-        Asset<Texture2D>? smallIcon = null;
-        Asset<Texture2D>? bigIcon = null;
         if (_mod.modFile.HasFile("icon_small.rawimg")) {
             try {
                 using (_mod.modFile.Open()) {
@@ -544,17 +388,13 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
                     using var s = _mod.modFile.GetStream("icon.png");
                     // if (bigIcon.Width() == 80 && bigIcon.Height() == 80)
                     bigIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".png");
-                    hoverIcon = bigIcon;
                 }
             }
             catch (Exception e) {
                 Logging.tML.Error("Unknown error", e);
             }
         }
-        Asset<Texture2D>? modIcon = smallIcon ?? bigIcon;
-        if (modIcon != null) {
-            _modIcon.SetImage(modIcon);
-        }
+        SetModIcon();
         /*
         if (smallIcon != null && bigIcon != null) {
             _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
@@ -566,7 +406,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
         // 依赖关系的加载在 UIModFolderMenu 的 Populate 时通过调用所有模组的 SetModReferences 完成
     }
-    private Asset<Texture2D>? hoverIcon;
     #endregion
     #region 引用相关
     /// <summary>
@@ -843,20 +682,6 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 	}*/
     #endregion
     #region Draw
-    private bool _needRecalculateChildren;
-    public void ArrangeRecalculateChildren() => _needRecalculateChildren = true;
-    private void Draw_ArrangeRecalculateChildren() {
-        if (_needRecalculateChildren) {
-            _needRecalculateChildren = false;
-            RecalculateChildren();
-        }
-    }
-
-    public override void Draw(SpriteBatch spriteBatch) {
-        Draw_UpdateRightButtons();
-        Draw_ArrangeRecalculateChildren();
-        base.Draw(spriteBatch);
-    }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         #region 根据启用状态设置块状图标的透明度
         {
@@ -911,8 +736,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 当鼠标在某些东西上时显示些东西
         // 图标
         if (StripeLayout && _modIcon?.IsMouseHovering == true) {
-            if (hoverIcon != null) {
-                UIModFolderMenu.Instance.SetMouseTexture(hoverIcon.Value, 160, 160, 8, 8);
+            if (bigIcon != null) {
+                UIModFolderMenu.Instance.SetMouseTexture(bigIcon.Value, 160, 160, 8, 8);
             }
         }
         #endregion
@@ -920,7 +745,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     #endregion
     #region 启用与禁用
     public bool TryToggleEnabled() {
-        if (tMLUpdateRequired != null)
+        if (_tMLUpdateRequiredInStripeLayout != null)
             return false;
         // TODO: 双击某些位置时不能切换
         ToggleEnabled();
@@ -986,16 +811,22 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
 
     #region DisplayName 相关
-    public override string GetModDisplayName() => GetModDisplayName(null);
-    public string GetModDisplayName(bool? withVersion) {
+    public override string ModDisplayName => _mod.DisplayName;
+    protected override string GetDisplayName() {
         var name = Alias ?? ModDisplayName;
-        if (withVersion ?? CommonConfig.Instance.ShowModVersion) {
+        if (CommonConfig.Instance.ShowModVersion) {
             return $"{name} v{_mod.modFile.Version}";
         }
         return name;
     }
-    public string GetOriginalModDisplayNameWithVersion() => $"{ModDisplayName} v{_mod.modFile.Version}";
-    public override string ModDisplayName => _mod.DisplayName;
+    protected override Func<string> GetNameMouseOverTooltipFunc() {
+        if (string.IsNullOrEmpty(_mod.properties.author)) {
+            return () => HasAlias ? $"{Alias} ({ModDisplayName})" : ModDisplayName;
+        }
+        return () => HasAlias
+            ? $"{Alias} ({ModDisplayName})\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}"
+            : $"{ModDisplayName}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}";
+    }
     #endregion
     #region PassFilters
     public override PassFilterResults PassFiltersInner() {
@@ -1133,8 +964,9 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     #region 布局 Layout
     protected override void RecalculateStripeLayout() {
         base.RecalculateStripeLayout();
-        #region icon
         float leftOffset = 32;
+        #region icon
+        SetModIcon();
         _modIcon.Left.Set(1, 0);
         _modIcon.Top.Set(1, 0);
         _modIcon.Width.Set(30, 0);
@@ -1149,6 +981,15 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             leftOffset += _modLocationIcon.Width.Pixels;
         }
         #endregion
+        #region UpdateDot
+        if (_updatedModDot != null) {
+            leftOffset += 2;
+            _updatedModDot.Left = new(leftOffset, 0);
+            _updatedModDot.Top = new();
+            _updatedModDot.VAlign = 0.5f;
+            leftOffset += _updatedModDot.Width.Pixels;
+        }
+        #endregion
         #region 未完全卸载
         if (_modDidNotFullyUnloadWarningImage != null) {
             leftOffset += 2;
@@ -1159,13 +1000,16 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         }
         #endregion
         #region StableOnPreview
-        if (_keyImage != null) {
+        if (_modStableOnPreviewWarning != null) {
             leftOffset += 2;
-            _keyImage.Left = new(leftOffset, 0);
-            _keyImage.Top = new();
-            _keyImage.VAlign = 0.5f;
-            leftOffset += _keyImage.Width.Pixels;
+            _modStableOnPreviewWarning.Left = new(leftOffset, 0);
+            _modStableOnPreviewWarning.Top = new();
+            _modStableOnPreviewWarning.VAlign = 0.5f;
+            leftOffset += _modStableOnPreviewWarning.Width.Pixels;
         }
+        #endregion
+        #region 右边的按钮
+        var rightOffset = SetRightButtonsPanelToStripeLayout();
         #endregion
         #region 名字和重命名输入框
         if (leftOffset == 32) {
@@ -1174,27 +1018,21 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         else {
             leftOffset += 2;
         }
-        _modName.Left = new(leftOffset, 0);
-        _modName.Top = new(0, 0);
-        _modName.Height = new(0, 1);
-        _renameText.Left = new(leftOffset, 0);
-        _renameText.Top = new(6, 0);
-        _renameText.Height = new(-6, 1);
-        this.ReplaceChildrenByIndex(_modNameIndex, _modName);
+        _name.Left = new(leftOffset, 0);
+        _name.Width = new(-leftOffset + rightOffset, 1);
+        _name.Height = new(0, 1);
+        _name.VAlign = 0;
+        SetNameToNormal();
         #endregion
-        #region 右边的按钮
-        _rightButtonsPanel.Left = new();
-        _rightButtonsPanel.Width = new(-6, 1);
-        _rightButtonsPanel.Top = new();
-        _rightButtonsPanel.Height = new(0, 1);
-        SetRightButtonsPanelToNormal();
-        SettleRightButtons();
+        #region UpdateRequired
+        SwitchTMLUpdateRequiredToStripeLayout();
         #endregion
     }
     protected override void RecalculateBlockLayout() {
         base.RecalculateBlockLayout();
         float topLeftOffset = 0;
         #region icon
+        SetModIcon();
         _modIcon.Left.Set(-40, 0.5f);
         _modIcon.Top.Set(-40, 0.5f);
         _modIcon.Width.Set(80, 0);
@@ -1209,51 +1047,106 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             topLeftOffset += _modLocationIcon.Width.Pixels;
         }
         #endregion
+        #region UpdateDot
+        if (_updatedModDot != null) {
+            topLeftOffset += 2;
+            _updatedModDot.Left = new(topLeftOffset, 0);
+            _updatedModDot.Top = new(14 - _updatedModDot.Height.Pixels / 2, 0);
+            _updatedModDot.VAlign = 0;
+            topLeftOffset += _updatedModDot.Width.Pixels;
+        }
+        #endregion
         #region 未完全卸载
         if (_modDidNotFullyUnloadWarningImage != null) {
             topLeftOffset += 2;
             _modDidNotFullyUnloadWarningImage.Left = new(topLeftOffset, 0);
-            _modDidNotFullyUnloadWarningImage.Top = new(2, 0);
+            _modDidNotFullyUnloadWarningImage.Top = new(14 - _modDidNotFullyUnloadWarningImage.Height.Pixels / 2, 0);
             _modDidNotFullyUnloadWarningImage.VAlign = 0;
             topLeftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
         }
         #endregion
         #region StableOnPreview
-        if (_keyImage != null) {
+        if (_modStableOnPreviewWarning != null) {
             topLeftOffset += 2;
-            _keyImage.Left = new(topLeftOffset, 0);
-            _keyImage.Top = new(2, 0);
-            _keyImage.VAlign = 0;
+            _modStableOnPreviewWarning.Left = new(topLeftOffset, 0);
+            _modStableOnPreviewWarning.Top = new(14 - _modStableOnPreviewWarning.Height.Pixels / 2, 0);
+            _modStableOnPreviewWarning.VAlign = 0;
             // topLeftOffset += _keyImage.Width.Pixels;
         }
         #endregion
+        #region 右边的按钮
+        SetRightButtonsPanelToBlockLayout();
+        #endregion
         #region 名字和重命名输入框
-        _modName.Left = new(0, 0);
-        _modName.Top = new(-32, 1);
-        _modName.Height = new(32, 0);
-        _renameText.Left = new(0, 0);
-        _renameText.Top = new(-32 + 6, 1);
-        _renameText.Height = new(32 - 6, 0);
-        this.ReplaceChildrenByIndex(_modNameIndex, _modNamePlaceHolder);
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        SetNameToPlaceHolder();
+        #endregion
+        #region UpdateRequired
+        SwitchTMLUpdateRequiedToBlockLayout();
+        #endregion
+    }
+    protected override void RecalculateBlockWithNameLayout() {
+        base.RecalculateBlockWithNameLayout();
+        float topLeftOffset = 0;
+        #region icon
+        SetModIcon();
+        _modIcon.Left.Set(-40, 0.5f);
+        _modIcon.Top.Set((BlockHeight - 80) / 2, 0);
+        _modIcon.Width.Set(80, 0);
+        _modIcon.Height.Set(80, 0);
+        #endregion
+        #region ModLocationIcon
+        if (_modLocationIcon != null) {
+            topLeftOffset += 2;
+            _modLocationIcon.Left = new(topLeftOffset, 0);
+            _modLocationIcon.Top = new(2, 0);
+            _modLocationIcon.VAlign = 0;
+            topLeftOffset += _modLocationIcon.Width.Pixels;
+        }
+        #endregion
+        #region UpdateDot
+        if (_updatedModDot != null) {
+            topLeftOffset += 2;
+            _updatedModDot.Left = new(topLeftOffset, 0);
+            _updatedModDot.Top = new(14 - _updatedModDot.Height.Pixels / 2, 0);
+            _updatedModDot.VAlign = 0;
+            topLeftOffset += _updatedModDot.Width.Pixels;
+        }
+        #endregion
+        #region 未完全卸载
+        if (_modDidNotFullyUnloadWarningImage != null) {
+            topLeftOffset += 2;
+            _modDidNotFullyUnloadWarningImage.Left = new(topLeftOffset, 0);
+            _modDidNotFullyUnloadWarningImage.Top = new(14 - _modDidNotFullyUnloadWarningImage.Height.Pixels / 2, 0);
+            _modDidNotFullyUnloadWarningImage.VAlign = 0;
+            topLeftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
+        }
+        #endregion
+        #region StableOnPreview
+        if (_modStableOnPreviewWarning != null) {
+            topLeftOffset += 2;
+            _modStableOnPreviewWarning.Left = new(topLeftOffset, 0);
+            _modStableOnPreviewWarning.Top = new(14 - _modStableOnPreviewWarning.Height.Pixels / 2, 0);
+            _modStableOnPreviewWarning.VAlign = 0;
+            // topLeftOffset += _keyImage.Width.Pixels;
+        }
         #endregion
         #region 右边的按钮
-        _rightButtonsPanel.Left = new(2, 0);
-        _rightButtonsPanel.Width = new(-4, 1);
-        _rightButtonsPanel.Top = new(2, 0);
-        _rightButtonsPanel.Height = new(-4, 1);
-        SetRightButtonsPanelToPlaceHolder();
-        SettleRightButtons();
+        SetRightButtonsPanelToBlockWithNameLayout();
         #endregion
-    }
-    #endregion
-    #region overrides
-    public override void MouseOver(UIMouseEvent evt) {
-        base.MouseOver(evt);
-        MouseOver_RightButtons();
-    }
-    public override void MouseOut(UIMouseEvent evt) {
-        base.MouseOut(evt);
-        MouseOut_RightButtons();
+        #region 名字和重命名输入框
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        SetNameToNormal();
+        #endregion
+        #region UpdateRequired
+        SwitchTMLUpdateRequiedToBlockLayout();
+        #endregion
     }
     #endregion
 }

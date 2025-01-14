@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
 using System.Runtime.InteropServices;
+using System.Text;
 using Terraria.ModLoader.Core;
 using Terraria.UI;
 
@@ -28,6 +29,7 @@ public static class MyUtils {
         public static readonly Asset<Texture2D> ButtonDelete = UI("ButtonDelete"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
         public static readonly Asset<Texture2D> ButtonSubscribe = UI("ButtonSubscribe");
         public static readonly Asset<Texture2D> ButtonExport = UI("ButtonExport");
+        public static readonly Asset<Texture2D> Deprecated = UI("Deprecated");
         public static readonly Asset<Texture2D> Folder = UI("Folder");
         public static readonly Asset<Texture2D> FolderBack = UI("FolderBack");
 
@@ -167,13 +169,16 @@ public static class MyUtils {
     /// <summary>
     /// 返回被替换掉的元素
     /// </summary>
-    public static UIElement ReplaceChildrenByIndex(this UIElement self, int index, UIElement element) {
+    /// <param name="remove">是否将 <paramref name="element"/> 从原父节点移除</param>
+    public static UIElement ReplaceChildrenByIndex(this UIElement self, int index, UIElement element, bool remove = false) {
         if (element.Parent == self) {
             return element;
         }
         var result = self.Elements[index];
         result.Parent = null;
-        element.Remove();
+        if (remove) {
+            element.Remove();
+        }
         self.Elements[index] = element;
         element.Parent = self;
         element.Recalculate();
@@ -228,4 +233,6 @@ public static class MyUtils {
 
 		return null;
     }
+
+    public static StringBuilder SharedStringBuilder { get; } = new();
 }

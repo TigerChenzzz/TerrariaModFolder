@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <EnablePathGenerator>false</EnablePathGenerator>
     <DebugMod>None</DebugMod>
 	</PropertyGroup>
 	<ItemGroup>

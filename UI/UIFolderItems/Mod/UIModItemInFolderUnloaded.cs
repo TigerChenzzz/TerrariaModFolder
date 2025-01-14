@@ -22,11 +22,6 @@ namespace ModFolder.UI.UIFolderItems.Mod;
 
 // TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
 public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIModItemInFolder {
-    private UIImage deleteModButton = null!;
-    // 当没有 PublishId 时或 Steam 不可用时为空
-    private UIImage? subsribeButton;
-    private UIImage renameButton = null!;
-
     public override string ModName => _modNode.ModName;
     public override string ModDisplayName => _modNode.DisplayName;
     private readonly FolderDataSystem.ModNode _modNode = modNode;
@@ -42,67 +37,44 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
     public override void OnInitialize() {
         #region 名字与重命名输入框
-        OnInitialize_ProcessName(new(GetModDisplayName()) {
-            Left = { Pixels = 37 },
-            Height = { Precent = 1 },
-            TextOriginY = 0.5f,
-        }, new(ModDisplayNameClean) {
-            Left = { Pixels = 37 },
-            Top = { Pixels = 6 },
-            Height = { Pixels = -6, Percent = 1 },
-            UnfocusOnTab = true,
-        });
+        OnInitialize_Name();
         #endregion
+        #region 右边的按钮
         #region 删除按钮
-        int bottomRightRowOffset = -30;
-        deleteModButton = new UIImage(MTextures.ButtonDelete) {
-            Width = new(24, 0),
-            Height = new(24, 0),
-            Left = new(bottomRightRowOffset, 1),
-            VAlign = .5f,
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        deleteModButton.OnLeftClick += QuickModDelete;
-        Append(deleteModButton);
-        mouseOverTooltips.Add((deleteModButton, () => Language.GetTextValue("UI.Delete")));
+        var deleteButton = DeleteButton = NewRightButton(MTextures.ButtonDelete);
+        deleteButton.OnLeftClick += QuickModDelete;
+        mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
         #endregion
         #region 重命名
-        bottomRightRowOffset -= 24;
-        renameButton = new(MTextures.ButtonRename) {
-            Width = new(24, 0),
-            Height = new(24, 0),
-            Left = new(bottomRightRowOffset, 1),
-            VAlign = .5f,
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-            RemoveFloatingPointsFromDrawPosition = true,
-        };
-        OnInitialize_ProcessRenameButton(renameButton);
-        Append(renameButton);
+        var renameButton = RenameButton = NewRightButton(MTextures.ButtonRename);
+        _name.AttachRenameButtton(renameButton);
         mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalization("UI.Rename").Value));
         #endregion
         #region 重新订阅按钮
-        bottomRightRowOffset -= 24;
         if (ModNode.PublishId != 0 && SteamedWraps.SteamAvailable) {
-            subsribeButton = new(MTextures.ButtonSubscribe) {
-                Width = new(24, 0),
-                Height = new(24, 0),
-                Left = new(bottomRightRowOffset, 1),
-                VAlign = .5f,
-                ScaleToFit = true,
-                AllowResizingDimensions = false,
-                RemoveFloatingPointsFromDrawPosition = true,
-            };
+            var subsribeButton = SubscribeButton = NewRightButton(MTextures.ButtonSubscribe);
             subsribeButton.OnLeftClick += TrySubscribeMod;
-            Append(subsribeButton);
             mouseOverTooltips.Add((subsribeButton, GetSubscribeButtonTooltip));
         }
         #endregion
+        AppendRightButtonsPanel();
+        #endregion
         // TODO: 显示 SteamId, 以及引导到 Steam 处
+        ForceRecalculateLayout();
     }
-    
+    #region 名字
+    protected override bool ShouldHideNameWhenNotMouseOver => false;
+    protected override string GetDisplayName() => Alias ?? ModDisplayName;
+    protected override Func<string> GetNameMouseOverTooltipFunc() => () => 
+        HasAlias ? $"{Alias} ({ModDisplayName})" : ModDisplayName;
+    #endregion
+    #region 右边的按钮
+    protected override int RightButtonsLength => 3;
+    private UIImageWithVisibility  DeleteButton    { get => rightButtons[0]!; set => rightButtons[0] = value; }
+    private UIImageWithVisibility  RenameButton    { get => rightButtons[1]!; set => rightButtons[1] = value; }
+    private UIImageWithVisibility? SubscribeButton { get => rightButtons[2] ; set => rightButtons[2] = value; } // 当没有 PublishId 时或 Steam 不可用时为空
+    #endregion
+    #region PassFilters
     public override PassFilterResults PassFiltersInner() {
         var filter = UIModFolderMenu.Instance.Filter;
         if (filter.Length > 0) {
@@ -139,7 +111,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         };
         return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;
     }
-
+    #endregion
     #region 订阅 (下载)
     // TODO: 检查 SteamedWraps.SteamAvailable 以判断是否可以下载
 
@@ -298,12 +270,13 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     #endregion
 
     public override void Draw(SpriteBatch spriteBatch) {
-        base.Draw(spriteBatch);
-        #region 画订阅按钮上的阴影
-        if (subsribeButton != null && GetSubscribeStatus() != SubscribeStatus.None) {
-            spriteBatch.Draw(MTextures.White, subsribeButton.GetDimensions().ToRectangle(), Color.Black * 0.4f);
+        #region 订阅按钮调整透明度
+        var subscribeButton = SubscribeButton;
+        if (subscribeButton != null) {
+            subscribeButton.Visibility = GetSubscribeStatus() != SubscribeStatus.None ? 0.4f : 1;
         }
         #endregion
+        base.Draw(spriteBatch);
     }
 
     #region 删除
@@ -363,6 +336,38 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     private void DeleteModNode(UIMouseEvent evt, UIElement listeningElement) {
         _modNode.Parent = null;
         UIModFolderMenu.Instance.RemoveConfirmPanel();
+    }
+    #endregion
+    #region Layout
+    protected override void RecalculateStripeLayout() {
+        base.RecalculateStripeLayout();
+        var rightOffset = SetRightButtonsPanelToStripeLayout();
+        #region 名字
+        _name.Left = new(37, 0);
+        _name.Width = new(-37 + rightOffset, 1);
+        _name.Height = new(0, 1);
+        _name.VAlign = 0;
+        #endregion
+    }
+    protected override void RecalculateBlockLayout() {
+        base.RecalculateBlockLayout();
+        SetRightButtonsPanelToBlockLayout();
+        #region 名字
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        #endregion
+    }
+    protected override void RecalculateBlockWithNameLayout() {
+        base.RecalculateBlockWithNameLayout();
+        SetRightButtonsPanelToBlockWithNameLayout();
+        #region 名字
+        _name.Left = new(2, 0);
+        _name.Width = new(-4, 1);
+        _name.Height = new(StripeHeight, 0);
+        _name.VAlign = 1;
+        #endregion
     }
     #endregion
 }

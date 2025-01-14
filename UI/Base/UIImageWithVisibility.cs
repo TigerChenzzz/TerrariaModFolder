@@ -1,10 +1,9 @@
 ﻿using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
-using Terraria.UI;
 
 namespace ModFolder.UI.Base;
 
-internal class UIImageWithVisibility(Asset<Texture2D> texture) : UIImage(texture) {
+public class UIImageWithVisibility(Asset<Texture2D> texture) : UIImage(texture) {
     private float _visibility = 1;
     public float Visibility {
         get => _visibility;

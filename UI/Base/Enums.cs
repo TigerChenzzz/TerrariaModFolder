@@ -39,4 +39,5 @@ public enum MenuShowTypes {
 public enum LayoutTypes {
     Stripe,
     Block,
+    BlockWithName,
 }

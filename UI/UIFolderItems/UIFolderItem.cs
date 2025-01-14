@@ -2,6 +2,8 @@
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
 using ModFolder.UI.UIFolderItems.Folder;
+using ReLogic.Content;
+using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -10,9 +12,11 @@ namespace ModFolder.UI.UIFolderItems;
 /// <summary>
 /// 文件夹系统列表中的一件物品, 可能是文件夹, 可能是模组, 也可能是其它什么东西
 /// </summary>
-public abstract class UIFolderItem : UIElement {
+public abstract partial class UIFolderItem : UIElement {
     #region 构造
     public UIFolderItem() : base() {
+        rightButtons = new UIImageWithVisibility?[RightButtonsLength];
+        _name = new(this);
         Height.Pixels = 32;
         Width.Percent = 1f;
         OnLeftMouseDown += OnLeftMouseDown_TrySelect;
@@ -31,6 +35,172 @@ public abstract class UIFolderItem : UIElement {
     public bool Selectable { get; set; } = true;
     // 在本层中的序号
     public int IndexCache { get; set; }
+
+    #region 右边的按钮
+    #region 板板
+    protected void AppendRightButtonsPanel() {
+        var panel = _rightButtonsPanel;
+        _rightButtonsPanelIndex = this.AppendAndGetIndex(panel);
+        foreach (var button in rightButtons) {
+            if (button is not null) {
+                panel.Append(button);
+            }
+        }
+    }
+    private int _rightButtonsPanelIndex;
+    protected readonly UIElementWithContainsPointByChildren _rightButtonsPanel = new();
+    private readonly UIElement _rightButtonsPanelPlaceHolder = GetAPlaceHolderElement();
+    private bool _rightButtonsPanelIsPlaceHolder;
+    protected void SetRightButtonsPanelToNormal() {
+        if (_rightButtonsPanelIsPlaceHolder) {
+            _rightButtonsPanelIsPlaceHolder = false;
+            this.ReplaceChildrenByIndex(_rightButtonsPanelIndex, _rightButtonsPanel);
+            ArrangeRecalculateChildren();
+        }
+    }
+    protected void SetRightButtonsPanelToPlaceHolder() {
+        if (!_rightButtonsPanelIsPlaceHolder) {
+            _rightButtonsPanelIsPlaceHolder = true;
+            this.ReplaceChildrenByIndex(_rightButtonsPanelIndex, _rightButtonsPanelPlaceHolder);
+            ArrangeRecalculateChildren();
+        }
+    }
+    protected float SetRightButtonsPanelToStripeLayout() {
+        _rightButtonsPanel.Left = new();
+        _rightButtonsPanel.Width = new(-4, 1);
+        _rightButtonsPanel.Top = new();
+        _rightButtonsPanel.Height = new(0, 1);
+        SetRightButtonsPanelToNormal();
+        return SettleRightButtons();
+    }
+    protected void SetRightButtonsPanelToBlockLayout() {
+        _rightButtonsPanel.Left = new(2, 0);
+        _rightButtonsPanel.Width = new(-4, 1);
+        _rightButtonsPanel.Top = new(2, 0);
+        _rightButtonsPanel.Height = new(-4, 1);
+        SetRightButtonsPanelToPlaceHolder();
+        SettleRightButtons();
+    }
+    protected void SetRightButtonsPanelToBlockWithNameLayout() {
+        _rightButtonsPanel.Left = new(2, 0);
+        _rightButtonsPanel.Width = new(-4, 1);
+        _rightButtonsPanel.Top = new(2, 0);
+        _rightButtonsPanel.Height = new(-4, 1);
+        SetRightButtonsPanelToPlaceHolder();
+        SettleRightButtons();
+    }
+    private void Draw_UpdateRightButtons() {
+        if (LayoutType != LayoutTypes.Stripe) {
+            if (IsMouseHovering) {
+                SetRightButtonsPanelToNormal();
+            }
+            else {
+                SetRightButtonsPanelToPlaceHolder();
+            }
+        }
+    }
+    #endregion
+    #region 按钮数组
+    protected virtual int RightButtonsLength => 0;
+    protected readonly UIImageWithVisibility?[] rightButtons;
+    #endregion
+    protected static UIImageWithVisibility NewRightButton(Asset<Texture2D> texture, float visibility = 1) => new UIImageWithVisibility(texture) {
+        Width = new(24, 0),
+        Height = new(24, 0),
+        Visibility = visibility,
+    }.SettleCommonly();
+    protected float SettleRightButtons() {
+        // TODO: 配置右边这堆按钮是否向右缩紧
+        bool leanToTheRight = true;
+        float rightOffset = 0;
+        int len = rightButtons.Length;
+        if (NoStripeLayout) {
+            float topOffset = 0;
+            for (int i = 0; i < len; ++i) {
+                var button = rightButtons[i];
+                if (button != null && button.Visibility > 0) {
+                    rightOffset -= 24;
+                    if (rightOffset < -24 && -rightOffset > BlockWidth - 4 /* _rightButtonsPanel._dimensions.Width */) {
+                        rightOffset = -24;
+                        topOffset += 24;
+                    }
+                    button.Left = new(rightOffset, 1);
+                    button.Top = new(topOffset, 0);
+                    button.VAlign = 0;
+                }
+                else if (!leanToTheRight) {
+                    rightOffset -= 24;
+                    if (rightOffset < -24 && -rightOffset > BlockWidth - 4 /* _rightButtonsPanel._dimensions.Width */) {
+                        rightOffset = -24;
+                        topOffset += 24;
+                    }
+                }
+            }
+        }
+        else {
+            for (int i = 0; i < len; ++i) {
+                var button = rightButtons[i];
+                if (button != null && button.Visibility > 0) {
+                    rightOffset -= 24;
+                    button.Left = new(rightOffset, 1);
+                    button.Top = new();
+                    button.VAlign = 0.5f;
+                }
+                else if (!leanToTheRight) {
+                    rightOffset -= 24;
+                }
+            }
+        }
+        ArrangeRecalculateChildren();
+        return rightOffset;
+    }
+    #endregion
+    #region 名字与重命名
+    protected UINamePanel _name;
+    private int _nameIndex;
+    protected void OnInitialize_Name() {
+        _nameIndex = this.AppendAndGetIndex(_name);
+        mouseOverTooltips.Add(_name, GetNameMouseOverTooltipFunc());
+    }
+    protected abstract Func<string> GetNameMouseOverTooltipFunc();
+    private readonly UIElement _namePlaceHolder = GetAPlaceHolderElement();
+    private bool _nameIsPlaceHolder;
+    protected void SetNameToPlaceHolder() {
+        if (!_nameIsPlaceHolder) {
+            _nameIsPlaceHolder = true;
+            this.ReplaceChildrenByIndex(_nameIndex, _namePlaceHolder);
+            ArrangeRecalculateChildren();
+        }
+    }
+    protected void SetNameToNormal() {
+        if (_nameIsPlaceHolder) {
+            _nameIsPlaceHolder = false;
+            this.ReplaceChildrenByIndex(_nameIndex, _name);
+            ArrangeRecalculateChildren();
+        }
+    }
+    protected virtual bool ShouldHideNameWhenNotMouseOver => LayoutType == LayoutTypes.Block;
+    private void Draw_UpdateName() {
+        if (ShouldHideNameWhenNotMouseOver) {
+            if (IsMouseHovering) {
+                SetNameToNormal();
+            }
+            else {
+                SetNameToPlaceHolder();
+            }
+        }
+    }
+    /// <summary>
+    /// 获取在 UIText 上显示的名字
+    /// </summary>
+    protected abstract string GetDisplayName();
+    /// <summary>
+    /// 获取重命名输入框初始值
+    /// </summary>
+    protected abstract string GetRenameText();
+    protected abstract string GetRenameHintText();
+    protected abstract bool TryRename(string newName);
+    #endregion
     #region MouseoverTooltip
     protected readonly List<(UIElement, Func<string?>)> mouseOverTooltips = [];
     protected virtual string? GetTooltip() {
@@ -45,6 +215,9 @@ public abstract class UIFolderItem : UIElement {
         return null;
     }
     private void Draw_Tooltip() {
+        if (!IsMouseHovering) {
+            return;
+        }
         var tooltip = GetTooltip();
         if (tooltip != null) {
             UICommon.TooltipMouseText(tooltip);
@@ -72,11 +245,13 @@ public abstract class UIFolderItem : UIElement {
         var rectangle = dimensions.ToRectangle();
         UIModFolderMenu menu = UIModFolderMenu.Instance;
         #region 画分割线
-        Rectangle dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4);
-        if (menu.LayoutType == LayoutTypes.Block) {
+        Rectangle dividerRect;
+        if (NoStripeLayout) {
+            dividerRect = new((int)(dimensions.X + dimensions.Width - 1), (int)dimensions.Y, 4, (int)dimensions.Height); // 右方
             Utils.DrawInvBG(spriteBatch, dimensions.X, dimensions.Y, dimensions.Width, dimensions.Height, new Color(63, 65, 151, 255) * (0.785f * 0.5f));
         }
         else {
+            dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4); // 下方
             spriteBatch.Draw(UICommon.DividerTexture.Value, dividerRect, Color.White);
         }
         #endregion
@@ -109,12 +284,13 @@ public abstract class UIFolderItem : UIElement {
                     break;
                 case < 0:
                     // 若是返回上一级则仍然在下方画线
-                    if (this is UIFolder f && f.Name == "..") {
+                    if (this is UIFolder f && f.FolderName == "..") {
                         spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                         break;
                     }
-                    // 在上方画线
-                    Rectangle r = new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4);
+                    // 在上方 / 左方画线
+                    Rectangle r = StripeLayout ? new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4)
+                        : new((int)(dimensions.X - 3), (int)dimensions.Y, 4, (int)dimensions.Height);
                     spriteBatch.Draw(MTextures.White, r, Color.White);
                     break;
                 default:
@@ -130,6 +306,9 @@ public abstract class UIFolderItem : UIElement {
         #endregion
     }
     public override void Draw(SpriteBatch spriteBatch) {
+        Draw_UpdateRightButtons();
+        Draw_UpdateName();
+        Draw_ArrangeRecalculateChildren();
         base.Draw(spriteBatch);
         Draw_Tooltip();
     }
@@ -367,38 +546,73 @@ public abstract class UIFolderItem : UIElement {
     private void OnRightMouseDown_TryDrag(UIMouseEvent evt, UIElement listeningElement) => UIModFolderMenu.Instance.RightMouseDownOnFolderItem(this);
     #endregion
     #region 布局 Layout
+#if DEBUG
+    public static float StripeHeight => 32;
+    public static float BlockWidth => 90;
+    public static float BlockHeight => 90;
+    public static float BlockWithNameHeight => 116;
+#else
+    public const float StripeHeight = 32;
+    public const float BlockWidth = 90;
+    public const float BlockHeight = 90;
+    public const float BlockWithNameHeight = 122;
+#endif
     protected static LayoutTypes MenuLayoutType => UIModFolderMenu.Instance.LayoutType;
     protected LayoutTypes LayoutType { get; set; }
+    protected bool NoStripeLayout => LayoutType != LayoutTypes.Stripe;
     protected bool BlockLayout => LayoutType == LayoutTypes.Block;
     protected bool StripeLayout => LayoutType == LayoutTypes.Stripe;
-    public override void Recalculate() {
-        if (LayoutType == MenuLayoutType) {
-            base.Recalculate();
-            return;
-        }
-        LayoutType = MenuLayoutType;
-        ForceRecalculateLayout();
-        base.Recalculate();
-    }
     protected void ForceRecalculateLayout() {
-        if (LayoutType == LayoutTypes.Block) {
-            RecalculateBlockLayout();
-        }
-        else {
+        switch (LayoutType) {
+        case LayoutTypes.Stripe:
             RecalculateStripeLayout();
+            break;
+        case LayoutTypes.Block:
+            RecalculateBlockLayout();
+            break;
+        case LayoutTypes.BlockWithName:
+            RecalculateBlockWithNameLayout();
+            break;
         }
     }
     protected virtual void RecalculateStripeLayout() {
         Left.Set(0, 0);
         Width.Set(0, 1);
-        Height.Set(32, 0);
+        Height.Set(StripeHeight, 0);
     }
     protected virtual void RecalculateBlockLayout() {
-        Width.Set(90, 0);
-        Height.Set(90, 0);
+        Width.Set(BlockWidth, 0);
+        Height.Set(BlockHeight, 0);
+    }
+    protected virtual void RecalculateBlockWithNameLayout() {
+        Width = new(BlockWidth, 0);
+        Height = new(BlockWithNameHeight, 0);
     }
     protected static UIElement GetAPlaceHolderElement() => new() {
         IgnoresMouseInteraction = true,
     };
+    #endregion
+    #region ArrangeRecalculateChildren
+    private bool _needRecalculateChildren;
+    public void ArrangeRecalculateChildren() => _needRecalculateChildren = true;
+    private void Draw_ArrangeRecalculateChildren() {
+        if (_needRecalculateChildren) {
+            RecalculateChildren();
+        }
+    }
+    #endregion
+    #region overrides
+    public sealed override void RecalculateChildren() {
+        if (!_isInitialized) {
+            ArrangeRecalculateChildren();
+            return;
+        }
+        if (LayoutType != MenuLayoutType) {
+            LayoutType = MenuLayoutType;
+            ForceRecalculateLayout();
+        }
+        _needRecalculateChildren = false;
+        base.RecalculateChildren();
+    }
     #endregion
 }

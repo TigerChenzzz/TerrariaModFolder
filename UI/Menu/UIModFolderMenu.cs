@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.GameContent.UI.States;
+using Terraria.GameInput;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
@@ -193,7 +194,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private const int IndexShowRamUsage = 7;
     private const int TopMenuButtonsCount = 8;
     private readonly int[] _topButtonData = new int[8];
-    private readonly int[] _topButtonLengths = [2, 3, 5, 3, 8, 5, 2, 2];
+    private readonly int[] _topButtonLengths = [2, 3, 5, 3, 8, 5, 3, 2];
     private readonly Point[] _topButtonPositionsInTexture = [
         new(2, 6), // 0
         new(0, 5), // 1
@@ -246,6 +247,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         /* 6 */[
             "Mods.ModFolder.UI.SortButtons.StripeLayout.Tooltip",
             "Mods.ModFolder.UI.SortButtons.BlockLayout.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.BlockWithNameLayout.Tooltip",
         ],
         /* 7 */[
             "tModLoader.ShowMemoryEstimatesNo",
@@ -334,7 +336,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #region 其余按钮
     private readonly UICycleImage[] topMenuButtons = new UICycleImage[TopMenuButtonsCount];
-    private readonly int categoryButtonStartIndex = 0;
+    private const int categoryButtonStartIndex = 0;
     private readonly UICycleImage[] categoryButtons = new UICycleImage[6];
     private void OnInitialize_TopButtons(Asset<Texture2D> texture) {
         UICycleImage toggleImage;
@@ -432,7 +434,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return ShowAllMods ? 1 : 0;
         }
         if (index == IndexLayoutType) {
-            return CommonConfig.Instance.UseBlockLayoutByDefault ? (int)LayoutTypes.Block : (int)LayoutTypes.Stripe;
+            return (int)CommonConfig.Instance.DefaultLayout;
         }
         return 0;
     }
@@ -559,7 +561,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     private bool CanCustomizeOrder() {
         var end = categoryButtonStartIndex + categoryButtons.Length;
-        for (int i = categoryButtonStartIndex; i < _topButtonData.Length - 2; ++i) {
+        for (int i = categoryButtonStartIndex; i < end; ++i) {
             if (_topButtonData[i] != 0) {
                 return false;
             }
@@ -1010,14 +1012,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         RightMoseDown_SelectAndDrag(); // 右键按下的选择拖拽相关逻辑
         base.RightMouseDown(evt);
     }
+#if DEBUG
     public override void LeftMouseUp(UIMouseEvent evt) {
-        LeftMouseUp_SelectAndDrag();
+        // LeftMouseUp_SelectAndDrag();
         base.LeftMouseUp(evt);
     }
     public override void RightMouseUp(UIMouseEvent evt) {
-        RightMouseUp_SelectAndDrag();
+        // RightMouseUp_SelectAndDrag();
         base.RightMouseUp(evt);
     }
+#endif
     public override void XButton1MouseDown(UIMouseEvent evt) {
         GotoUpperFolder(); // 鼠标 4 键返回
     }
@@ -1035,7 +1039,20 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public void RightMouseDownOnFolderItem(UIFolderItem item) {
         RightMouseDownOnFolderItem_SelectAndDrag(item);
     }
-
+    private void GlobalLeftMouseUp() {
+        GlobalLeftMouseUp_SelectAndDrag();
+    }
+    private void GlobalRightMouseUp() {
+        GlobalRightMouseUp_SelectAndDrag();
+    }
+    private void Draw_DetectMouseUp() {
+        if (!Main.mouseLeft && PlayerInput.Triggers.Old.MouseLeft) {
+            GlobalLeftMouseUp();
+        }
+        if (!Main.mouseRight && PlayerInput.Triggers.Old.MouseRight) {
+            GlobalRightMouseUp();
+        }
+    }
     #region 检测 MouseMove 的实现
     private void Update_MonitorMouseMovation() {
         if (Main.mouseX != Main.lastMouseX || Main.mouseY != Main.lastMouseY) {
@@ -1185,7 +1202,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         return result;
     }
-    private IEnumerable<UIModItemInFolderLoaded> GetAffectedMods_Selected(bool ignoreFavorite = false) {
+    private IEnumerable<UIModItemInFolderLoaded> GetAffectedMods_Selected() {
         HashSet<string> affectedModNames = [];
         foreach (var item in SelectingItems) {
             if (item is UIModItemInFolderLoaded loaded) {
@@ -1208,7 +1225,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         HashSet<string> enabled = [];
         HashSet<string> missingRefs = [];
         foreach (var modItem in GetAffectedMods()) {
-            if (modItem == null || modItem.tMLUpdateRequired != null)
+            if (modItem == null || modItem.HasUpdateRequired)
                 continue;
             modItem.EnableQuick(enabled, missingRefs);
         }
@@ -1256,7 +1273,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         HashSet<string> enabled = [];
         HashSet<string> disabled = [];
         foreach (var modItem in GetAffectedMods()) {
-            if (modItem == null || modItem.tMLUpdateRequired != null)
+            if (modItem == null || modItem.HasUpdateRequired)
                 continue;
             if (modItem.Loaded && ModLoader.EnabledMods.Add(modItem.ModName)) {
                 enabled.Add(modItem.ModName);
@@ -1445,7 +1462,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             else if (node is FolderNode f) {
                 var uf = new UIFolder(f);
                 if (f == nodeToRename) {
-                    uf.DirectlyReplaceToRenameText();
+                    uf.DirectlyRename();
                     uf.FolderNode?.TryRefreshCounts();
                     yield return uf;
                 }
@@ -1495,6 +1512,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #region Draw
     public override void Draw(SpriteBatch spriteBatch) {
         UILinkPointNavigator.Shortcuts.BackButtonCommand = 7;
+        Draw_DetectMouseUp();
         Draw_TryCloseButtons();
         Draw_UpdateDraggingTo();
         base.Draw(spriteBatch);
@@ -1792,13 +1810,56 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #region 搜索目标元素
         // TODO: 算法优化
         UIFolderItem? aim = null;
-        foreach (var listItem in list._items) {
-            if (listItem is not UIFolderItem fi) {
-                continue;
+        if (LayoutType == LayoutTypes.Stripe) {
+            foreach (var listItem in list._items) {
+                if (listItem is not UIFolderItem fi) {
+                    continue;
+                }
+                aim = fi;
+                var dimensions = listItem._dimensions;
+                if (dimensions.Y + dimensions.Height >= Main.mouseY) {
+                    break;
+                }
             }
-            aim = fi;
-            if (listItem._dimensions.Y + listItem._dimensions.Height >= Main.mouseY) {
-                break;
+        }
+        else {
+            bool reachedButton = false;
+            foreach (var listItem in list._items) {
+                if (listItem is not UIFolderItem fi) {
+                    continue;
+                }
+                var dimensions = listItem._dimensions;
+                if (aim == null) {
+                    aim = fi;
+                    if (dimensions.X + dimensions.Width + 1 >= Main.mouseX && dimensions.Y + dimensions.Height + 1 >= Main.mouseY) {
+                        break;
+                    }
+                    continue;
+                }
+                // 如果鼠标在底部下面...
+                if (dimensions.Y + dimensions.Height < Main.mouseY + 1) {
+                    // 如果原目标在上面或鼠标在左侧的右边, 则更新目标.
+                    if (aim._dimensions.Y < dimensions.Y || dimensions.X - 1 <= Main.mouseX) {
+                        aim = fi;
+                    }
+                    continue;
+                }
+                // 当鼠标在底部上面时...
+                // 如果鼠标在右侧的左边, 则确认目标, 结束循环.
+                if (dimensions.X + dimensions.Width + 1 >= Main.mouseX) {
+                    aim = fi;
+                    break;
+                }
+                if (!reachedButton) {
+                    reachedButton = true;
+                    aim = fi;
+                    continue;
+                }
+                if (aim._dimensions.Y < dimensions.Y) {
+                    break;
+                }
+                // 否则更新目标并继续.
+                aim = fi;
             }
         }
         if (aim == null) {
@@ -1834,28 +1895,43 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         DraggingTo = aim;
         DraggingDirection = DirectionUpOrDown(aim);
         #endregion
-        #region 辅助方法
-        // 在一半以上则移上, 否则移下
-        static int DirectionUpOrDown(UIFolderItem aim) {
-            if (Main.mouseY < aim._dimensions.Y + aim._dimensions.Height / 2) {
+    }
+    // 在一半以上则移上, 否则移下
+    private int DirectionUpOrDown(UIFolderItem aim) {
+        var dimensions = aim._dimensions;
+        if (LayoutType == LayoutTypes.Stripe) {
+            if (Main.mouseY < dimensions.Y + dimensions.Height / 2) {
                 return -1;
             }
             return 1;
         }
-        // 鼠标不在上面时同上面那个函数, 否则 1 / 8 上则移上, 7 / 8 下则移下, 否则移入
-        static int DierctionUpDownOrInner(UIFolderItem aim) {
-            if (!aim.IsMouseHovering) {
-                return DirectionUpOrDown(aim);
-            }
-            if (Main.mouseY < aim._dimensions.Y + aim._dimensions.Height / 8) {
+        if (Main.mouseX < dimensions.X + dimensions.Width / 2) {
+            return -1;
+        }
+        return 1;
+    }
+    // 鼠标不在上面时同上面那个函数, 否则 1 / 8 上则移上, 7 / 8 下则移下, 否则移入
+    private int DierctionUpDownOrInner(UIFolderItem aim) {
+        if (!aim.IsMouseHovering) {
+            return DirectionUpOrDown(aim);
+        }
+        var dimensions = aim._dimensions;
+        if (LayoutType == LayoutTypes.Block) {
+            if (Main.mouseY < dimensions.Y + dimensions.Height / 8) {
                 return -1;
             }
-            if (Main.mouseY > aim._dimensions.Y + aim._dimensions.Height * 7 / 8) {
+            if (Main.mouseY > dimensions.Y + dimensions.Height * 7 / 8) {
                 return 1;
             }
             return 0;
         }
-        #endregion
+        if (Main.mouseX < dimensions.X + dimensions.Width / 8) {
+            return -1;
+        }
+        if (Main.mouseX > dimensions.X + dimensions.Width * 7 / 8) {
+            return 1;
+        }
+        return 0;
     }
     #region 刚刚按下的项和按下的时间
     private UIFolderItem? lastDownedFolderItem;
@@ -1985,7 +2061,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         ClearSelectingItems();
     }
-    private void LeftMouseUp_SelectAndDrag() {
+    private void GlobalLeftMouseUp_SelectAndDrag() {
         if (!IsLeftDragging) {
             return;
         }
@@ -2012,7 +2088,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             aimNode = pi.FolderNode;
         }
         if (aimNode == null) {
-            if (draggingTo is UIFolder folder && folder.Name == "..") {
+            if (draggingTo is UIFolder folder && folder.FolderName == "..") {
                 if (DraggingDirection == 0) {
                     // 保险起见判断一下, 理应总是符合该条件的
                     if (FolderPath.Count > 1)
@@ -2077,7 +2153,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
     }
-    private void RightMouseUp_SelectAndDrag() {
+    private void GlobalRightMouseUp_SelectAndDrag() {
         if (!IsRightDragging) {
             return;
         }

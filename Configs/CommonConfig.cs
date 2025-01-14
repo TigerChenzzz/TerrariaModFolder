@@ -1,4 +1,5 @@
 ﻿using ModFolder.Systems;
+using ModFolder.UI.Base;
 using ModFolder.UI.UIFolderItems;
 using MonoMod.Cil;
 using Newtonsoft.Json;
@@ -25,7 +26,7 @@ public class CommonConfig : ModConfig {
 
     [DefaultValue(true)]
     public bool LeftClickToEnterFolderSystem { get; set; }
-    public bool UseBlockLayoutByDefault { get; set; }
+    public LayoutTypes DefaultLayout { get; set; }
     #region 显示模组来源
     [DefaultValue(true)]
     public bool ShowModLocation { get; set; }

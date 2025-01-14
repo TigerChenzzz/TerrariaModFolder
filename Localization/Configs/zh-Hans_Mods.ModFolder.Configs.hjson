@@ -73,8 +73,8 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
-	UseBlockLayoutByDefault: {
-		// Label: Use Block Layout By Default
+	DefaultLayout: {
+		Label: 默认布局
 		// Tooltip: ""
 	}
 }
@@ -167,4 +167,11 @@ ShowType: {
 	Never.Label: 从不显示
 	WhenNotZero.Label: 非零时显示
 	Always.Label: 总是显示
+}
+
+LayoutTypes: {
+	// Tooltip: ""
+	Stripe.Label: 条状
+	Block.Label: 块状
+	BlockWithName.Label: 带有名字的块状
 }

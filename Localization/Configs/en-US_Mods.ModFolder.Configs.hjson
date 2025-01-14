@@ -73,8 +73,8 @@ CommonConfig: {
 		Tooltip: ""
 	}
 
-	UseBlockLayoutByDefault: {
-		Label: Use Block Layout By Default
+	DefaultLayout: {
+		Label: Default Layout
 		Tooltip: ""
 	}
 }
@@ -167,4 +167,11 @@ ShowType: {
 	Never.Label: Never
 	WhenNotZero.Label: When Not Zero
 	Always.Label: Always
+}
+
+LayoutTypes: {
+	Tooltip: ""
+	Stripe.Label: Stripe
+	Block.Label: Block
+	BlockWithName.Label: Block With Name
 }
