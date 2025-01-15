@@ -1,5 +1,8 @@
 Changelog:
 	'''
+	[c/00ff00:v0.6.0]
+	[c/ff0000:- now can choose to use stripe layout or block layout]
+
 	[c/00ff00:v0.5.0]
 	[c/ff0000:- use left mouse to drag rather than right mouse]
 	[c/ff0000:- multi-select support, Ctrl + left click to invert select, Shift + left click to multi-select; the selected can be dragged, or mofidied by "Enable & Disable" button]

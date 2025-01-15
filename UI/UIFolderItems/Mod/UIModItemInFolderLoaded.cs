@@ -170,11 +170,11 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         _tMLUpdateRequiredInStripeLayout.OnLeftClick += (_, _) => {
             Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
         };
-        _tMLUpdateRequiredInBlockLayout = new(MTextures.Deprecated) {
+        _tMLUpdateRequiredInBlockLayout = new(MTextures.Deprecated) { // 26 x 26
             RemoveFloatingPointsFromDrawPosition = true,
-            VAlign = 0.5f,
             HAlign = 0.5f,
         };
+        _tMLUpdateRequiredInBlockLayout.Top = new((BlockHeight - _tMLUpdateRequiredInBlockLayout.Height.Pixels) / 2, 0);
         _tMLUpdateRequiredInBlockLayout.OnLeftClick += (_, _) => {
             Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
         };
@@ -185,7 +185,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             _tMLUpdateRequiredIndex = this.AppendAndGetIndex(_tMLUpdateRequiredInStripeLayout);
         }
         mouseOverTooltips.Add((_tMLUpdateRequiredInStripeLayout, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
-        mouseOverTooltips.Add((_tMLUpdateRequiredInBlockLayout, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
+        mouseOverTooltips.Add((_tMLUpdateRequiredInBlockLayout, () => $"{Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)}\n{Language.GetTextValue("tModLoader.SwitchVersionInfoButton")}"));
     }
     private void SwitchTMLUpdateRequiredToStripeLayout() {
         if (HasUpdateRequired) {
@@ -682,11 +682,21 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 	}*/
     #endregion
     #region Draw
+    protected override Color PanelColor => _mod.location switch {
+        ModLocation.Local => Color.MediumPurple * 0.7f,
+        ModLocation.Modpack => Color.SkyBlue * 0.7f,
+        _ => UICommon.DefaultUIBlue
+    };
+    protected override Color PanelHoverColor => _mod.location switch {
+        ModLocation.Local => Color.MediumPurple,
+        ModLocation.Modpack => Color.SkyBlue,
+        _ => UICommon.DefaultUIBlueMouseOver
+    };
     public override void DrawSelf(SpriteBatch spriteBatch) {
         #region 根据启用状态设置块状图标的透明度
         {
             Color iconColor;
-            if (BlockLayout) {
+            if (NoStripeLayout) {
                 if (_mod.Enabled) {
                     iconColor = Color.White;
                 }
@@ -821,11 +831,11 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     protected override Func<string> GetNameMouseOverTooltipFunc() {
         if (string.IsNullOrEmpty(_mod.properties.author)) {
-            return () => HasAlias ? $"{Alias} ({ModDisplayName})" : ModDisplayName;
+            return () => HasAlias ? $"{Alias} ({ModDisplayName}) v{_mod.modFile.Version}" : $"{ModDisplayName} v{_mod.modFile.Version}";
         }
         return () => HasAlias
-            ? $"{Alias} ({ModDisplayName})\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}"
-            : $"{ModDisplayName}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}";
+            ? $"{Alias} ({ModDisplayName}) v{_mod.modFile.Version}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}"
+            : $"{ModDisplayName} v{_mod.modFile.Version}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}";
     }
     #endregion
     #region PassFilters
@@ -1022,7 +1032,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         _name.Width = new(-leftOffset + rightOffset, 1);
         _name.Height = new(0, 1);
         _name.VAlign = 0;
-        SetNameToNormal();
+        SetNameToNormal(true);
         #endregion
         #region UpdateRequired
         SwitchTMLUpdateRequiredToStripeLayout();
@@ -1030,7 +1040,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     protected override void RecalculateBlockLayout() {
         base.RecalculateBlockLayout();
-        float topLeftOffset = 0;
+        float leftTopOffset = 2;
+        float leftMiddle = 14;
         #region icon
         SetModIcon();
         _modIcon.Left.Set(-40, 0.5f);
@@ -1040,38 +1051,37 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #endregion
         #region ModLocationIcon
         if (_modLocationIcon != null) {
-            topLeftOffset += 2;
-            _modLocationIcon.Left = new(topLeftOffset, 0);
-            _modLocationIcon.Top = new(2, 0);
+            _modLocationIcon.Left = new(2, 0);
+            _modLocationIcon.Top = new(leftTopOffset, 0);
             _modLocationIcon.VAlign = 0;
-            topLeftOffset += _modLocationIcon.Width.Pixels;
+            leftTopOffset += _modLocationIcon.Height.Pixels;
         }
         #endregion
         #region UpdateDot
         if (_updatedModDot != null) {
-            topLeftOffset += 2;
-            _updatedModDot.Left = new(topLeftOffset, 0);
-            _updatedModDot.Top = new(14 - _updatedModDot.Height.Pixels / 2, 0);
+            if (leftTopOffset == 2) {
+                leftTopOffset += 4;
+            }
+            _updatedModDot.Left = new(leftMiddle - _updatedModDot.Width.Pixels / 2 - 1, 0);
+            _updatedModDot.Top = new(leftTopOffset, 0);
             _updatedModDot.VAlign = 0;
-            topLeftOffset += _updatedModDot.Width.Pixels;
+            leftTopOffset += _updatedModDot.Height.Pixels + 2;
         }
         #endregion
         #region 未完全卸载
         if (_modDidNotFullyUnloadWarningImage != null) {
-            topLeftOffset += 2;
-            _modDidNotFullyUnloadWarningImage.Left = new(topLeftOffset, 0);
-            _modDidNotFullyUnloadWarningImage.Top = new(14 - _modDidNotFullyUnloadWarningImage.Height.Pixels / 2, 0);
+            _modDidNotFullyUnloadWarningImage.Left = new(leftMiddle - _modDidNotFullyUnloadWarningImage.Width.Pixels / 2, 0);
+            _modDidNotFullyUnloadWarningImage.Top = new(leftTopOffset, 0);
             _modDidNotFullyUnloadWarningImage.VAlign = 0;
-            topLeftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
+            leftTopOffset += _modDidNotFullyUnloadWarningImage.Height.Pixels;
         }
         #endregion
         #region StableOnPreview
         if (_modStableOnPreviewWarning != null) {
-            topLeftOffset += 2;
-            _modStableOnPreviewWarning.Left = new(topLeftOffset, 0);
-            _modStableOnPreviewWarning.Top = new(14 - _modStableOnPreviewWarning.Height.Pixels / 2, 0);
+            _modStableOnPreviewWarning.Left = new(leftMiddle - _modStableOnPreviewWarning.Width.Pixels / 2, 0);
+            _modStableOnPreviewWarning.Top = new(leftTopOffset, 0);
             _modStableOnPreviewWarning.VAlign = 0;
-            // topLeftOffset += _keyImage.Width.Pixels;
+            // leftTopOffset += _keyImage.Height.Pixels;
         }
         #endregion
         #region 右边的按钮
@@ -1082,7 +1092,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         _name.Width = new(-4, 1);
         _name.Height = new(StripeHeight, 0);
         _name.VAlign = 1;
-        SetNameToPlaceHolder();
+        SetNameToPlaceHolder(true);
         #endregion
         #region UpdateRequired
         SwitchTMLUpdateRequiedToBlockLayout();
@@ -1090,7 +1100,8 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     protected override void RecalculateBlockWithNameLayout() {
         base.RecalculateBlockWithNameLayout();
-        float topLeftOffset = 0;
+        float leftTopOffset = 2;
+        float leftMiddle = 14;
         #region icon
         SetModIcon();
         _modIcon.Left.Set(-40, 0.5f);
@@ -1100,38 +1111,37 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #endregion
         #region ModLocationIcon
         if (_modLocationIcon != null) {
-            topLeftOffset += 2;
-            _modLocationIcon.Left = new(topLeftOffset, 0);
-            _modLocationIcon.Top = new(2, 0);
+            _modLocationIcon.Left = new(2, 0);
+            _modLocationIcon.Top = new(leftTopOffset, 0);
             _modLocationIcon.VAlign = 0;
-            topLeftOffset += _modLocationIcon.Width.Pixels;
+            leftTopOffset += _modLocationIcon.Height.Pixels;
         }
         #endregion
         #region UpdateDot
         if (_updatedModDot != null) {
-            topLeftOffset += 2;
-            _updatedModDot.Left = new(topLeftOffset, 0);
-            _updatedModDot.Top = new(14 - _updatedModDot.Height.Pixels / 2, 0);
+            if (leftTopOffset == 2) {
+                leftTopOffset += 4;
+            }
+            _updatedModDot.Left = new(leftMiddle - _updatedModDot.Width.Pixels / 2 - 1, 0);
+            _updatedModDot.Top = new(leftTopOffset, 0);
             _updatedModDot.VAlign = 0;
-            topLeftOffset += _updatedModDot.Width.Pixels;
+            leftTopOffset += _updatedModDot.Height.Pixels + 2;
         }
         #endregion
         #region 未完全卸载
         if (_modDidNotFullyUnloadWarningImage != null) {
-            topLeftOffset += 2;
-            _modDidNotFullyUnloadWarningImage.Left = new(topLeftOffset, 0);
-            _modDidNotFullyUnloadWarningImage.Top = new(14 - _modDidNotFullyUnloadWarningImage.Height.Pixels / 2, 0);
+            _modDidNotFullyUnloadWarningImage.Left = new(leftMiddle - _modDidNotFullyUnloadWarningImage.Width.Pixels / 2, 0);
+            _modDidNotFullyUnloadWarningImage.Top = new(leftTopOffset, 0);
             _modDidNotFullyUnloadWarningImage.VAlign = 0;
-            topLeftOffset += _modDidNotFullyUnloadWarningImage.Width.Pixels;
+            leftTopOffset += _modDidNotFullyUnloadWarningImage.Height.Pixels;
         }
         #endregion
         #region StableOnPreview
         if (_modStableOnPreviewWarning != null) {
-            topLeftOffset += 2;
-            _modStableOnPreviewWarning.Left = new(topLeftOffset, 0);
-            _modStableOnPreviewWarning.Top = new(14 - _modStableOnPreviewWarning.Height.Pixels / 2, 0);
+            _modStableOnPreviewWarning.Left = new(leftMiddle - _modStableOnPreviewWarning.Width.Pixels / 2, 0);
+            _modStableOnPreviewWarning.Top = new(leftTopOffset, 0);
             _modStableOnPreviewWarning.VAlign = 0;
-            // topLeftOffset += _keyImage.Width.Pixels;
+            // leftTopOffset += _keyImage.Height.Pixels;
         }
         #endregion
         #region 右边的按钮
@@ -1142,7 +1152,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         _name.Width = new(-4, 1);
         _name.Height = new(StripeHeight, 0);
         _name.VAlign = 1;
-        SetNameToNormal();
+        SetNameToNormal(true);
         #endregion
         #region UpdateRequired
         SwitchTMLUpdateRequiedToBlockLayout();

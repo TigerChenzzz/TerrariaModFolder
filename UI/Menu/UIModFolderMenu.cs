@@ -311,17 +311,38 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         upperMenuContainer.Append(buttonToggleShowButtons);
     }
     private void ResetCategoryButtons() {
-        for (int i = 0; i < categoryButtons.Length; ++i) {
+        int end = categoryButtons.Length + categoryButtonStartIndex;
+        for (int i = categoryButtonStartIndex; i < end; ++i) {
             var defaultValue = GetCategoryDefaultValue(i);
             _topButtonData[i] = defaultValue;
-            var button = categoryButtons[i];
+            var button = categoryButtons[i - categoryButtonStartIndex];
             button.SetCurrentState(defaultValue);
             button.Disabled = false;
+        }
+        for (int i = categoryButtonStartIndex; i < end; ++i) {
+            CheckTopButtonChangedF(i);
         }
         Filter = string.Empty;
         GenerateTopButtons();
         ResettleVertical();
         ArrangeGenerate();
+    }
+    private void Initialize_ResetTopMenuButtons() {
+        int len = _topButtonData.Length;
+        for (int i = 0; i < len; ++i) {
+            var defaultValue = GetCategoryDefaultValue(i);
+            _topButtonData[i] = defaultValue;
+            var button = topMenuButtons[i];
+            button.SetCurrentState(defaultValue);
+            button.Disabled = false;
+        }
+        for (int i = 0; i < len; ++i) {
+            CheckTopButtonChangedF(i);
+        }
+        // Filter = string.Empty;
+        // GenerateTopButtons();
+        // ResettleVertical();
+        // ArrangeGenerate();
     }
     #endregion
     #region 其余按钮的背景板
@@ -340,9 +361,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private readonly UICycleImage[] categoryButtons = new UICycleImage[6];
     private void OnInitialize_TopButtons(Asset<Texture2D> texture) {
         UICycleImage toggleImage;
-        for (int i = 0; i < _topButtonData.Length; i++) {
+        int len = _topButtonData.Length;
+        for (int i = 0; i < len; i++) {
             topMenuButtons[i] = toggleImage = new(texture, _topButtonLengths[i], 32, 32, _topButtonPositionsInTexture[i].X * 34, _topButtonPositionsInTexture[i].Y * 34);
-            ResetTopButton(i);
             int currentIndex = i;
             toggleImage.OnLeftClick += (_, _) => SwitchTopButtonNext(currentIndex);
             toggleImage.OnRightClick += (_, _) => SwitchTopButtonPrevious(currentIndex);
@@ -358,6 +379,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 return result;
             }));
         }
+        Initialize_ResetTopMenuButtons();
     }
     #region 按钮切换
     // 当切换 ShowAllMods 时同时还要改变 FmSortMode 按钮的可用性
@@ -417,19 +439,28 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         CheckTopButtonChanged(index);
         ArrangeGenerate();
     }
-    private void CheckTopButtonChanged(int index) {
+    private bool CheckTopButtonChangedF(int index) {
         if (index == IndexShowFolderSystem) {
             topMenuButtons[IndexFmSortMode].Disabled = ShowAllMods;
             if (SortMode == FolderMenuSortMode.Custom && ShowAllMods) {
                 ResetTopButton(IndexSortMode);
             }
-            ResettleVertical();
+            return true;
         }
         else if (index == IndexShowRamUsage) {
+            return true;
+        }
+        return false;
+    }
+    private void CheckTopButtonChanged(int index) {
+        if (CheckTopButtonChangedF(index)) {
             ResettleVertical();
         }
     }
     private int GetCategoryDefaultValue(int index) {
+        if (index == IndexShowFolderSystem) {
+            return CommonConfig.Instance.ShowAllModsByDefault ? 1 : 0;
+        }
         if (index == IndexSortMode) {
             return ShowAllMods ? 1 : 0;
         }
@@ -1916,7 +1947,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return DirectionUpOrDown(aim);
         }
         var dimensions = aim._dimensions;
-        if (LayoutType == LayoutTypes.Block) {
+        if (LayoutType == LayoutTypes.Stripe) {
             if (Main.mouseY < dimensions.Y + dimensions.Height / 8) {
                 return -1;
             }

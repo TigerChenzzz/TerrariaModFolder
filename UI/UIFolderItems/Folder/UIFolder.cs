@@ -272,10 +272,10 @@ public class UIFolder : UIFolderItem {
     }
     #endregion
     #region 名字与重命名
-    protected override bool ShouldHideNameWhenNotMouseOver => LayoutType != LayoutTypes.Stripe && FolderName == "..";
+    protected override bool ShouldHideNameWhenNotMouseOver => LayoutType == LayoutTypes.Block && FolderName == "..";
     protected override string GetDisplayName() => FolderName;
     protected override string GetRenameText() => FolderName;
-    protected override string GetRenameHintText() => ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value;
+    protected override string GetRenameHintText() => FolderName;
     protected override Func<string> GetNameMouseOverTooltipFunc() => () => FolderName;
     protected override bool TryRename(string newName) {
         if (FolderNode == null || newName == ".." || newName == string.Empty) {
@@ -384,17 +384,16 @@ public class UIFolder : UIFolderItem {
             return;
         }
         var rect = _dimensions.ToRectangle();
-        int width = rect.Width;
-        int height = rect.Height;
-        if (width < height || height < 2) {
-            return;
-        }
+        int size = LayoutType == LayoutTypes.BlockWithName ? rect.Height : rect.Width;
+        // if (width < height || height < 2) {
+        //     return;
+        // }
         int countNow = FolderNode.EnabledCount - FolderNode.ToDisableCount;
-        int enableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount));
+        int enableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount));
         countNow += FolderNode.ToEnableCount;
-        int toEnableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount));
+        int toEnableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount));
         countNow += FolderNode.ToDisableCount;
-        int toDisableWidth = (int)(width * (countNow / (float)FolderNode.ChildrenCount)) - toEnableWidth;
+        int toDisableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount)) - toEnableWidth;
         toEnableWidth -= enableWidth;
         int minWidth = 5;
         if (FolderNode.EnabledCount - FolderNode.ToDisableCount > 0 && enableWidth < minWidth) {
@@ -407,9 +406,9 @@ public class UIFolder : UIFolderItem {
             toDisableWidth = minWidth;
         }
         int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + RandomStartOffset;
-        DrawParallelogramLoop(spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
-        DrawParallelogramLoop(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
-        DrawParallelogramLoop(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
+        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
+        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
+        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
     }
     #endregion
     #region Layout

@@ -19,12 +19,14 @@ public static class MyUtils {
             UITextures.Add(name, value);
             return value;
         }
-        public static readonly Texture2D White = FromColors(1, 1, [Color.White]);
-        public static readonly Texture2D WhiteBox = FromColors(3, 3, [
+
+        public static Texture2D White => Textures.Colors.White.Value;
+        private static readonly Asset<Texture2D> _whiteBox = AssetTextureFromColors(3, 3, [
             Color.White, Color.White      , Color.White,
             Color.White, Color.Transparent, Color.White,
             Color.White, Color.White      , Color.White,
         ]);
+        public static Texture2D WhiteBox => _whiteBox.Value;
         public static readonly Asset<Texture2D> ButtonRename = UI("ButtonRename"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonRename");
         public static readonly Asset<Texture2D> ButtonDelete = UI("ButtonDelete"); // ModContent.Request<Texture2D>("Terraria/Images/UI/ButtonDelete");
         public static readonly Asset<Texture2D> ButtonSubscribe = UI("ButtonSubscribe");
@@ -171,18 +173,28 @@ public static class MyUtils {
     /// </summary>
     /// <param name="remove">是否将 <paramref name="element"/> 从原父节点移除</param>
     public static UIElement ReplaceChildrenByIndex(this UIElement self, int index, UIElement element, bool remove = false) {
-        if (element.Parent == self) {
-            return element;
-        }
-        var result = self.Elements[index];
-        result.Parent = null;
         if (remove) {
+            if (element.Parent == self) {
+                return element;
+            }
+            var result = self.Elements[index];
+            result.Parent = null;
             element.Remove();
+            self.Elements[index] = element;
+            element.Parent = self;
+            element.Recalculate();
+            return result;
         }
-        self.Elements[index] = element;
-        element.Parent = self;
-        element.Recalculate();
-        return result;
+        else {
+            var result = self.Elements[index];
+            if (result == element) {
+                return element;
+            }
+            self.Elements[index] = element;
+            element.Parent = self;
+            element.Recalculate();
+            return result;
+        }
     }
 
     public static void ReplaceChildren(this UIElement self, UIElement from, UIElement to, bool forceAdd) {

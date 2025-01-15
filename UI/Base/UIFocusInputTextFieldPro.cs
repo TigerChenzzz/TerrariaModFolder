@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using Terraria.GameContent;
 using Terraria.GameInput;
 using Terraria.UI;
+using Terraria.UI.Chat;
 
 namespace ModFolder.UI.Base;
 
@@ -16,6 +18,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public event EventHandler? OnTextChange;
     public event EventHandler? OnUnfocus;
     public event EventHandler? OnTab;
+    public float TextXAlign;
     public void SetText(string? text) {
         text ??= "";
         if (CurrentString != text) {
@@ -33,6 +36,10 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
             Focused = false;
             OnUnfocus?.Invoke(this, new());
         }
+        if (++_textBlinkerCount >= 20) {
+            _textBlinkerState = (_textBlinkerState + 1) % 2;
+            _textBlinkerCount = 0;
+        }
         base.Update(gameTime);
     }
     private static bool JustPressed(Keys key) {
@@ -41,49 +48,68 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         }
         return false;
     }
-    public override void DrawSelf(SpriteBatch spriteBatch) {
-        if (Focused) {
-            PlayerInput.WritingText = true;
-            Main.instance.HandleIME();
-            string inputText = Main.GetInputText(CurrentString);
-            if (Main.inputTextEscape) {
-                Main.inputTextEscape = false;
-                Focused = false;
-                OnUnfocus?.Invoke(this, new());
-            }
-            if (!inputText.Equals(CurrentString)) {
-                CurrentString = inputText;
-                OnTextChange?.Invoke(this, new());
-            }
-            else {
-                CurrentString = inputText;
-            }
-            if (JustPressed(Keys.Tab)) {
-                if (UnfocusOnTab) {
-                    Focused = false;
-                    OnUnfocus?.Invoke(this, new());
-                }
-                OnTab?.Invoke(this, new());
-            }
-            // ------------- 主要修改的位置 -------------
-            if (JustPressed(Keys.Enter)) {
-                Focused = false;
-                OnUnfocus?.Invoke(this, new());
-            }
-            // ------------------------------------------
-            if (++_textBlinkerCount >= 20) {
-                _textBlinkerState = (_textBlinkerState + 1) % 2;
-                _textBlinkerCount = 0;
-            }
+    private void HandleInput() {
+        if (!Focused) {
+            return;
         }
+        PlayerInput.WritingText = true;
+        Main.instance.HandleIME();
+        string inputText = Main.GetInputText(CurrentString);
+        if (Main.inputTextEscape) {
+            Main.inputTextEscape = false;
+            Focused = false;
+            OnUnfocus?.Invoke(this, new());
+        }
+        if (!inputText.Equals(CurrentString)) {
+            CurrentString = inputText;
+            OnTextChange?.Invoke(this, new());
+        }
+        else {
+            CurrentString = inputText;
+        }
+        if (JustPressed(Keys.Tab)) {
+            if (UnfocusOnTab) {
+                Focused = false;
+                OnUnfocus?.Invoke(this, new());
+            }
+            OnTab?.Invoke(this, new());
+        }
+        if (JustPressed(Keys.Enter)) {
+            Focused = false;
+            OnUnfocus?.Invoke(this, new());
+        }
+    }
+    public override void DrawSelf(SpriteBatch spriteBatch) {
+        HandleInput();
         string text = CurrentString;
+        var dimensions = _dimensions;
+        var textSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, text, Vector2.One).X;
+        var width = dimensions.Width;
+        float left;
+        if (width <= textSize + 8) {
+            left = width - textSize - 8;
+        }
+        else {
+            left = (width - textSize) * TextXAlign;
+        }
+        Vector2 textPosition = new((int)(dimensions.X + left), (int)dimensions.Y);
+
         if (_textBlinkerState == 1 && Focused) {
             text += "|";
         }
-        CalculatedStyle dimensions = GetDimensions();
         if (CurrentString.Length == 0) {
-            Utils.DrawBorderString(spriteBatch, HintText, new Vector2(dimensions.X, dimensions.Y), Color.Gray);
+            var hintText = HintText;
+            var hintSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, hintText, Vector2.One).X;
+            float hintLeft;
+            if (width <= hintSize) {
+                hintLeft = 0;
+            }
+            else {
+                hintLeft = (width - hintSize) * TextXAlign;
+            }
+            Vector2 hintPosition = new((int)(dimensions.X + hintLeft), (int)dimensions.Y);
+            Utils.DrawBorderString(spriteBatch, hintText, hintPosition, Color.Gray);
         }
-        Utils.DrawBorderString(spriteBatch, text, new Vector2(dimensions.X, dimensions.Y), Color.White);
+        Utils.DrawBorderString(spriteBatch, text, textPosition, Color.White);
     }
 }

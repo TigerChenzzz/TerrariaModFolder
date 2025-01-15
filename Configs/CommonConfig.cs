@@ -1,14 +1,12 @@
 ﻿using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.UIFolderItems;
-using MonoMod.Cil;
 using Newtonsoft.Json;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.Config;
@@ -23,10 +21,17 @@ namespace ModFolder.Configs;
 public class CommonConfig : ModConfig {
     public static CommonConfig Instance { get; set; } = null!;
     public override ConfigScope Mode => ConfigScope.ClientSide;
-
+    #region 左键进入文件夹系统
     [DefaultValue(true)]
     public bool LeftClickToEnterFolderSystem { get; set; }
+    #endregion
+    #region 布局
+    [DrawTicks]
     public LayoutTypes DefaultLayout { get; set; }
+    #endregion
+    #region 默认显示所有模组
+    public bool ShowAllModsByDefault { get; set; }
+    #endregion
     #region 显示模组来源
     [DefaultValue(true)]
     public bool ShowModLocation { get; set; }
@@ -34,6 +39,10 @@ public class CommonConfig : ModConfig {
     #region 更经常的保存
     [DefaultValue(true)]
     public bool SaveWhenChanged { get; set; }
+    #endregion
+    #region 滚动的名字
+    [DefaultValue(true)]
+    public bool ScrollingName { get; set; }
     #endregion
     #region 删除文件夹需要二次确认
     [DefaultValue(true)]

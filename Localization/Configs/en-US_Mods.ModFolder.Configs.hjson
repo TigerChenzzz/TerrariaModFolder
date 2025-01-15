@@ -77,6 +77,16 @@ CommonConfig: {
 		Label: Default Layout
 		Tooltip: ""
 	}
+
+	ScrollingName: {
+		Label: Scrolling Name
+		Tooltip: ""
+	}
+
+	ShowAllModsByDefault: {
+		Label: Show All Mods By Default
+		Tooltip: Or show folder system by default
+	}
 }
 
 SeeChangelogClass: {

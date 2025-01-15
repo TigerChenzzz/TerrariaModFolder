@@ -75,7 +75,17 @@ CommonConfig: {
 
 	DefaultLayout: {
 		Label: 默认布局
-		// Tooltip: ""
+		Tooltip: ""
+	}
+
+	ScrollingName: {
+		Label: 滚动显示名称
+		Tooltip: ""
+	}
+
+	ShowAllModsByDefault: {
+		Label: 默认显示全部模组
+		Tooltip: 否则默认使用文件夹系统
 	}
 }
 

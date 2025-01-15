@@ -157,36 +157,35 @@ public abstract partial class UIFolderItem : UIElement {
     #endregion
     #region 名字与重命名
     protected UINamePanel _name;
-    private int _nameIndex;
     protected void OnInitialize_Name() {
-        _nameIndex = this.AppendAndGetIndex(_name);
+        Append(_name);
         mouseOverTooltips.Add(_name, GetNameMouseOverTooltipFunc());
     }
     protected abstract Func<string> GetNameMouseOverTooltipFunc();
-    private readonly UIElement _namePlaceHolder = GetAPlaceHolderElement();
-    private bool _nameIsPlaceHolder;
-    protected void SetNameToPlaceHolder() {
-        if (!_nameIsPlaceHolder) {
-            _nameIsPlaceHolder = true;
-            this.ReplaceChildrenByIndex(_nameIndex, _namePlaceHolder);
-            ArrangeRecalculateChildren();
+    protected void SetNameToPlaceHolder(bool force) {
+        if (force) {
+            _name.SetToPlaceHolderF();
+        }
+        else {
+            _name.SetToPlaceHolderS();
         }
     }
-    protected void SetNameToNormal() {
-        if (_nameIsPlaceHolder) {
-            _nameIsPlaceHolder = false;
-            this.ReplaceChildrenByIndex(_nameIndex, _name);
-            ArrangeRecalculateChildren();
+    protected void SetNameToNormal(bool force) {
+        if (force) {
+            _name.SetToTextF();
+        }
+        else {
+            _name.SetToTextS();
         }
     }
     protected virtual bool ShouldHideNameWhenNotMouseOver => LayoutType == LayoutTypes.Block;
     private void Draw_UpdateName() {
         if (ShouldHideNameWhenNotMouseOver) {
             if (IsMouseHovering) {
-                SetNameToNormal();
+                SetNameToNormal(false);
             }
             else {
-                SetNameToPlaceHolder();
+                SetNameToPlaceHolder(false);
             }
         }
     }
@@ -240,6 +239,8 @@ public abstract partial class UIFolderItem : UIElement {
     public static Color ConfigNeedReloadBorderColor { get; } = Color.Yellow * 0.6f;
     public static Color ConfigNeedReloadInnerColor { get; } = Color.Yellow * 0.2f;
     #endregion
+    protected virtual Color PanelColor => UICommon.DefaultUIBlue;
+    protected virtual Color PanelHoverColor => UICommon.DefaultUIBlueMouseOver;
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
@@ -248,7 +249,7 @@ public abstract partial class UIFolderItem : UIElement {
         Rectangle dividerRect;
         if (NoStripeLayout) {
             dividerRect = new((int)(dimensions.X + dimensions.Width - 1), (int)dimensions.Y, 4, (int)dimensions.Height); // 右方
-            Utils.DrawInvBG(spriteBatch, dimensions.X, dimensions.Y, dimensions.Width, dimensions.Height, new Color(63, 65, 151, 255) * (0.785f * 0.5f));
+            Utils.DrawInvBG(spriteBatch, dimensions.X, dimensions.Y, dimensions.Width, dimensions.Height, IsMouseHovering ? PanelHoverColor : PanelColor);
         }
         else {
             dividerRect = new((int)dimensions.X, (int)(dimensions.Y + dimensions.Height - 1), (int)dimensions.Width, 4); // 下方
@@ -276,28 +277,33 @@ public abstract partial class UIFolderItem : UIElement {
             if (menu.SelectingItems.Contains(this)) {
                 spriteBatch.DrawDashedOutline(rectangle, Color.White * 0.8f, start: menu.Timer / 3);
             }
-            if (isDraggingTo && menu.RealDraggingTo(this)) {
-                switch (menu.DraggingDirection) {
-                case > 0:
-                    // 在下方画线
-                    spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
-                    break;
-                case < 0:
-                    // 若是返回上一级则仍然在下方画线
-                    if (this is UIFolder f && f.FolderName == "..") {
+            if (isDraggingTo) {
+                if (menu.RealDraggingTo(this)) {
+                    switch (menu.DraggingDirection) {
+                    case > 0:
+                        // 在下方画线
                         spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
                         break;
+                    case < 0:
+                        // 若是返回上一级则仍然在下方画线
+                        if (this is UIFolder f && f.FolderName == "..") {
+                            spriteBatch.Draw(MTextures.White, dividerRect, Color.White);
+                            break;
+                        }
+                        // 在上方 / 左方画线
+                        Rectangle r = StripeLayout ? new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4)
+                            : new((int)(dimensions.X - 3), (int)dimensions.Y, 4, (int)dimensions.Height);
+                        spriteBatch.Draw(MTextures.White, r, Color.White);
+                        break;
+                    default:
+                        // 拖入时高亮
+                        spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
+                        break;
                     }
-                    // 在上方 / 左方画线
-                    Rectangle r = StripeLayout ? new((int)dimensions.X, (int)(dimensions.Y - 3), (int)dimensions.Width, 4)
-                        : new((int)(dimensions.X - 3), (int)dimensions.Y, 4, (int)dimensions.Height);
-                    spriteBatch.Draw(MTextures.White, r, Color.White);
-                    break;
-                default:
-                    // 拖入时高亮
-                    spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
-                    break;
                 }
+            }
+            else if (IsMouseHovering) {
+                spriteBatch.DrawBox(rectangle, Color.White * 0.3f, Color.White * 0.1f);
             }
         }
         else if (IsMouseHovering) {
@@ -313,27 +319,64 @@ public abstract partial class UIFolderItem : UIElement {
         Draw_Tooltip();
     }
     #region DrawParallelogram
-    private readonly static Dictionary<int, Texture2D> _slashTextures = [];
+    private readonly static Dictionary<int, Asset<Texture2D>> _slashTextures = [];
+    /// <summary>
+    /// 从右上到左下的一根斜线
+    /// </summary>
     private static Texture2D GetSlashTexture(int size) {
         if (_slashTextures.TryGetValue(size, out var result)) {
-            return result;
+            return result.Value;
+        }
+        if (size <= 0) {
+            return Textures.Colors.White.Value;
         }
         Color[] colors = new Color[size * size];
         for (int i = 1; i <= size; ++i) {
             colors[(size - 1) * i] = Color.White;
         }
-        result = MTextures.FromColors(size, size, colors);
+        result = AssetTextureFromColors(size, size, colors);
         _slashTextures.Add(size, result);
-        return result;
+        return result.Value;
     }
+
+    protected static void DrawParallelogramLoopByLayout(LayoutTypes layout, SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (layout == LayoutTypes.BlockWithName) {
+            DrawParallelogramLoopVertical(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+        else {
+            DrawParallelogramLoopHorizontal(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+    }
+    protected static void DrawParallelogramByLayout(LayoutTypes layout, SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (layout == LayoutTypes.BlockWithName) {
+            DrawParallelogramVertical(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+        else {
+            DrawParallelogramHorizontal(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+    }
+    protected static void DrawParallelogramLoop(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (rect.Width >= rect.Height) {
+            DrawParallelogramLoopHorizontal(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+        else {
+            DrawParallelogramLoopVertical(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+    }
+    protected static void DrawParallelogram(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (rect.Width >= rect.Height) {
+            DrawParallelogramHorizontal(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+        else {
+            DrawParallelogramVertical(spriteBatch, rect, start, end, borderColor, innerColor);
+        }
+    }
+    #region Horizontal
     /// <summary>
     /// 画一根单斜线, 包含左右边界, 不包含上下边界
     /// </summary>
-    private static void DrawParallelogramLoop_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
-        position %= rect.Width;
-        if (position < 0) {
-            position += rect.Width;
-        }
+    private static void DrawParallelogramLoopHorizontal_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        position = Modular(position, rect.Width);
         if (position >= rect.Height - 1) {
             spriteBatch.Draw(GetSlashTexture(rect.Height - 2), new Rectangle(rect.X + position - rect.Height + 2, rect.Y + 1, rect.Height - 2, rect.Height - 2), innerColor);
             return;
@@ -359,12 +402,9 @@ public abstract partial class UIFolderItem : UIElement {
     /// <summary>
     /// 需要 <paramref name="end"/> > <paramref name="start"/>, 否则不会画任何东西
     /// </summary>
-    protected static void DrawParallelogramLoop(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+    protected static void DrawParallelogramLoopHorizontal(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
         int startOrigin = start;
-        start %= rect.Width;
-        if (start < 0) {
-            start += rect.Width;
-        }
+        start = Modular(start, rect.Width);
         end = end + start - startOrigin;
         if (end <= start) {
             return;
@@ -405,7 +445,7 @@ public abstract partial class UIFolderItem : UIElement {
             #endregion
             end -= rect.Width;
             for (int i = 0; i < end; ++i) {
-                DrawParallelogramLoop_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+                DrawParallelogramLoopHorizontal_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
             }
             end = rect.Width;
         }
@@ -413,12 +453,12 @@ public abstract partial class UIFolderItem : UIElement {
             spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + start, rect.Y, end - start, 1), borderColor);
         }
         for (int i = start; i < end; ++i) {
-            DrawParallelogramLoop_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+            DrawParallelogramLoopHorizontal_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
         }
     }
-    /// <inheritdoc cref="DrawParallelogramLoop_SingleSlash(SpriteBatch, Rectangle, int, Color, Color)"/>
+    /// <inheritdoc cref="DrawParallelogramLoopHorizontal_SingleSlash(SpriteBatch, Rectangle, int, Color, Color)"/>
     /// <param name="position">需要在 [1, rect.Width + rect.Height - 3] 区间</param>
-    private static void DrawParallelogram_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+    private static void DrawParallelogramHorizontal_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
         if (position < 1 || position > rect.Width + rect.Height - 3 || rect.Width <= 0 || rect.Height <= 0) {
             return;
         }
@@ -461,7 +501,7 @@ public abstract partial class UIFolderItem : UIElement {
         }
     }
     /// <inheritdoc cref="DrawParallelogramLoop(SpriteBatch, Rectangle, int, int, Color, Color)"/>
-    protected static void DrawParallelogram(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+    protected static void DrawParallelogramHorizontal(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
         if (end <= start) {
             return;
         }
@@ -489,9 +529,157 @@ public abstract partial class UIFolderItem : UIElement {
         }
         #endregion
         for (int i = start; i < end; ++i) {
-            DrawParallelogram_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+            DrawParallelogramHorizontal_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
         }
     }
+    #endregion
+    #region Vertical
+    /// <summary>
+    /// 画一根单斜线, 包含上下边界, 不包含左右边界
+    /// </summary>
+    private static void DrawParallelogramLoopVertical_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        position = Modular(position, rect.Height);
+        if (position >= rect.Width - 1) {
+            spriteBatch.Draw(GetSlashTexture(rect.Width - 2), new Rectangle(rect.X + 1, rect.Y + position - rect.Width + 2, rect.Width - 2, rect.Width - 2), innerColor);
+            return;
+        }
+        var slash = GetSlashTexture(rect.Width - 2);
+        if (position >= 1) {
+            spriteBatch.Draw(MTextures.White, new Rect(rect.X + position, rect.Y, 1, 1), borderColor);
+            if (position >= 2) {
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, rect.Width - 2, position - 1), new Rectangle(0, rect.Width - 2 - position + 1, rect.Width - 2, position - 1), innerColor);
+            }
+        }
+        if (position <= rect.Width - 3) {
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + position + 1, rect.Bottom - 1, 1, 1), borderColor);
+            if (position <= rect.Width - 4) {
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Bottom + position - rect.Width + 2, rect.Width - 2, rect.Width - position - 3), new Rectangle(0, 0, rect.Width - 2, rect.Width - position - 3), innerColor);
+            }
+        }
+    }
+    protected static void DrawParallelogramLoopVertical(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        int startOrigin = start;
+        start = Modular(start, rect.Height);
+        end = end + start - startOrigin;
+        if (end <= start) {
+            return;
+        }
+        if (end - start >= rect.Height) {
+            spriteBatch.DrawBox(rect, borderColor, innerColor);
+            return;
+        }
+        #region 右边框
+        if (start >= rect.Width - 1) {
+            if (end < rect.Width + rect.Height) {
+                // 两边都在边界内
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Y + start - rect.Width + 1, 1, end - start), borderColor);
+            }
+            else {
+                // 下边超界
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Y + start - rect.Width + 1, 1, rect.Bottom - (rect.Y + start - rect.Width + 1)), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Top, 1, end - rect.Width - rect.Height + 1), borderColor);
+            }
+        }
+        else /*if (end < rect.Width + rect.Height)*/ {
+            // 上边超界
+            if (end < rect.Width) {
+                // 下边不足时
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Bottom + start - rect.Width, 1, end - start), borderColor);
+            }
+            else {
+                // 下边跨界时
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Top, 1, end - rect.Width + 1), borderColor);
+                spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Bottom + start - rect.Width, 1, -start + rect.Width), borderColor);
+            }
+        }
+        #endregion
+        if (end > rect.Height) {
+            #region 左边框
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y + start, 1, rect.Height - start), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y, 1, end - rect.Height), borderColor);
+            #endregion
+            end -= rect.Height;
+            for (int i = 0; i < end; ++i) {
+                DrawParallelogramLoopVertical_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+            }
+            end = rect.Height;
+        }
+        else {
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X, rect.Y + start, 1, end - start), borderColor);
+        }
+        for (int i = start; i < end; ++i) {
+            DrawParallelogramLoopVertical_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+        }
+    }
+    private static void DrawParallelogramVertical_SingleSlash(SpriteBatch spriteBatch, Rectangle rect, int position, Color borderColor, Color innerColor) {
+        if (position < 1 || position > rect.Width + rect.Height - 3 || rect.Width <= 0 || rect.Height <= 0) {
+            return;
+        }
+        var slash = GetSlashTexture(rect.Width - 2);
+        bool reachTop = position <= rect.Width - 2;
+        bool reachBottom = position >= rect.Height;
+        if (reachTop) {
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + position, rect.Y, 1, 1), borderColor);
+        }
+        if (reachBottom) {
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + position - rect.Height + 1, rect.Bottom - 1, 1, 1), borderColor);
+        }
+        if (rect.Width <= 2 || rect.Height <= 2) {
+            return;
+        }
+        if (reachTop) {
+            if (position < 2) {
+                return;
+            }
+            if (reachBottom) {
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, rect.Width - 2, rect.Height - 2), new Rectangle(0, rect.Width - 2 - position + 1, rect.Width - 2, rect.Height - 2), innerColor);
+                return;
+            }
+            spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, rect.Width - 2, position - 1), new Rectangle(0, rect.Width - 2 - position + 1, rect.Width - 2, position - 1), innerColor);
+
+        }
+        else if (!reachBottom) {
+            spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + position - rect.Width + 2, rect.Width - 2, rect.Width - 2), innerColor);
+        }
+        else {
+            position -= rect.Height;
+            if (position <= rect.Width - 4) {
+                spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Bottom + position - rect.Width + 2, rect.Width - 2, rect.Width - position - 3), new Rectangle(0, 0, rect.Width - 2, rect.Width - position - 3), innerColor);
+            }
+        }
+    }
+    protected static void DrawParallelogramVertical(SpriteBatch spriteBatch, Rectangle rect, int start, int end, Color borderColor, Color innerColor) {
+        if (end <= start) {
+            return;
+        }
+        if (start <= 0) {
+            if (end >= rect.Width + rect.Height - 1) {
+                spriteBatch.DrawBox(rect, borderColor, innerColor);
+                return;
+            }
+            start = 0;
+        }
+        else if (end > rect.Width + rect.Height - 1) {
+            end = rect.Width + rect.Height - 1;
+        }
+        #region 右边框
+        int rightStart = Math.Max(start - rect.Width + 1, 0);
+        int rightEnd = end - rect.Width + 1;
+        if (rightEnd > rightStart) {
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Right - 1, rect.Top + rightStart, 1, rightEnd - rightStart), borderColor);
+        }
+        #endregion
+        #region 左边框
+        if (start < rect.Height) {
+            int leftEnd = Math.Min(end, rect.Height);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.Left, rect.Top + start, 1, leftEnd - start), borderColor);
+        }
+        #endregion
+        for (int i = start; i < end; ++i) {
+            DrawParallelogramVertical_SingleSlash(spriteBatch, rect, i, borderColor, innerColor);
+        }
+    }
+    #endregion
     #endregion
     #endregion
     #region 排序与过滤
@@ -550,18 +738,19 @@ public abstract partial class UIFolderItem : UIElement {
     public static float StripeHeight => 32;
     public static float BlockWidth => 90;
     public static float BlockHeight => 90;
-    public static float BlockWithNameHeight => 116;
+    public static float BlockWithNameHeight => 112;
 #else
     public const float StripeHeight = 32;
     public const float BlockWidth = 90;
     public const float BlockHeight = 90;
-    public const float BlockWithNameHeight = 122;
+    public const float BlockWithNameHeight = 112;
 #endif
     protected static LayoutTypes MenuLayoutType => UIModFolderMenu.Instance.LayoutType;
     protected LayoutTypes LayoutType { get; set; }
     protected bool NoStripeLayout => LayoutType != LayoutTypes.Stripe;
-    protected bool BlockLayout => LayoutType == LayoutTypes.Block;
     protected bool StripeLayout => LayoutType == LayoutTypes.Stripe;
+    protected bool BlockLayout => LayoutType == LayoutTypes.Block;
+    protected bool BlockWithNameLayout => LayoutType == LayoutTypes.BlockWithName;
     protected void ForceRecalculateLayout() {
         switch (LayoutType) {
         case LayoutTypes.Stripe:

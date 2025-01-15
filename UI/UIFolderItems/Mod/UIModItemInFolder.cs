@@ -86,17 +86,28 @@ public abstract class UIModItemInFolder : UIFolderItem {
     #region 画下载状态
     private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
         Rectangle rectangle = GetDimensions().ToRectangle();
-        Rectangle progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, (int)((rectangle.Width - 2) * progress.Progress), rectangle.Height - 2);
-        Rectangle progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
+        Rectangle progressRectangle;
+        Rectangle progressRectangleOuter;
+        int size;
+        if (BlockWithNameLayout) {
+            progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, rectangle.Width - 2, (int)((rectangle.Height - 2) * progress.Progress));
+            progressRectangleOuter = new(rectangle.X, rectangle.Y, rectangle.Width, progressRectangle.Height + 2);
+            size = rectangle.Height;
+        }
+        else {
+            progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, (int)((rectangle.Width - 2) * progress.Progress), rectangle.Height - 2);
+            progressRectangleOuter = new(rectangle.X, rectangle.Y, progressRectangle.Width + 2, rectangle.Height);
+            size = rectangle.Width;
+        }
 
         spriteBatch.DrawBox(rectangle, Color.White * 0.5f);
         spriteBatch.Draw(MTextures.White, progressRectangle, Color.White * 0.2f);
 
         int timePassed = UIModFolderMenu.Instance.Timer - progress.CreateTimeRandomized;
         int realTimePassed = UIModFolderMenu.Instance.Timer - progress.CreateTime;
-        int totalWidthToPass = rectangle.Width * 3;
-        int goThroughWidth = rectangle.Width * 2 / 3;
-        int passSpeed = 12;
+        int totalWidthToPass = size * 4;
+        int goThroughWidth = size * 2 / 3;
+        int passSpeed = 12 * size / 400;
         int end = timePassed * passSpeed % totalWidthToPass;
         if (end < 0) {
             end += totalWidthToPass;
@@ -105,9 +116,9 @@ public abstract class UIModItemInFolder : UIFolderItem {
             return;
         }
         int start = end - goThroughWidth;
-
-        DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
-        DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
+        
+        DrawParallelogramByLayout(LayoutType, spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
+        DrawParallelogramByLayout(LayoutType, spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
     }
     #endregion
     #endregion
