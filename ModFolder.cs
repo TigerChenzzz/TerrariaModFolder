@@ -24,8 +24,8 @@ namespace ModFolder;
 // BUG: 启用时可能启用到过期的模组?
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
 // BUG: Generate 之后收藏等信息丢失?
+// BUG: 启用的模组应该也可以删除索引
 
-// TODO: 检查更新按钮 (提示有哪些模组需要更新? 筛选需要更新的模组?) / 更新全部 / 单个模组更新 (代码参见 UIModBrowser)
 // TODO: 筛选模组位置 (steam, 本地, 整合包)
 
 // TODO: "单击以禁用 ? 和 ? 个依赖模组" (hjson 中的 ModsDisableAndDependents, ModsEnableAndDependencies)
@@ -42,11 +42,9 @@ namespace ModFolder;
 // TODO: description 的本地化支持?
 // TODO: 模组的内部名如何查看?
 // TODO: 选中, 选中多个
-//           按住 Ctrl 时右键以选中或取消选中一个, 按住 Shift 右键以选中多个, 按住 Ctrl 和 Shift 以反选多个
 //           选中多个可同时移动或通过按钮复制粘贴删除重新订阅
-// TODO: 名称过长时的处理 (滚动? 省略?)
 // TODO: 弱依赖显示
-// TODO: 尝试强制更新已有模组
+// TODO: 尝试强制更新已有模组 (配置)
 // TODO: 下载缺失依赖
 // TODO: 搜索文件夹
 // TODO: 按特定键双击文件夹以启用 / 禁用所有内含模组 (禁用冗余依赖?)

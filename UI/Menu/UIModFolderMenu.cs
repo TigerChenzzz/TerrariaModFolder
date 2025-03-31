@@ -106,6 +106,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         _folderPath.Reverse();
 
     ReadyToReturn:
+        ClearSelectingItems();
         ArrangeGenerate();
         if (max) {
             folderPathList.ViewPosition = folderPathList.MaxViewPosition;
@@ -117,6 +118,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         list.ViewPosition = 0;
         FolderPath.RemoveAt(FolderPath.Count - 1);
+        ClearSelectingItems();
         ArrangeGenerate();
     }
     public void GotoUpperFolder(FolderNode folder) {
@@ -126,6 +128,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
             list.ViewPosition = 0;
             FolderPath.RemoveRange(i + 1, FolderPath.Count - i - 1);
+            ClearSelectingItems();
             ArrangeGenerate();
             break;
         }
@@ -2106,7 +2109,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         #region 将要拖动的元素转为 Node
-        List<Node> nodes = selecting.OrderBy(i => i.IndexCache).Filter(i => i.Node != null ? NewExistable(i.Node) : default).ToList();
+        List<Node> nodes = selecting.OrderBy(i => i.IndexCache).Filter(i => i.Node != null && i.Node.Parent == CurrentFolderNode ? NewExistable(i.Node) : default).ToList();
         if (nodes.Count == 0) {
             return;
         }
@@ -2153,7 +2156,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 }
                 if (node.Parent != CurrentFolderNode) {
                     ModFolder.Instance.Logger.Error("node's parent should be the current folder at MoveNodeIntoFolder");
-                    // return;
+                    continue;
                 }
                 if (ctrl && node is ModNode mn) {
                     node = new ModNode(mn);
