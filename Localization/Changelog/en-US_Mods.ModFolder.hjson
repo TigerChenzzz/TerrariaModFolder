@@ -1,5 +1,8 @@
 Changelog:
 	'''
+	[c/00ff00:v0.6.0.2]
+	[c/999999:- fix the issue that the ram usage bar may be exceed the bounds when not fully reload]
+
 	[c/00ff00:v0.6.0.1]
 	[c/999999:- fix a possible fatal error when moving items]
 

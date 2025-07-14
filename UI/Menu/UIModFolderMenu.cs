@@ -1102,7 +1102,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             upperPixels += 2;
             ramUsage.Top.Pixels = upperPixels;
             uiPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
-            ramUsage.Show();
+            if (!UIMemoryBar.RecalculateMemoryNeeded) {
+                ramUsage.Show();
+            }
             upperPixels += ramUsage.Height.Pixels; // 20
         }
         else {

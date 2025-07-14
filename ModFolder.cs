@@ -25,6 +25,7 @@ namespace ModFolder;
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
 // BUG: Generate 之后收藏等信息丢失?
 // BUG: 启用的模组应该也可以删除索引
+// BUG: 进入配置后按 Esc 仍然会回到原版模组页
 
 // TODO: 筛选模组位置 (steam, 本地, 整合包)
 
