@@ -545,7 +545,7 @@ public abstract partial class UIFolderItem : UIElement {
         }
         var slash = GetSlashTexture(rect.Width - 2);
         if (position >= 1) {
-            spriteBatch.Draw(MTextures.White, new Rect(rect.X + position, rect.Y, 1, 1), borderColor);
+            spriteBatch.Draw(MTextures.White, new Rectangle(rect.X + position, rect.Y, 1, 1), borderColor);
             if (position >= 2) {
                 spriteBatch.Draw(slash, new Rectangle(rect.X + 1, rect.Y + 1, rect.Width - 2, position - 1), new Rectangle(0, rect.Width - 2 - position + 1, rect.Width - 2, position - 1), innerColor);
             }

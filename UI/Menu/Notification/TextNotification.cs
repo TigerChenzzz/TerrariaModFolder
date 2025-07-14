@@ -95,7 +95,7 @@ public class TextNotification : IMenuNotification {
             return;
         }
         //板板的方框
-        Rectangle panelRect = NewRectangle(bottomRightPosition, panelSizeScaled, Vector2.One);
+        Rectangle panelRect = NewXNARectangleI(bottomRightPosition, panelSizeScaled, Vector2.One);
         //获得鼠标是否在板板上, 如果在则做一些事情
         bool hovering = panelRect.Contains(Main.MouseScreen.ToPoint());
         OnMouseOver(ref hovering);
