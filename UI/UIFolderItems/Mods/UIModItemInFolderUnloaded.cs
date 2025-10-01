@@ -18,7 +18,7 @@ using Terraria.UI;
 using QueryInstance = Terraria.Social.Steam.WorkshopHelper.QueryHelper.AQueryInstance;
 using SteamworksConstances = Steamworks.Constants;
 
-namespace ModFolder.UI.UIFolderItems.Mod;
+namespace ModFolder.UI.UIFolderItems.Mods;
 
 // TODO: 分为正在加载时的版本和加载后仍没有对应 mod 的版本
 public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIModItemInFolder {
@@ -184,7 +184,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
             try {
                 // 这里有一个硬编码的 10s 超时, 希望网差的不会有事
-                await query.WaitForQueryResultAsync(SteamedWraps.GenerateDirectItemsQuery(idArray), token);
+                await query.WaitForQueryResultAsync(SteamedWraps.GenerateDirectItemsQuery(idArray, query.queryParameters), token);
 
                 for (int j = 0; j < query._queryReturnCount; j++) {
                     var itemsIndex = j + i * SteamworksConstances.kNumUGCResultsPerPage;

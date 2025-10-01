@@ -1,9 +1,10 @@
 displayName = Mod Folder System
 author = Tigerzzz
-version = 0.6.0.2
+version = 0.6.0.3
 side = Client
 homepage = https://github.com/TigerChenzzz/TerrariaModFolder
 hideCode = false
 hideResources = false
 includeSource = true
 buildIgnore = *.csproj, *.user, obj\*, bin\*, .vs\*, .git\*, .*, Properties\*, LICENSE, IgnoreAssets\*
+dllReferences = TigerUtilsLib

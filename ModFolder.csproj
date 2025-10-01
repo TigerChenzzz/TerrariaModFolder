@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<!--<Import Project="..\tModLoader.targets" />-->
+	<Import Project="..\tModLoader.targets" />
 	<PropertyGroup>
     <AssemblyName>ModFolder</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +9,12 @@
     <DebugMod>None</DebugMod>
 	</PropertyGroup>
 	<ItemGroup>
-	  <PackageReference Include="Solaestas.tModLoader.ModBuilder" Version="1.6.1" />
+	  <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+    <!--默认Publicizer-->
+    <Publicize Include="tModLoader;FNA" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\TigerUtilsLib\TigerUtilsLib.csproj" />

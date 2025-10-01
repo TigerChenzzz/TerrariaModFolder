@@ -1,6 +1,6 @@
 ﻿using ModFolder.Configs;
 using ModFolder.UI.Menu;
-using ModFolder.UI.UIFolderItems.Mod;
+using ModFolder.UI.UIFolderItems.Mods;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Terraria.ModLoader.Core;

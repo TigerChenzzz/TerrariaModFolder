@@ -6,7 +6,7 @@ using Terraria.ModLoader.UI.DownloadManager;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Steam;
 
-namespace ModFolder.UI.UIFolderItems.Mod;
+namespace ModFolder.UI.UIFolderItems.Mods;
 
 public class DownloadProgressImpl : IDownloadProgress {
     public ModDownloadItem ModDownloadItem { get; private init; }

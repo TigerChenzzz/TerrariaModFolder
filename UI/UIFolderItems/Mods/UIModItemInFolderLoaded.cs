@@ -18,7 +18,7 @@ using Terraria.Social.Base;
 using Terraria.Social.Steam;
 using Terraria.UI;
 
-namespace ModFolder.UI.UIFolderItems.Mod;
+namespace ModFolder.UI.UIFolderItems.Mods;
 
 /// <summary>
 /// 文件夹系统列表中的一个模组 (加载完成)

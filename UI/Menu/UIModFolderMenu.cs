@@ -7,7 +7,7 @@ using ModFolder.UI.Base;
 using ModFolder.UI.Menu.Notification;
 using ModFolder.UI.UIFolderItems;
 using ModFolder.UI.UIFolderItems.Folder;
-using ModFolder.UI.UIFolderItems.Mod;
+using ModFolder.UI.UIFolderItems.Mods;
 using ReLogic.Content;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
