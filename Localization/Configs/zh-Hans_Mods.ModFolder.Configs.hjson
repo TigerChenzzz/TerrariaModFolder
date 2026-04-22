@@ -174,14 +174,38 @@ ShowEnableStatusClass: {
 
 ShowType: {
 	Tooltip: ""
-	Never.Label: 从不显示
-	WhenNotZero.Label: 非零时显示
-	Always.Label: 总是显示
+
+	Never: {
+		Label: 从不显示
+		// Tooltip: ""
+	}
+
+	WhenNotZero: {
+		Label: 非零时显示
+		// Tooltip: ""
+	}
+
+	Always: {
+		Label: 总是显示
+		// Tooltip: ""
+	}
 }
 
 LayoutTypes: {
 	// Tooltip: ""
-	Stripe.Label: 条状
-	Block.Label: 块状
-	BlockWithName.Label: 带有名字的块状
+
+	Stripe: {
+		Label: 条状
+		// Tooltip: ""
+	}
+
+	Block: {
+		Label: 块状
+		// Tooltip: ""
+	}
+
+	BlockWithName: {
+		Label: 带有名字的块状
+		// Tooltip: ""
+	}
 }

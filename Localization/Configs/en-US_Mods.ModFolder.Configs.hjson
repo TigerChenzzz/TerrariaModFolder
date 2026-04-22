@@ -174,14 +174,38 @@ ShowEnableStatusClass: {
 
 ShowType: {
 	Tooltip: ""
-	Never.Label: Never
-	WhenNotZero.Label: When Not Zero
-	Always.Label: Always
+
+	Never: {
+		Label: Never
+		Tooltip: ""
+	}
+
+	WhenNotZero: {
+		Label: When Not Zero
+		Tooltip: ""
+	}
+
+	Always: {
+		Label: Always
+		Tooltip: ""
+	}
 }
 
 LayoutTypes: {
 	Tooltip: ""
-	Stripe.Label: Stripe
-	Block.Label: Block
-	BlockWithName.Label: Block With Name
+
+	Stripe: {
+		Label: Stripe
+		Tooltip: ""
+	}
+
+	Block: {
+		Label: Block
+		Tooltip: ""
+	}
+
+	BlockWithName: {
+		Label: Block With Name
+		Tooltip: ""
+	}
 }

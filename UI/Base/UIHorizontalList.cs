@@ -108,12 +108,12 @@ public class UIHorizontalList : UIElement {
         }
     }
     #endregion
-    public event Action<SpriteBatch>? OnDraw;
+    public event Action<SpriteBatch>? OnDrawWithSpriteBatch;
     public override void DrawSelf(SpriteBatch spriteBatch) {
         if (ViewPosition > MaxViewPosition) {
             ViewPosition = MaxViewPosition;
         }
-        OnDraw?.Invoke(spriteBatch);
+        OnDrawWithSpriteBatch?.Invoke(spriteBatch);
     }
     public override void Update(GameTime gameTime) {
         Update_Scrollbar();

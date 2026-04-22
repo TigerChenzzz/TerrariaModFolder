@@ -723,7 +723,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         folderPathList.SetPadding(1);
         folderPathList.ListPadding = 2;
-        folderPathList.OnDraw += sb => {
+        folderPathList.OnDrawWithSpriteBatch += sb => {
             sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
         };
         folderPathListIndex = uiPanel.AppendAndGetIndex(folderPathList);
@@ -994,7 +994,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     [Conditional("DEBUG")]
     private void OnInitialize_Debug() {
-        var debugTextPanel = new UIElementCustom {
+        var debugTextPanel = new UIElement {
             Width = { Percent = 1f },
             Height = { Percent = 1f },
             IgnoresMouseInteraction = true,
@@ -2111,7 +2111,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         #region 将要拖动的元素转为 Node
-        List<Node> nodes = selecting.OrderBy(i => i.IndexCache).Filter(i => i.Node != null && i.Node.Parent == CurrentFolderNode ? NewExistable(i.Node) : default).ToList();
+        var nodes = selecting.OrderBy(i => i.IndexCache).Filter(i => i.Node != null && i.Node.Parent == CurrentFolderNode ? NewExistable(i.Node) : default).ToList();
         if (nodes.Count == 0) {
             return;
         }
@@ -2570,7 +2570,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         var token = updateCts.Token;
         updateTask = Task.Run(async () => {
             modsToUpdate = DownloadHelper.GetFullDownloadList([.. Interface.modBrowser.SocialBackend.GetInstalledModDownloadItems().Where(item => item.NeedUpdate)]);
-            updateListItems = modsToUpdate.Select(ToUpdateListItem).ToArray();
+            updateListItems = [.. modsToUpdate.Select(ToUpdateListItem)];
             foreach (var item in updateListItems) {
                 item.OnSelected += () => {
                     foreach (var i in updateListItems) {

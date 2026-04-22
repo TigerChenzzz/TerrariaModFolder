@@ -11,7 +11,7 @@ public static class DownloadHelper {
     /// </summary>
     public static ModDownloadItem[] GetFullDownloadList(HashSet<ModDownloadItem> mods) {
         Interface.modBrowser.SocialBackend.GetDependenciesRecursive(mods);
-        return ModDownloadItem.NeedsInstallOrUpdate(mods).ToArray();
+        return [.. ModDownloadItem.NeedsInstallOrUpdate(mods)];
     }
     /// <summary>
     /// 可能会对 <paramref name="mods"/> 作出改动

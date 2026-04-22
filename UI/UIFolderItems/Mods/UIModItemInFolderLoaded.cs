@@ -72,7 +72,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         if (CommonConfig.Instance.ShowModLocation) {
             // 24x24
             var modLocationIconTexture = _mod.location switch {
-                ModLocation.Workshop => TextureAssets.Extra[243],
+                ModLocation.Workshop => TextureAssets.Extra[ExtrasID.WorkshopIcon],
                 ModLocation.Modpack => UICommon.ModLocationModPackIcon,
                 ModLocation.Local => UICommon.ModLocationLocalIcon,
                 _ => throw new NotImplementedException(),
