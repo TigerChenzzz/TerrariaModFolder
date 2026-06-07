@@ -215,6 +215,10 @@ public class CommonConfig : ModConfig {
     #region 完全重载
     public bool TotallyReload { get; set; } // 默认不完全重载 (false)
     #endregion
+    #region 过滤文件夹模式
+    [DefaultValue(FolderFilterModes.FilterNameAndContent)]
+    public FolderFilterModes FolderFilterMode { get; set; } = FolderFilterModes.FilterNameAndContent;
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]

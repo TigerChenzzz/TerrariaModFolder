@@ -87,6 +87,11 @@ CommonConfig: {
 		Label: Show All Mods By Default
 		Tooltip: Or show folder system by default
 	}
+
+	FolderFilterMode: {
+		Label: Folder Filter Mode
+		Tooltip: How folders react to the filter
+	}
 }
 
 SeeChangelogClass: {
@@ -207,5 +212,29 @@ LayoutTypes: {
 	BlockWithName: {
 		Label: Block With Name
 		Tooltip: ""
+	}
+}
+
+FolderFilterModes: {
+	Tooltip: ""
+
+	DoNotFilter: {
+		Label: Do Not Filter
+		Tooltip: Ignore the filter and always show
+	}
+
+	FilterName: {
+		Label: Filter Name
+		Tooltip: Hide when the folder's name doesn't pass the filter
+	}
+
+	FilterContent: {
+		Label: Filter Content
+		Tooltip: Hide when the folder doesn't contains any content that pass the filter
+	}
+
+	FilterNameAndContent: {
+		Label: Filter Name And Content
+		Tooltip: Hide when both two conditions ahead are met
 	}
 }

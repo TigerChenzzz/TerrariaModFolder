@@ -84,6 +84,7 @@ namespace ModFolder;
 // TODO: 下载缺失依赖
 //           详细展示缺失哪些依赖, 哪些现存模组依赖于它
 //           自选下载哪些依赖
+// TODO: 剪切板容量限制?是否使用文件保存?
 
 
 public class ModFolder : Mod {

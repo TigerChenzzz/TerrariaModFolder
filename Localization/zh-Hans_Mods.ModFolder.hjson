@@ -175,7 +175,8 @@ UI: {
 		[c/999999:现不可用]
 		[c/999999:{0}]
 		'''
-	FilteredByLoaded: "{0}个模组 因“是否已加载”而隐藏"
+	FilteredByLoaded: "{0}个模组因“是否已加载”而隐藏"
+	FilteredByContent: "{0}个文件夹因未含有过滤内容而隐藏"
 
 	PopupInfos: {
 		CantSubscribeForMissingPublishId: 无法订阅! 未存有模组信息!

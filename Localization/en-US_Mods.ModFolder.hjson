@@ -176,6 +176,7 @@ UI: {
 		[c/999999:{0}]
 		'''
 	FilteredByLoaded: "{0} mods filtered by loaded filter."
+	FilteredByContent: "{0} folders filtered by content filter."
 
 	PopupInfos: {
 		CantSubscribeForMissingPublishId: Can't subscribe! No mod info stored!

@@ -116,27 +116,33 @@ public class UIFolder : UIFolderItem {
     private static PassFilterResults PassFilters(FolderDataSystem.FolderNode? node) {
         if (node == null)
             return PassFilterResults.NotFiltered;
+        var mode = CommonConfig.Instance.FolderFilterMode;
+        if (mode == FolderFilterModes.DoNotFilter)
+            return PassFilterResults.NotFiltered;
+        bool filterName = mode is FolderFilterModes.FilterName or FolderFilterModes.FilterNameAndContent;
+        bool filterContent = mode is FolderFilterModes.FilterContent or FolderFilterModes.FilterNameAndContent;
         PassFilterResults result = PassFilterResults.NotFiltered;
-        bool reallyPassAnyFilterItself = false;
         #region 过滤名字
-        if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Name) {
-            var filter = UIModFolderMenu.Instance.Filter;
-            if (filter.Length == 0) {
-                goto NameFilterPassed;
-            }
-            var folderNameClean = Utils.CleanChatTags(node.FolderName);
-            if (folderNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
-                reallyPassAnyFilterItself = true;
-                goto NameFilterPassed;
-            }
-            result = PassFilterResults.FilteredBySearch;
+        if (!filterName) {
+            goto NameFilterPassed;
         }
-    NameFilterPassed:
-        #endregion
-        if (result == PassFilterResults.NotFiltered && reallyPassAnyFilterItself) {
+        if (UIModFolderMenu.Instance.searchFilterMode != SearchFilter.Name) {
+            goto NameFilterPassed;
+        }
+        var filter = UIModFolderMenu.Instance.Filter;
+        if (filter.Length == 0) {
+            goto NameFilterPassed;
+        }
+        var folderNameClean = Utils.CleanChatTags(node.FolderName);
+        if (folderNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
             return PassFilterResults.NotFiltered;
         }
+        result = PassFilterResults.FilteredBySearch;
+    NameFilterPassed:
+        #endregion
         #region 遍历子节点
+        if (!filterContent)
+            return result;
         foreach (var child in node.Children) {
             if (child is FolderDataSystem.FolderNode folderChild) {
                 var childResult = PassFilters(folderChild);
@@ -151,7 +157,7 @@ public class UIFolder : UIFolderItem {
                 result |= childResult;
             }
         }
-        return result;
+        return result | PassFilterResults.FilteredByContent;
         #endregion
     }
     private static PassFilterResults PassFilters(FolderDataSystem.ModNode? node) {

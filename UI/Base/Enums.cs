@@ -41,3 +41,10 @@ public enum LayoutTypes {
     Block,
     BlockWithName,
 }
+
+public enum FolderFilterModes {
+    DoNotFilter,
+    FilterName,
+    FilterContent,
+    FilterNameAndContent,
+}

@@ -87,6 +87,11 @@ CommonConfig: {
 		Label: 默认显示全部模组
 		Tooltip: 否则默认使用文件夹系统
 	}
+
+	FolderFilterMode: {
+		Label: 文件夹过滤方式
+		Tooltip: 文件夹如何处理过滤
+	}
 }
 
 SeeChangelogClass: {
@@ -207,5 +212,29 @@ LayoutTypes: {
 	BlockWithName: {
 		Label: 带有名字的块状
 		// Tooltip: ""
+	}
+}
+
+FolderFilterModes: {
+	// Tooltip: ""
+
+	DoNotFilter: {
+		Label: 不过滤
+		Tooltip: 忽略过滤保持显示
+	}
+
+	FilterName: {
+		Label: 过滤名字
+		Tooltip: 在文件夹名字不符合过滤时隐藏
+	}
+
+	FilterContent: {
+		Label: 过滤内容
+		Tooltip: 在文件夹不含有可通过过滤的内容时隐藏
+	}
+
+	FilterNameAndContent: {
+		Label: 过滤名字和内容
+		Tooltip: 在前两个条件都满足时隐藏
 	}
 }

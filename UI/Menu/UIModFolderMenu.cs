@@ -11,7 +11,6 @@ using ModFolder.UI.UIFolderItems.Mods;
 using ReLogic.Content;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1392,6 +1391,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredByModSide", filterResults.FilteredByModSide));
             if (filterResults.FilteredBySearch > 0)
                 filterMessages.Add(Language.GetTextValue("tModLoader.ModsXModsFilteredBySearch", filterResults.FilteredBySearch));
+            if (filterResults.FilteredByContent > 0)
+                filterMessages.Add(ModFolder.Instance.GetLocalizedValue("UI.FilteredByContent").FormatWith(filterResults.FilteredByContent));
             string filterMessage = string.Join("\n", filterMessages);
             var text = new UIText(filterMessage);
             text.Width.Set(0, 1f);
@@ -2194,7 +2195,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         IsRightDragging = false;
-        // TODO
+        // TODO?
     }
     private void MouseMove_SelectAndDrag() {
         MoveForDraggingDetected();

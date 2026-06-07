@@ -2,9 +2,7 @@
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
 using ModFolder.UI.UIFolderItems.Folder;
-using ModFolder.UI.UIFolderItems.Mods;
 using ReLogic.Content;
-using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -691,23 +689,15 @@ public abstract partial class UIFolderItem : UIElement {
         FilteredByModSide = 2,
         FilteredByEnabled = 4,
         FilteredByLoaded = 8,
+        FilteredByContent = 16,
     }
     public virtual PassFilterResults PassFiltersInner() => PassFilterResults.NotFiltered;
+    /// <summary>
+    /// 在经过过滤后是否可以显示出来
+    /// </summary>
     public bool PassFilters(UIFolderItemFilterResults filterResults) {
         var result = PassFiltersInner();
-        if (result.HasFlag(PassFilterResults.FilteredBySearch)) {
-            filterResults.FilteredBySearch += 1;
-        }
-        if (result.HasFlag(PassFilterResults.FilteredByModSide)) {
-            filterResults.FilteredByModSide += 1;
-        }
-        if (result.HasFlag(PassFilterResults.FilteredByEnabled)) {
-            filterResults.FilteredByEnabled += 1;
-        }
-        if (result.HasFlag(PassFilterResults.FilteredByLoaded)) {
-            filterResults.FilteredByLoaded += 1;
-        }
-        return result == PassFilterResults.NotFiltered;
+        return !filterResults.AddFiltered(result);
     }
     public override int CompareTo(object obj) {
         if (obj is not UIFolderItem i)
