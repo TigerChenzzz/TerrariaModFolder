@@ -119,6 +119,9 @@ public class UIFolder : UIFolderItem {
         var mode = CommonConfig.Instance.FolderFilterMode;
         if (mode == FolderFilterModes.DoNotFilter)
             return PassFilterResults.NotFiltered;
+        var menu = UIModFolderMenu.Instance;
+        if (menu.NotAnyFilter())
+            return PassFilterResults.NotFiltered;
         bool filterName = mode is FolderFilterModes.FilterName or FolderFilterModes.FilterNameAndContent;
         bool filterContent = mode is FolderFilterModes.FilterContent or FolderFilterModes.FilterNameAndContent;
         PassFilterResults result = PassFilterResults.NotFiltered;
@@ -126,10 +129,10 @@ public class UIFolder : UIFolderItem {
         if (!filterName) {
             goto NameFilterPassed;
         }
-        if (UIModFolderMenu.Instance.searchFilterMode != SearchFilter.Name) {
+        if (menu.searchFilterMode != SearchFilter.Name) {
             goto NameFilterPassed;
         }
-        var filter = UIModFolderMenu.Instance.Filter;
+        var filter = menu.Filter;
         if (filter.Length == 0) {
             goto NameFilterPassed;
         }
@@ -360,9 +363,15 @@ public class UIFolder : UIFolderItem {
             return tooltip;
         }
         if (ShowEnableStatusWhenNoTooltipCondition()) {
-            return ModFolder.Instance.GetLocalization("UI.FolderEnableStatus").Value.FormatWith(FolderNode.ChildrenCount, FolderNode.EnabledCount, FolderNode.ToEnableCount, FolderNode.ToDisableCount);
+            return GetEnableStatusTooltip(FolderNode);
         }
         return null;
+    }
+    /// <summary>
+    /// 需要先检查是否可以显示以及确保此 FolderNode 已经过计算
+    /// </summary>
+    public static string GetEnableStatusTooltip(FolderDataSystem.FolderNode folder) {
+        return ModFolder.Instance.GetLocalizedValue("UI.FolderEnableStatus").FormatWith(folder.ChildrenCount, folder.EnabledCount, folder.ToEnableCount, folder.ToDisableCount);
     }
     [MemberNotNullWhen(true, nameof(FolderNode))]
     private bool ShowEnableStatusWhenNoTooltipCondition() {
@@ -383,7 +392,6 @@ public class UIFolder : UIFolderItem {
         DrawEnableStatus(spriteBatch);
         UpdateEnableStatusText();
     }
-    private int RandomStartOffset => FolderNode?.EnableStatusRandomOffset ?? 0;
     private void UpdateEnableStatusText() {
         var config = CommonConfig.Instance.ShowEnableStatus;
         if (FolderNode == null) {
@@ -435,42 +443,42 @@ public class UIFolder : UIFolderItem {
         _enableStatusText.SetText(sb.ToString());
         sb.Clear();
     }
-    private void DrawEnableStatus(SpriteBatch spriteBatch) {
+    private void DrawEnableStatus(SpriteBatch spriteBatch) => DrawEnableStatus(spriteBatch, _dimensions.ToRectangle(), FolderNode);
+    public static void DrawEnableStatus(SpriteBatch spriteBatch, Rectangle rect, FolderDataSystem.FolderNode? folder) {
         if (!CommonConfig.Instance.ShowEnableStatusBackground) {
             return;
         }
-        if (FolderNode == null) {
+        if (folder == null) {
             return;
         }
-        if (FolderNode.ChildrenCount == 0) {
+        if (folder.ChildrenCount == 0) {
             return;
         }
-        var rect = _dimensions.ToRectangle();
-        int size = LayoutType == LayoutTypes.BlockWithName ? rect.Height : rect.Width;
+        int size = Math.Max(rect.Height, rect.Width);
         // if (width < height || height < 2) {
         //     return;
         // }
-        int countNow = FolderNode.EnabledCount - FolderNode.ToDisableCount;
-        int enableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount));
-        countNow += FolderNode.ToEnableCount;
-        int toEnableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount));
-        countNow += FolderNode.ToDisableCount;
-        int toDisableWidth = (int)(size * (countNow / (float)FolderNode.ChildrenCount)) - toEnableWidth;
+        int countNow = folder.EnabledCount - folder.ToDisableCount;
+        int enableWidth = (int)(size * (countNow / (float)folder.ChildrenCount));
+        countNow += folder.ToEnableCount;
+        int toEnableWidth = (int)(size * (countNow / (float)folder.ChildrenCount));
+        countNow += folder.ToDisableCount;
+        int toDisableWidth = (int)(size * (countNow / (float)folder.ChildrenCount)) - toEnableWidth;
         toEnableWidth -= enableWidth;
         int minWidth = 5;
-        if (FolderNode.EnabledCount - FolderNode.ToDisableCount > 0 && enableWidth < minWidth) {
+        if (folder.EnabledCount - folder.ToDisableCount > 0 && enableWidth < minWidth) {
             enableWidth = minWidth;
         }
-        if (FolderNode.ToEnableCount > 0 && toEnableWidth < minWidth) {
+        if (folder.ToEnableCount > 0 && toEnableWidth < minWidth) {
             toEnableWidth = minWidth;
         }
-        if (FolderNode.ToDisableCount > 0 && toDisableWidth < minWidth) {
+        if (folder.ToDisableCount > 0 && toDisableWidth < minWidth) {
             toDisableWidth = minWidth;
         }
-        int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + RandomStartOffset;
-        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
-        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
-        DrawParallelogramLoopByLayout(LayoutType, spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
+        int start = UIModFolderMenu.Instance.Timer - UIModFolderMenu.Instance.Timer / 3 + folder.EnableStatusRandomOffset;
+        DrawParallelogramLoop(spriteBatch, rect, start, start + enableWidth, EnabledBorderColor, EnabledInnerColor);
+        DrawParallelogramLoop(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
+        DrawParallelogramLoop(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
     }
     #endregion
     #region Layout

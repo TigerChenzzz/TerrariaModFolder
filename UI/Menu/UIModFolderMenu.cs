@@ -596,7 +596,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => Filter = string.Empty;
     #endregion
 
-    private bool CanCustomizeOrder() {
+    private bool CanCustomizeOrder() => NotAnyFilter();
+    public bool NotAnyFilter() {
         var end = categoryButtonStartIndex + categoryButtons.Length;
         for (int i = categoryButtonStartIndex; i < end; ++i) {
             if (_topButtonData[i] != 0) {
@@ -1278,7 +1279,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Enabling mods: " + string.Join(", ", enabled));
-        CurrentFolderNode.TryRefreshCountsInThisFolder();
+        TryRefreshFolderData();
         ModOrganizer.SaveEnabledMods();
     }
     private void DisableMods(bool disableRedundantDependencies, bool ignoreFavorite) {
@@ -1300,7 +1301,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
-        CurrentFolderNode.TryRefreshCountsInThisFolder();
+        TryRefreshFolderData();
         ModOrganizer.SaveEnabledMods();
     }
     private void ResetMods() {
@@ -1329,7 +1330,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (EnabledFilterMode != FolderEnabledFilters.All) {
                 ArrangeGenerate();
             }
-            CurrentFolderNode.TryRefreshCountsInThisFolder();
+            TryRefreshFolderData();
             ModOrganizer.SaveEnabledMods();
         }
     }
@@ -1355,7 +1356,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         // Logging.tML.Info
         ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
-        CurrentFolderNode.TryRefreshCountsInThisFolder();
+        TryRefreshFolderData();
         ModOrganizer.SaveEnabledMods();
     }
     #endregion
@@ -1427,6 +1428,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         VisibleItems = visibleItems;
         Recalculate();
         UnstashSelectingItems();
+        TryRefreshFolderData();
         if (_listViewPositionToSetAfterGenerated != null) {
             list.ViewPosition = _listViewPositionToSetAfterGenerated.Value;
             _listViewPositionToSetAfterGenerated = null;
@@ -1504,11 +1506,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 var uf = new UIFolder(f);
                 if (f == nodeToRename) {
                     uf.DirectlyRename();
-                    uf.FolderNode?.TryRefreshCounts();
                     yield return uf;
                 }
                 else if (uf.PassFilters(filterResults)) {
-                    uf.FolderNode?.TryRefreshCounts();
                     yield return uf;
                 }
             }
@@ -1580,7 +1580,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void ShowTooltips() {
         foreach (var (ui, f) in mouseOverTooltips) {
             if (ui.IsMouseHovering) {
-                UICommon.TooltipMouseText(f());
+                var tooltip = f();
+                if (string.IsNullOrEmpty(tooltip)) {
+                    continue;
+                }
+                UICommon.TooltipMouseText(tooltip);
                 break;
             }
         }
@@ -2716,6 +2720,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
     public static void PopupInfoByKey(string keyFromMod, params object?[] args) {
         PopupInfo(ModFolder.Instance.GetLocalizedValue(keyFromMod).FormatWith(args));
+    }
+    #endregion
+    #region RefreshFolderData
+    public void TryRefreshFolderData() {
+        if (ShowAllMods)
+            return;
+        var status = CommonConfig.Instance.ShowEnableStatus;
+        CurrentFolderNode.RefreshCounts(status.ShowBackground || status.ShowAny, status.ShowBackgroundForPath);
     }
     #endregion
 }

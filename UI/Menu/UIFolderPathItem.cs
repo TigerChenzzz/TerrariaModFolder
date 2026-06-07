@@ -1,4 +1,6 @@
-﻿using ModFolder.Systems;
+﻿using ModFolder.Configs;
+using ModFolder.Systems;
+using ModFolder.UI.UIFolderItems.Folder;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
@@ -20,6 +22,7 @@ public class UIFolderPathItem : UIElement {
         PaddingLeft = PaddingRight = 4;
         Height.Percent = 1;
         text.VAlign = 0.5f;
+        text.IgnoresMouseInteraction = true;
         Append(text);
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
@@ -27,6 +30,13 @@ public class UIFolderPathItem : UIElement {
         var draggingTo = UIModFolderMenu.Instance.DraggingTo;
         if (draggingTo == null && IsMouseHovering || draggingTo == this) {
             spriteBatch.DrawBox(_dimensions.ToRectangle(), Color.White * 0.8f, Color.White * 0.2f);
+        }
+        var showEnableStatus = CommonConfig.Instance.ShowEnableStatus;
+        if (showEnableStatus.ShowBackgroundForPath) {
+            UIFolder.DrawEnableStatus(spriteBatch, _dimensions.ToRectangle(), FolderNode);
+            if (draggingTo == null && IsMouseHovering && showEnableStatus.ShowAny) {
+                UICommon.TooltipMouseText(UIFolder.GetEnableStatusTooltip(FolderNode));
+            }
         }
         //if (folder != Instance.CurrentFolderNode)
         spriteBatch.Draw(UICommon.DividerTexture.Value, new Rectangle(rectangle.X + rectangle.Width + 2, rectangle.Y, rectangle.Height, 2), null, Color.White,

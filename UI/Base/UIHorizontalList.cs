@@ -78,12 +78,12 @@ public class UIHorizontalList : UIElement {
     public float ViewPosition {
         get => -_innerList.Left.Pixels;
         set {
-            var viewPosition = Math.Max(Math.Min(value, MaxViewPosition), 0);
+            var viewPosition = value.Clamp(0, MaxViewPosition); // Math.Max(Math.Min(value, MaxViewPosition), 0);
             _innerList.Left.Pixels = -viewPosition;
             _innerList.Recalculate();
         }
     }
-    public float MaxViewPosition => Math.Max(0, InnerListWidth - GetDimensions().Width);
+    public float MaxViewPosition => Math.Max(0, InnerListWidth - GetInnerDimensions().Width);
     public override void ScrollWheel(UIScrollWheelEvent evt) {
         base.ScrollWheel(evt);
         scrollbarAim -= evt.ScrollWheelValue;

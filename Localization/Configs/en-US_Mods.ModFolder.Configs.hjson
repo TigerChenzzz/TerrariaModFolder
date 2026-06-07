@@ -126,6 +126,11 @@ ShowEnableStatusClass: {
 		Tooltip: ""
 	}
 
+	ShowBackgroundForPath: {
+		Label: Show Background For Path
+		Tooltip: ""
+	}
+
 	ShowAllAlways: {
 		Label: Show All Always
 		Tooltip: ""

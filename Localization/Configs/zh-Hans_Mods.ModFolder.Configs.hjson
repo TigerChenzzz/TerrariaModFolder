@@ -126,6 +126,11 @@ ShowEnableStatusClass: {
 		Tooltip: ""
 	}
 
+	ShowBackgroundForPath: {
+		Label: 在文件路径显示背景
+		Tooltip: ""
+	}
+
 	ShowAllAlways: {
 		Label: 总是显示全部
 		Tooltip: ""

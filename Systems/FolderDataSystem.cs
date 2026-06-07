@@ -166,33 +166,13 @@ public static class FolderDataSystem {
             EnabledCount = 0;
             ToEnableCount = 0;
             ToDisableCount = 0;
-            foreach (var mod in ModNodesInTree) {
+            foreach (var mod in UnduplicatedModNamesInTree) {
                 RefreshCountsBy(mod);
             }
         }
         public void TryRefreshCounts() {
             if (NeedToRefreshCounts) {
                 RefreshCounts();
-            }
-        }
-        public void RefreshCountsInTree() {
-            ChildrenCount = 0;
-            EnabledCount = 0;
-            ToEnableCount = 0;
-            ToDisableCount = 0;
-            foreach (var node in Children) {
-                if (node is FolderNode folder) {
-                    folder.RefreshCountsInTree();
-                    RefreshCountsBy(folder);
-                }
-                else if (node is ModNode mod) {
-                    RefreshCountsBy(mod);
-                }
-            }
-        }
-        public void TryRefreshCountsInTree() {
-            if (NeedToRefreshCounts) {
-                RefreshCountsInTree();
             }
         }
         public void RefreshCountsInThisFolder() {
@@ -207,21 +187,93 @@ public static class FolderDataSystem {
                 RefreshCountsInThisFolder();
             }
         }
-        public void RefreshCountsBy(FolderNode folder) {
-            ChildrenCount += folder.ChildrenCount;
-            EnabledCount += folder.EnabledCount;
-            ToEnableCount += folder.ToEnableCount;
-            ToDisableCount += folder.ToDisableCount;
+        /// <summary>
+        /// 按照参数刷新内容
+        /// </summary>
+        /// <param name="inThisFolder">刷新此文件夹内的文件夹, 不递归</param>
+        /// <param name="inThePath">刷新此文件夹以及它的所有祖先</param>
+        public void RefreshCounts(bool inThisFolder, bool inThePath) {
+            // 不刷新路径上的文件夹, 仅刷新此文件夹内的文件夹时...
+            if (!inThePath) {
+                if (inThisFolder) {
+                    RefreshCountsInThisFolder();
+                }
+                return;
+            }
+            // 需要刷新路径上的文件夹时...
+            _pathModNamesCache.Clear();
+            #region 刷新自己的内容, 同时将自己的内容放入路径模组缓存
+            ChildrenCount = 0;
+            EnabledCount = 0;
+            ToEnableCount = 0;
+            ToDisableCount = 0;
+            if (!inThisFolder) {
+                foreach (var mod in ModNodesInTree) {
+                    var modName = mod.ModName;
+                    if (_pathModNamesCache.Add(modName)) {
+                        RefreshCountsBy(modName);
+                    }
+                }
+            }
+            else {
+                foreach (var node in Children) {
+                    if (node is ModNode m && _pathModNamesCache.Add(m.ModName)) {
+                        RefreshCountsBy(m.ModName);
+                    }
+                    else if (node is FolderNode f) {
+                        f.ChildrenCount = 0;
+                        f.EnabledCount = 0;
+                        f.ToEnableCount = 0;
+                        f.ToDisableCount = 0;
+                        foreach (var modName in f.UnduplicatedModNamesInTree) {
+                            f.RefreshCountsBy(modName);
+                            if (_pathModNamesCache.Add(modName)) {
+                                RefreshCountsBy(modName);
+                            }
+                        }
+                    }
+                }
+            }
+            #endregion
+            // 向上遍历自己的祖先, 刷新它们的内容
+            for (FolderNode? folder = Parent, previous = this; folder != null; (folder, previous) = (folder.Parent, folder)) {
+                // 归零
+                folder.ChildrenCount = 0;
+                folder.EnabledCount = 0;
+                folder.ToEnableCount = 0;
+                folder.ToDisableCount = 0;
+                // 将下级缓存直接放入
+                foreach (var mod in _pathModNamesCache) {
+                    folder.RefreshCountsBy(mod);
+                }
+                // 将剩下的内容放入
+                foreach (var node in folder.Children) {
+                    if (node is ModNode m && _pathModNamesCache.Add(m.ModName)) {
+                        folder.RefreshCountsBy(m.ModName);
+                    }
+                    else if (node is FolderNode f) {
+                        if (f == previous)
+                            continue;
+                        foreach (var mod in f.ModNodesInTree) {
+                            string modName = mod.ModName;
+                            if (_pathModNamesCache.Add(modName)) {
+                                folder.RefreshCountsBy(modName);
+                            }
+                        }
+                    }
+                }
+            }
         }
-        private void RefreshCountsBy(ModNode mod) {
+        private void RefreshCountsBy(ModNode modNode) => RefreshCountsBy(modNode.ModName);
+        private void RefreshCountsBy(string modName) {
             ChildrenCount += 1;
-            if (ModLoader.modsByName.ContainsKey(mod.ModName)) {
+            if (ModLoader.modsByName.ContainsKey(modName)) {
                 EnabledCount += 1;
-                if (!ModLoader.EnabledMods.Contains(mod.ModName)) {
+                if (!ModLoader.EnabledMods.Contains(modName)) {
                     ToDisableCount += 1;
                 }
             }
-            else if (ModLoader.EnabledMods.Contains(mod.ModName)) {
+            else if (ModLoader.EnabledMods.Contains(modName)) {
                 ToEnableCount += 1;
             }
         }
@@ -241,6 +293,21 @@ public static class FolderDataSystem {
                 }
             }
         }
+
+        public IEnumerable<string> UnduplicatedModNamesInTree {
+            get {
+                _unduplicatedModNamesCache.Clear();
+                foreach (var modeNode in ModNodesInTree) {
+                    var modName = modeNode.ModName;
+                    if (_unduplicatedModNamesCache.Add(modName)) {
+                        yield return modName;
+                    }
+                }
+                _unduplicatedModNamesCache.Clear();
+            }
+        }
+        private static readonly HashSet<string> _unduplicatedModNamesCache = [];
+        private static readonly HashSet<string> _pathModNamesCache = [];
         #region 树操作
         public void AddChild(Node child) => child.Parent = this;
         public void SetChildAtTheTop(Node child) {
@@ -594,9 +661,7 @@ public static class FolderDataSystem {
     private static void LoadFolderNodeFromChildren(FolderNode folder, JToken children) {
         foreach (var child in children.Children<JObject>()) {
             var childNode = LoadNode(child);
-            if (childNode != null) {
-                childNode.ParentF = folder;
-            }
+            childNode?.ParentF = folder;
         }
     }
     #endregion

@@ -328,14 +328,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 双击左键 启用 / 禁用
         OnLeftDoubleClick += (e, el) => {
             Main.MenuUI.LeftMouse.LastDown = null;
-            if (_tMLUpdateRequiredInStripeLayout != null)
-                return;
-            // TODO: 双击某些位置时不能切换
-            ToggleEnabled();
-            var menu = UIModFolderMenu.Instance;
-            menu.ClearSelectingItems();
-            menu.ClearWaitingForSelect();
-            menu.CurrentFolderNode.TryRefreshCountsInThisFolder();
+            TryToggleEnabled();
         };
         #endregion
         #region alt 左键收藏
@@ -762,7 +755,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         var menu = UIModFolderMenu.Instance;
         menu.ClearSelectingItems();
         menu.ClearWaitingForSelect();
-        menu.CurrentFolderNode.TryRefreshCountsInThisFolder();
+        menu.TryRefreshFolderData();
         return true;
     }
     private void ToggleEnabled() {

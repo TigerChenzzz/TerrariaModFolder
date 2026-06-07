@@ -142,6 +142,8 @@ public class CommonConfig : ModConfig {
         [Header("Background")]
         [DefaultValue(true)]
         public bool ShowBackground { get; set; } = true;
+        [DefaultValue(true)]
+        public bool ShowBackgroundForPath { get; set; } = true;
         [Header("Text")]
         [ShowDespiteJsonIgnore, JsonIgnore]
         public bool ShowAllAlways {
