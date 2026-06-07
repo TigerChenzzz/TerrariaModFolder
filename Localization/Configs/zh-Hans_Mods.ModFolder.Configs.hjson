@@ -92,6 +92,16 @@ CommonConfig: {
 		Label: 文件夹过滤方式
 		Tooltip: 文件夹如何处理过滤
 	}
+
+	DefaultFolderModSortMode: {
+		Label: 默认文件夹与模组间的排序方式
+		// Tooltip: ""
+	}
+
+	DefaultSortMode: {
+		Label: 默认排序方式
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -236,5 +246,53 @@ FolderFilterModes: {
 	FilterNameAndContent: {
 		Label: 过滤名字和内容
 		Tooltip: 在前两个条件都满足时隐藏
+	}
+}
+
+FolderModSortModes: {
+	// Tooltip: ""
+
+	Custom: {
+		Label: 自定义
+		Tooltip: 自定义文件夹与模组的顺序
+	}
+
+	FolderFirst: {
+		Label: 文件夹优先
+		Tooltip: 文件夹优先
+	}
+
+	ModFirst: {
+		Label: 模组优先
+		Tooltip: 模组优先
+	}
+}
+
+FolderMenuSortModes: {
+	// Tooltip: ""
+
+	Custom: {
+		Label: 自定义
+		Tooltip: 自定义排序
+	}
+
+	RecentlyUpdated: {
+		Label: 最近更新
+		// Tooltip: "{$tModLoader.ModsSortRecently}"
+	}
+
+	OldlyUpdated: {
+		Label: 最旧更新
+		Tooltip: 按最旧更改排序
+	}
+
+	DisplayNameAtoZ: {
+		Label: 字典序
+		// Tooltip: "{$tModLoader.ModsSortNamesAlph}"
+	}
+
+	DisplayNameZtoA: {
+		Label: 逆字典序
+		// Tooltip: "{$tModLoader.ModsSortNamesReverseAlph}"
 	}
 }

@@ -32,6 +32,10 @@ public class CommonConfig : ModConfig {
     #region 默认显示所有模组
     public bool ShowAllModsByDefault { get; set; }
     #endregion
+    #region 默认排序方式
+    public FolderModSortModes DefaultFolderModSortMode { get; set; }
+    public FolderMenuSortModes DefaultSortMode { get; set; }
+    #endregion
     #region 显示模组来源
     [DefaultValue(true)]
     public bool ShowModLocation { get; set; }

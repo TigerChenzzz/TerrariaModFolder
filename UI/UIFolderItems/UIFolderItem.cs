@@ -704,17 +704,17 @@ public abstract partial class UIFolderItem : UIElement {
             return base.CompareTo(obj);
         if (FolderItemType != i.FolderItemType) {
             var fm = UIModFolderMenu.Instance.FmSortMode;
-            if (fm != FolderModSortMode.Custom) {
+            if (fm != FolderModSortModes.Custom) {
                 // 如果文件夹优先但不是文件夹或模组优先但是文件夹, 则排在后面, 否则排在前面
-                return fm == FolderModSortMode.FolderFirst ^ FolderItemType == FolderItemTypeEnum.Folder ? 1 : -1;
+                return fm == FolderModSortModes.FolderFirst ^ FolderItemType == FolderItemTypeEnum.Folder ? 1 : -1;
             }
         }
         return UIModFolderMenu.Instance.SortMode switch {
-            FolderMenuSortMode.Custom => 0,
-            FolderMenuSortMode.RecentlyUpdated => i.LastModified.CompareTo(LastModified),
-            FolderMenuSortMode.OldlyUpdated => LastModified.CompareTo(i.LastModified),
-            FolderMenuSortMode.DisplayNameAtoZ => string.Compare(NameToSort, i.NameToSort, StringComparison.OrdinalIgnoreCase),
-            FolderMenuSortMode.DisplayNameZtoA => string.Compare(i.NameToSort, NameToSort, StringComparison.OrdinalIgnoreCase),
+            FolderMenuSortModes.Custom => 0,
+            FolderMenuSortModes.RecentlyUpdated => i.LastModified.CompareTo(LastModified),
+            FolderMenuSortModes.OldlyUpdated => LastModified.CompareTo(i.LastModified),
+            FolderMenuSortModes.DisplayNameAtoZ => string.Compare(NameToSort, i.NameToSort, StringComparison.OrdinalIgnoreCase),
+            FolderMenuSortModes.DisplayNameZtoA => string.Compare(i.NameToSort, NameToSort, StringComparison.OrdinalIgnoreCase),
             _ => base.CompareTo(obj),
         };
     }

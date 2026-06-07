@@ -779,7 +779,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             }
         }
         _mod.Enabled = !_mod.Enabled;
-        if (UIModFolderMenu.Instance.EnabledFilterMode != FolderEnabledFilter.All) {
+        if (UIModFolderMenu.Instance.EnabledFilterMode != FolderEnabledFilters.All) {
             UIModFolderMenu.Instance.ArrangeGenerate();
         }
     }
@@ -862,7 +862,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
-        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilter.Unloaded) {
+        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilters.Unloaded) {
             return PassFilterResults.FilteredByLoaded;
         }
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
@@ -871,14 +871,14 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             }
         }
         var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
-            FolderEnabledFilter.All => true,
-            FolderEnabledFilter.Enabled => Loaded,
-            FolderEnabledFilter.Disabled => !Loaded,
-            FolderEnabledFilter.ToBeEnabled => !Loaded && _mod.Enabled,
-            FolderEnabledFilter.ToBeDisabled => Loaded && !_mod.Enabled,
-            FolderEnabledFilter.ToToggle => Loaded ^ _mod.Enabled,
-            FolderEnabledFilter.WouldBeEnabled => _mod.Enabled,
-            FolderEnabledFilter.WouldBeDisabled => !_mod.Enabled,
+            FolderEnabledFilters.All => true,
+            FolderEnabledFilters.Enabled => Loaded,
+            FolderEnabledFilters.Disabled => !Loaded,
+            FolderEnabledFilters.ToBeEnabled => !Loaded && _mod.Enabled,
+            FolderEnabledFilters.ToBeDisabled => Loaded && !_mod.Enabled,
+            FolderEnabledFilters.ToToggle => Loaded ^ _mod.Enabled,
+            FolderEnabledFilters.WouldBeEnabled => _mod.Enabled,
+            FolderEnabledFilters.WouldBeDisabled => !_mod.Enabled,
             _ => false,
         };
         return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;

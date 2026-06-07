@@ -97,16 +97,16 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
             return PassFilterResults.FilteredBySearch;
         }
     NameFilterPassed:
-        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilter.Loaded) {
+        if (UIModFolderMenu.Instance.LoadedFilterMode == ModLoadedFilters.Loaded) {
             return PassFilterResults.FilteredByLoaded;
         }
         if (UIModFolderMenu.Instance.ModSideFilterMode != ModSideFilter.All) {
             return PassFilterResults.FilteredByModSide;
         }
         var passed = UIModFolderMenu.Instance.EnabledFilterMode switch {
-            FolderEnabledFilter.All => true,
-            FolderEnabledFilter.Disabled => true,
-            FolderEnabledFilter.WouldBeDisabled => true,
+            FolderEnabledFilters.All => true,
+            FolderEnabledFilters.Disabled => true,
+            FolderEnabledFilters.WouldBeDisabled => true,
             _ => false,
         };
         return passed ? PassFilterResults.NotFiltered : PassFilterResults.FilteredByEnabled;

@@ -1,6 +1,6 @@
 ﻿namespace ModFolder.UI.Base;
 
-public enum FolderMenuSortMode {
+public enum FolderMenuSortModes {
     Custom,
     RecentlyUpdated,
     OldlyUpdated,
@@ -8,19 +8,19 @@ public enum FolderMenuSortMode {
     DisplayNameZtoA,
 }
 
-public enum FolderModSortMode {
+public enum FolderModSortModes {
     Custom,
     FolderFirst,
     ModFirst,
 }
 
-public enum ModLoadedFilter {
+public enum ModLoadedFilters {
     All,
     Loaded,
     Unloaded,
 }
 
-public enum FolderEnabledFilter {
+public enum FolderEnabledFilters {
     All,
     Enabled,
     Disabled,

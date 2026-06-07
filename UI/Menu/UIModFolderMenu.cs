@@ -170,15 +170,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     #region 首部菜单 (排序与过滤相关以及内存条)
     #region 公开属性
-    public bool                ShowAllMods       { get => _topButtonData[0].ToBoolean(); set => _topButtonData[0] = value.ToInt(); }
-    public bool                ShowFolderSystem  { get => !_topButtonData[0].ToBoolean(); set => _topButtonData[0] = (!value).ToInt(); }
-    public FolderModSortMode   FmSortMode        { get => (FolderModSortMode  )_topButtonData[1]; set => _topButtonData[1] = (int)value; }
-    public FolderMenuSortMode  SortMode          { get => (FolderMenuSortMode )_topButtonData[2]; set => _topButtonData[2] = (int)value; }
-    public ModLoadedFilter     LoadedFilterMode  { get => (ModLoadedFilter    )_topButtonData[3]; set => _topButtonData[3] = (int)value; }
-    public FolderEnabledFilter EnabledFilterMode { get => (FolderEnabledFilter)_topButtonData[4]; set => _topButtonData[4] = (int)value; }
-    public ModSideFilter       ModSideFilterMode { get => (ModSideFilter      )_topButtonData[5]; set => _topButtonData[5] = (int)value; }
-    public LayoutTypes         LayoutType        { get => (LayoutTypes        )_topButtonData[6]; set => _topButtonData[6] = (int)value; }
-    public bool                ShowRamUsage      { get => _topButtonData[7].ToBoolean(); set => _topButtonData[7] = value.ToInt(); }
+    public bool                 ShowAllMods       { get => _topButtonData[0].ToBoolean(); set => _topButtonData[0] = value.ToInt(); }
+    public bool                 ShowFolderSystem  { get => !_topButtonData[0].ToBoolean(); set => _topButtonData[0] = (!value).ToInt(); }
+    public FolderModSortModes   FmSortMode        { get => (FolderModSortModes  )_topButtonData[1]; set => _topButtonData[1] = (int)value; }
+    public FolderMenuSortModes  SortMode          { get => (FolderMenuSortModes )_topButtonData[2]; set => _topButtonData[2] = (int)value; }
+    public ModLoadedFilters     LoadedFilterMode  { get => (ModLoadedFilters    )_topButtonData[3]; set => _topButtonData[3] = (int)value; }
+    public FolderEnabledFilters EnabledFilterMode { get => (FolderEnabledFilters)_topButtonData[4]; set => _topButtonData[4] = (int)value; }
+    public ModSideFilter        ModSideFilterMode { get => (ModSideFilter       )_topButtonData[5]; set => _topButtonData[5] = (int)value; }
+    public LayoutTypes          LayoutType        { get => (LayoutTypes         )_topButtonData[6]; set => _topButtonData[6] = (int)value; }
+    public bool                 ShowRamUsage      { get => _topButtonData[7].ToBoolean(); set => _topButtonData[7] = value.ToInt(); }
     #endregion
     #region 数据与常数
     // 0: 文件夹系统 / 显示全部模组
@@ -213,16 +213,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             "Mods.ModFolder.UI.SortButtons.AllMods.Tooltip",
         ],
         /* 1 */[
-            "Mods.ModFolder.UI.SortButtons.CustomFM.Tooltip",
-            "Mods.ModFolder.UI.SortButtons.FolderFirst.Tooltip",
-            "Mods.ModFolder.UI.SortButtons.ModFirst.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderModSortModes.Custom.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderModSortModes.FolderFirst.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderModSortModes.ModFirst.Tooltip",
         ],
         /* 2 */[
-            "Mods.ModFolder.UI.SortButtons.Custom.Tooltip",
-            "tModLoader.ModsSortRecently",
-            "Mods.ModFolder.UI.SortButtons.ReverseRecently.Tooltip",
-            "tModLoader.ModsSortNamesAlph",
-            "tModLoader.ModsSortNamesReverseAlph",
+            "Mods.ModFolder.UI.SortButtons.FolderMenuSortModes.Custom.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderMenuSortModes.RecentlyUpdated.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderMenuSortModes.OldlyUpdated.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderMenuSortModes.DisplayNameAtoZ.Tooltip",
+            "Mods.ModFolder.UI.SortButtons.FolderMenuSortModes.DisplayNameZtoA.Tooltip",
         ],
         /* 3 */[
             "tModLoader.ModsShowAllMods",
@@ -444,7 +444,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private bool CheckTopButtonChangedF(int index) {
         if (index == IndexShowFolderSystem) {
             topMenuButtons[IndexFmSortMode].Disabled = ShowAllMods;
-            if (SortMode == FolderMenuSortMode.Custom && ShowAllMods) {
+            if (SortMode == FolderMenuSortModes.Custom && ShowAllMods) {
                 ResetTopButton(IndexSortMode);
             }
             return true;
@@ -463,10 +463,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (index == IndexShowFolderSystem) {
             return CommonConfig.Instance.ShowAllModsByDefault ? 1 : 0;
         }
-        if (index == IndexSortMode) {
-            return ShowAllMods ? 1 : 0;
+        else if (index == IndexFmSortMode) {
+            return (int)CommonConfig.Instance.DefaultFolderModSortMode;
         }
-        if (index == IndexLayoutType) {
+        else if (index == IndexSortMode) {
+            var result = (int)CommonConfig.Instance.DefaultSortMode;
+            return ShowAllMods && result == 0 ? 1 : result;
+        }
+        else if (index == IndexLayoutType) {
             return (int)CommonConfig.Instance.DefaultLayout;
         }
         return 0;
@@ -1269,7 +1273,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         if (enabled.Count == 0)
             return;
-        if (EnabledFilterMode != FolderEnabledFilter.All) {
+        if (EnabledFilterMode != FolderEnabledFilters.All) {
             ArrangeGenerate();
         }
         // Logging.tML.Info
@@ -1291,7 +1295,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (disabled.Count == 0) {
             return;
         }
-        if (EnabledFilterMode != FolderEnabledFilter.All) {
+        if (EnabledFilterMode != FolderEnabledFilters.All) {
             ArrangeGenerate();
         }
         // Logging.tML.Info
@@ -1322,7 +1326,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (disabled.Count != 0)
             ModFolder.Instance.Logger.Info("Disabling mods: " + string.Join(", ", disabled));
         if (enabled.Count != 0 || disabled.Count != 0) {
-            if (EnabledFilterMode != FolderEnabledFilter.All) {
+            if (EnabledFilterMode != FolderEnabledFilters.All) {
                 ArrangeGenerate();
             }
             CurrentFolderNode.TryRefreshCountsInThisFolder();
@@ -1346,7 +1350,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (disabled.Count == 0) {
             return;
         }
-        if (EnabledFilterMode != FolderEnabledFilter.All) {
+        if (EnabledFilterMode != FolderEnabledFilters.All) {
             ArrangeGenerate();
         }
         // Logging.tML.Info

@@ -120,11 +120,20 @@ UI: {
 	}
 
 	SortButtons: {
-		Custom.Tooltip: Custom order
-		ReverseRecently.Tooltip: Sort by oldest changed
-		CustomFM.Tooltip: Custom order for folders and mods
-		FolderFirst.Tooltip: Folder first
-		ModFirst.Tooltip: Mod first
+		FolderModSortModes: {
+			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.Custom.Tooltip}"
+			FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.FolderFirst.Tooltip}"
+			ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.ModFirst.Tooltip}"
+		}
+
+		FolderMenuSortModes: {
+			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.Custom.Tooltip}"
+			RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.RecentlyUpdated.Tooltip}"
+			OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.OldlyUpdated.Tooltip}"
+			DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameAtoZ.Tooltip}"
+			DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameZtoA.Tooltip}"
+		}
+
 		ToBeEnabled.Tooltip: Show only mods to be enabled
 		ToBeDisabled.Tooltip: Show only mods to be disabled
 		ToBeToggled.Tooltip: Show only mods to be toggled

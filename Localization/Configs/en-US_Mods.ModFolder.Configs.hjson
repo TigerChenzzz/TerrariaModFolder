@@ -92,6 +92,16 @@ CommonConfig: {
 		Label: Folder Filter Mode
 		Tooltip: How folders react to the filter
 	}
+
+	DefaultFolderModSortMode: {
+		Label: Default Sort Mode Between Folders and Mods
+		Tooltip: ""
+	}
+
+	DefaultSortMode: {
+		Label: Default Sort Mode
+		Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -236,5 +246,53 @@ FolderFilterModes: {
 	FilterNameAndContent: {
 		Label: Filter Name And Content
 		Tooltip: Hide when both two conditions ahead are met
+	}
+}
+
+FolderModSortModes: {
+	Tooltip: ""
+
+	Custom: {
+		Label: Custom
+		Tooltip: Custom order for folders and mods
+	}
+
+	FolderFirst: {
+		Label: Folder First
+		Tooltip: Folder first
+	}
+
+	ModFirst: {
+		Label: Mod First
+		Tooltip: Mod first
+	}
+}
+
+FolderMenuSortModes: {
+	Tooltip: ""
+
+	Custom: {
+		Label: Custom
+		Tooltip: Custom order for folders and mods
+	}
+
+	RecentlyUpdated: {
+		Label: Recently Updated
+		Tooltip: "{$tModLoader.ModsSortRecently}"
+	}
+
+	OldlyUpdated: {
+		Label: Oldly Updated
+		Tooltip: Sort by oldest changed
+	}
+
+	DisplayNameAtoZ: {
+		Label: Alphabetical
+		Tooltip: "{$tModLoader.ModsSortNamesAlph}"
+	}
+
+	DisplayNameZtoA: {
+		Label: Reverse Alphabetical
+		Tooltip: "{$tModLoader.ModsSortNamesReverseAlph}"
 	}
 }

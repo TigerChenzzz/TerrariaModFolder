@@ -120,11 +120,20 @@ UI: {
 	}
 
 	SortButtons: {
-		Custom.Tooltip: 自定义排序
-		ReverseRecently.Tooltip: 按最旧更改排序
-		CustomFM.Tooltip: 自定义文件夹与模组的顺序
-		FolderFirst.Tooltip: 文件夹优先
-		ModFirst.Tooltip: 模组优先
+		FolderModSortModes: {
+			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.Custom.Tooltip}"
+			// FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.FolderFirst.Tooltip}"
+			// ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.ModFirst.Tooltip}"
+		}
+
+		FolderMenuSortModes: {
+			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.Custom.Tooltip}"
+			// RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.RecentlyUpdated.Tooltip}"
+			// OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.OldlyUpdated.Tooltip}"
+			// DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameAtoZ.Tooltip}"
+			// DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameZtoA.Tooltip}"
+		}
+
 		ToBeEnabled.Tooltip: 只显示待启用的模组
 		ToBeDisabled.Tooltip: 只显示待禁用的模组
 		ToBeToggled.Tooltip: 只显示待启用或待禁用的模组
