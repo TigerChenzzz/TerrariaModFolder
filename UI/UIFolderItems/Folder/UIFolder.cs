@@ -4,11 +4,13 @@ using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
+using ModFolder.UI.UIFolderItems.Mods;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
+using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.UI;
 
 namespace ModFolder.UI.UIFolderItems.Folder;
@@ -107,6 +109,60 @@ public class UIFolder : UIFolderItem {
     private UIImageWithVisibility? DeleteButton { get => rightButtons[0]; set => rightButtons[0] = value; }
     private UIImageWithVisibility? RenameButton { get => rightButtons[1]; set => rightButtons[1] = value; }
     private UIImageWithVisibility? ExportButton { get => rightButtons[2]; set => rightButtons[2] = value; }
+    #endregion
+    #region Pass Filters
+    public override PassFilterResults PassFiltersInner() => PassFilters(FolderNode);
+
+    private static PassFilterResults PassFilters(FolderDataSystem.FolderNode? node) {
+        if (node == null)
+            return PassFilterResults.NotFiltered;
+        PassFilterResults result = PassFilterResults.NotFiltered;
+        bool reallyPassAnyFilterItself = false;
+        #region 过滤名字
+        if (UIModFolderMenu.Instance.searchFilterMode == SearchFilter.Name) {
+            var filter = UIModFolderMenu.Instance.Filter;
+            if (filter.Length == 0) {
+                goto NameFilterPassed;
+            }
+            var folderNameClean = Utils.CleanChatTags(node.FolderName);
+            if (folderNameClean.Contains(filter, StringComparison.OrdinalIgnoreCase)) {
+                reallyPassAnyFilterItself = true;
+                goto NameFilterPassed;
+            }
+            result = PassFilterResults.FilteredBySearch;
+        }
+    NameFilterPassed:
+        #endregion
+        if (result == PassFilterResults.NotFiltered && reallyPassAnyFilterItself) {
+            return PassFilterResults.NotFiltered;
+        }
+        #region 遍历子节点
+        foreach (var child in node.Children) {
+            if (child is FolderDataSystem.FolderNode folderChild) {
+                var childResult = PassFilters(folderChild);
+                if (childResult == PassFilterResults.NotFiltered)
+                    return PassFilterResults.NotFiltered;
+                result |= PassFilters(folderChild);
+            }
+            else if (child is FolderDataSystem.ModNode modChild) {
+                var childResult = PassFilters(modChild);
+                if (childResult == PassFilterResults.NotFiltered)
+                    return PassFilterResults.NotFiltered;
+                result |= childResult;
+            }
+        }
+        return result;
+        #endregion
+    }
+    private static PassFilterResults PassFilters(FolderDataSystem.ModNode? node) {
+        if (node == null)
+            return PassFilterResults.NotFiltered;
+        if (UIModFolderMenu.Instance.ModItemDict.TryGetValue(node.ModName, out var uiMod)) {
+            return uiMod.PassFiltersInner();
+        }
+        UIModItemInFolderUnloaded uiModUnloaded = new(node);
+        return uiModUnloaded.PassFiltersInner();
+    }
     #endregion
     #region 删除
     private void QuickFolderDelete(UIMouseEvent evt, UIElement listeningElement) {

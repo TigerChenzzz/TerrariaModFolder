@@ -2,6 +2,7 @@
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
 using ModFolder.UI.UIFolderItems.Folder;
+using ModFolder.UI.UIFolderItems.Mods;
 using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
@@ -683,31 +684,30 @@ public abstract partial class UIFolderItem : UIElement {
     #endregion
     #endregion
     #region 排序与过滤
+    [Flags]
     public enum PassFilterResults {
-        NotFiltered,
-        FilteredBySearch,
-        FilteredByModSide,
-        FilteredByEnabled,
-        FilteredByLoaded,
+        NotFiltered = 0,
+        FilteredBySearch = 1,
+        FilteredByModSide = 2,
+        FilteredByEnabled = 4,
+        FilteredByLoaded = 8,
     }
     public virtual PassFilterResults PassFiltersInner() => PassFilterResults.NotFiltered;
     public bool PassFilters(UIFolderItemFilterResults filterResults) {
-        switch (PassFiltersInner()) {
-        case PassFilterResults.FilteredBySearch:
+        var result = PassFiltersInner();
+        if (result.HasFlag(PassFilterResults.FilteredBySearch)) {
             filterResults.FilteredBySearch += 1;
-            return false;
-        case PassFilterResults.FilteredByModSide:
-            filterResults.FilteredByModSide += 1;
-            return false;
-        case PassFilterResults.FilteredByEnabled:
-            filterResults.FilteredByEnabled += 1;
-            return false;
-        case PassFilterResults.FilteredByLoaded:
-            filterResults.FilteredByLoaded += 1;
-            return false;
-        default:
-            return true;
         }
+        if (result.HasFlag(PassFilterResults.FilteredByModSide)) {
+            filterResults.FilteredByModSide += 1;
+        }
+        if (result.HasFlag(PassFilterResults.FilteredByEnabled)) {
+            filterResults.FilteredByEnabled += 1;
+        }
+        if (result.HasFlag(PassFilterResults.FilteredByLoaded)) {
+            filterResults.FilteredByLoaded += 1;
+        }
+        return result == PassFilterResults.NotFiltered;
     }
     public override int CompareTo(object obj) {
         if (obj is not UIFolderItem i)
