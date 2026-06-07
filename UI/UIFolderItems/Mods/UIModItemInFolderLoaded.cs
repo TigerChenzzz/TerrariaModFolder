@@ -220,6 +220,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     public override string ModName => _mod.Name;
     public bool NeedsReload => _mod.properties.side != ModSide.Server && (_mod.Enabled != _loaded || _configChangesRequireReload);
+    public bool CanUnsubscribe { get; private set; }
 
     public override void OnInitialize() {
         base.OnInitialize();
@@ -241,18 +242,20 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         #region 删除
         var deleteButton = DeleteButton = NewRightButton(MTextures.ButtonDelete);
         if (!_loaded && ModOrganizer.CanDeleteFrom(_mod.location)) {
-            deleteButton.OnLeftClick += QuickModDelete;
-            mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
+            CanUnsubscribe = true;
         }
         else {
-            deleteButton.Visibility = 0.4f;
-            if (_loaded) {
-                mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteEnabled")));
-            }
-            else {
-                mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteInModPack")));
-            }
+            CanUnsubscribe = false;
+            // deleteButton.Visibility = 0.4f;
+            // if (_loaded) {
+            //     mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteEnabled")));
+            // }
+            // else {
+            //     mouseOverTooltips.Add((deleteButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Delete.Tooltips.CantDeleteInModPack")));
+            // }
         }
+        deleteButton.OnLeftClick += QuickModDelete;
+        mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
         #endregion
         #region 重命名
         var renameButton = RenameButton = NewRightButton(MTextures.ButtonRename);
@@ -884,9 +887,11 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         // TODO: 同时按住 shift 和 ctrl 则既删除索引同时取消订阅 (只按住 ctrl 只是取消订阅但不删除索引 (方便重新下载))
         // TODO: 他们的提示
         bool shiftPressed = Main.keyState.PressingShift();
+        bool ctrlPressed = Main.keyState.PressingControl();
 
-        if (Main.keyState.PressingShift() || Main.keyState.PressingControl()) {
-            DeleteMod(evt, listeningElement);
+        if (UIModFolderMenu.Instance.ShowFolderSystem && shiftPressed
+            || CanUnsubscribe && ctrlPressed) {
+            DeleteMod(ctrlPressed, shiftPressed);
             return;
         }
         SoundEngine.PlaySound(SoundID.MenuOpen);
@@ -912,14 +917,17 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             HAlign = .15f
         }.WithFadedMouseOver();
         _dialogYesButton.OnUpdate += _ => {
-            if (UIModFolderMenu.Instance.ShowAllMods || Main.keyState.PressingControl() || Main.keyState.PressingShift()) {
+            if (CanUnsubscribe && (Main.keyState.PressingControl() || UIModFolderMenu.Instance.ShowAllMods)
+                || UIModFolderMenu.Instance.ShowFolderSystem && (Main.keyState.PressingShift() || !CanUnsubscribe)) {
                 _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.104"));
             }
             else {
                 _dialogYesButton.SetText(Language.GetTextValue("LegacyMenu.105"));
             }
         };
-        _dialogYesButton.OnLeftClick += DeleteMod;
+        _dialogYesButton.OnLeftClick += (_, _)
+            => DeleteMod(Main.keyState.PressingControl() || UIModFolderMenu.Instance.ShowAllMods,
+                Main.keyState.PressingShift() || !CanUnsubscribe);
         _deleteModDialog.Append(_dialogYesButton);
         #endregion
         #region 按钮否
@@ -936,7 +944,19 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
         string tip = Language.GetTextValue("tModLoader.DeleteModConfirm");
         if (UIModFolderMenu.Instance.ShowFolderSystem) {
-            tip = string.Join('\n', tip, ModFolder.Instance.GetLocalization("UI.DeleteModItemCofirmTextToAdd"));
+            if (CanUnsubscribe) {
+                tip = string.Join('\n', tip, ModFolder.Instance.GetLocalization("UI.DeleteModItemCofirmTextToAdd"));
+            }
+            else {
+                tip = string.Join('\n', tip,
+                    ModFolder.Instance.GetLocalizedValue("UI.DeleteModItemUnloadedComfirmTextToAdd"),
+                    ModFolder.Instance.GetLocalizedValue(_loaded ? "UI.Buttons.Delete.Tooltips.CantDeleteEnabled" : "UI.Buttons.Delete.Tooltips.CantDeleteInModPack"));
+            }
+        }
+        else {
+            if (!CanUnsubscribe) {
+                tip = ModFolder.Instance.GetLocalizedValue(_loaded ? "UI.Buttons.Delete.Tooltips.CantDeleteEnabled" : "UI.Buttons.Delete.Tooltips.CantDeleteInModPack");
+            }
         }
         var _dialogText = new UIText(tip) {
             Width = { Percent = .85f },
@@ -949,12 +969,12 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         UIModFolderMenu.Instance.Recalculate();
     }
 
-    private void DeleteMod(UIMouseEvent evt, UIElement listeningElement) {
-        if (UIModFolderMenu.Instance.ShowAllMods || Main.keyState.PressingControl()) {
+    private void DeleteMod(bool unsubscribe, bool deleteIndex) {
+        if (CanUnsubscribe && unsubscribe) {
             UIModFolderMenu.Instance.ArrangeDeleteMod(this);
         }
         // TODO: 在显示全部界面不可以删除索引的提示
-        if (UIModFolderMenu.Instance.ShowFolderSystem && Main.keyState.PressingShift() && ModNode != null) {
+        if (UIModFolderMenu.Instance.ShowFolderSystem && deleteIndex && ModNode != null) {
             ModNode.Parent = null;
         }
         UIModFolderMenu.Instance.RemoveConfirmPanel();

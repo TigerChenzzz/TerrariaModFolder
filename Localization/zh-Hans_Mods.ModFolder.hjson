@@ -102,36 +102,38 @@ UI: {
 
 		Export.Tooltip:
 			'''
-			导出到剪切板
+			导出到剪贴板
 			按住 Shift 以不导出显示名
 			按住 Ctrl 以导出别名
 			按住 Alt 以导出收藏状态
 			'''
 
-		Import: {
-			DisplayName: 导入文件夹
+		CopyPaste: {
+			DisplayName: 复制与粘贴
 			Tooltip:
 				'''
-				从剪切板将一个文件夹导入到当前文件夹下
-				按住 Shift 以允许替换当前存在的显示名和别名
-				按住 Alt 以允许导入收藏状态
+				左键以复制 (Ctrl + C)
+				右键以粘贴 (Ctrl + V)
+				在显示所有模组时不可用
+				复制对象为: 当有选中对象时使用选中, 
+				否则为所有当前文件夹内容
 				'''
 		}
 	}
 
 	SortButtons: {
 		FolderModSortModes: {
-			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.Custom.Tooltip}"
-			// FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.FolderFirst.Tooltip}"
-			// ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.ModFirst.Tooltip}"
+			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.Custom.Tooltip}"
+			// FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.FolderFirst.Tooltip}"
+			// ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.ModFirst.Tooltip}"
 		}
 
 		FolderMenuSortModes: {
-			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.Custom.Tooltip}"
-			// RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.RecentlyUpdated.Tooltip}"
-			// OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.OldlyUpdated.Tooltip}"
-			// DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameAtoZ.Tooltip}"
-			// DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameZtoA.Tooltip}"
+			// Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.Custom.Tooltip}"
+			// RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.RecentlyUpdated.Tooltip}"
+			// OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.OldlyUpdated.Tooltip}"
+			// DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.DisplayNameAtoZ.Tooltip}"
+			// DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.DisplayNameZtoA.Tooltip}"
 		}
 
 		ToBeEnabled.Tooltip: 只显示待启用的模组
@@ -192,10 +194,16 @@ UI: {
 		CantSubscribeWhenDownloading: 正在下载模组!
 		CantSubscribeWhenSubscribing: 正在尝试订阅! 请勿重复点击!
 		CantSubscribeWhenLoading: 暂时无法订阅! 请先等待加载完成!
-		Exported: 文件夹内容已导出到剪切板!
+		Exported: 文件夹内容已导出到剪贴板!
 		ImportNotAllowedWhenShowingAllMods: 当显示所有模组时无法导入, 请使用文件夹系统!
-		ImportClipboardInvalid: 剪切板内容不合法!
-		Imported: 一个文件夹已从剪切板导入到当前文件夹下!
+		CopyPasteNotAllowedWhenShowingAllMods: 当显示所有模组时无法复制粘贴, 请使用文件夹系统!
+		NotAnyItemCopied: 没有内容可复制
+		Imported: 剪贴板内容已粘贴到当前文件夹下
+		ImportClipboardInvalid: 剪贴板内容不合法!
+		ImportVersionNotImplemented: 数据中版本的导入方法未实现!
+		ImportInvalidVersion: Json 数据的版本信息不合法!
+		SelectedItemsCopied: 选中内容已复制到剪贴板
+		AllItemsInTheFolderCopied: 当前文件夹中所有内容已复制到剪贴板
 		SteamNotAvailable: Steam 不可用!
 		DownloadModError: 下载模组时发生错误! 具体错误请查看日志.
 		CantFindModInWorkshop: 未在创意工坊找到模组: {0} ({1})

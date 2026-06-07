@@ -85,8 +85,8 @@ UI: {
 
 		Delete: {
 			Tooltips: {
-				CantDeleteEnabled: Can't delete an enabled mod
-				CantDeleteInModPack: Can't delete a mod in a mod pack
+				CantDeleteEnabled: Can't unsubscribe an enabled mod
+				CantDeleteInModPack: Can't unsubscribe a mod in a mod pack
 			}
 		}
 
@@ -108,30 +108,31 @@ UI: {
 			Pressing Alt to export the favorite status
 			'''
 
-		Import: {
-			DisplayName: Import Folder
+		CopyPaste: {
+			DisplayName: Copy & Paste
 			Tooltip:
 				'''
-				Import a folder from the clipboard to the current folder
-				Pressing Shift to allow to replace the existing display names and aliases
-				Pressing Alt to allow to import the favorite status
+				Left click to copy (Ctrl + C)
+				Right click to paste (Ctrl + V)
+				not avaliable when showing all mods
+				The copy target is the selected if any or all in the current folder
 				'''
 		}
 	}
 
 	SortButtons: {
 		FolderModSortModes: {
-			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.Custom.Tooltip}"
-			FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.FolderFirst.Tooltip}"
-			ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortMode.ModFirst.Tooltip}"
+			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.Custom.Tooltip}"
+			FolderFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.FolderFirst.Tooltip}"
+			ModFirst.Tooltip: "{$Mods.ModFolder.Configs.FolderModSortModes.ModFirst.Tooltip}"
 		}
 
 		FolderMenuSortModes: {
-			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.Custom.Tooltip}"
-			RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.RecentlyUpdated.Tooltip}"
-			OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.OldlyUpdated.Tooltip}"
-			DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameAtoZ.Tooltip}"
-			DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortMode.DisplayNameZtoA.Tooltip}"
+			Custom.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.Custom.Tooltip}"
+			RecentlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.RecentlyUpdated.Tooltip}"
+			OldlyUpdated.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.OldlyUpdated.Tooltip}"
+			DisplayNameAtoZ.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.DisplayNameAtoZ.Tooltip}"
+			DisplayNameZtoA.Tooltip: "{$Mods.ModFolder.Configs.FolderMenuSortModes.DisplayNameZtoA.Tooltip}"
 		}
 
 		ToBeEnabled.Tooltip: Show only mods to be enabled
@@ -194,8 +195,14 @@ UI: {
 		CantSubscribeWhenLoading: Can't subscibe when loading! Please wait for loading complete!
 		Exported: Folder content exported to clipboard!
 		ImportNotAllowedWhenShowingAllMods: Import is not allowed when showing all mods, please use folder system!
-		ImportClipboardInvalid: Clipboard content is invalid!
-		Imported: A folder has been imported from clipbard to the current folder!
+		CopyPasteNotAllowedWhenShowingAllMods: Copy & Paste is not allowed when showing all mods, please use folder system!
+		NotAnyItemCopied: Not any item can be copied.
+		Imported: The clipboard content has been pasted to the current folder.
+		ImportClipboardInvalid: The clipboard content is invalid!
+		ImportVersionNotImplemented: The importing function of the data's version is not implemented!
+		ImportInvalidVersion: The json data's "Version" is invalid!
+		SelectedItemsCopied: The selected items are copied to the clipboard.
+		AllItemsInTheFolderCopied: All items in the folder are copied to the clipboard.
 		SteamNotAvailable: Steam not available!
 		DownloadModError: Download mods error! See log for more detailed info.
 		CantFindModInWorkshop: Can't find the mod in workshop: {0} ({1})

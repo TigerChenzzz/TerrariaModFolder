@@ -1,5 +1,14 @@
 Changelog:
 	'''
+	[c/00ff00:v0.7.0]
+	[c/ff0000:- add copy & paste button, with shortcut of Ctrl + C/V, replaced the folder import and export, and compatible with old formats]
+	- Ctrl + A to select all
+	[c/999999:- configure folder filter mode]
+	[c/999999:- configure default sort mode]
+	- enable status for path (configurable)
+	[c/999999:- the search bar need focus to input now]
+	[c/999999:- the enable status would not caculate duplicate mods]
+
 	[c/00ff00:v0.6.1]
 	- hide folders that don't contain any filtered item
 

@@ -142,8 +142,12 @@ public class CommonConfig : ModConfig {
         [Header("Background")]
         [DefaultValue(true)]
         public bool ShowBackground { get; set; } = true;
+        public bool ShowBackgroundForPath { get; set; }
+        [Header("Tooltip")]
         [DefaultValue(true)]
-        public bool ShowBackgroundForPath { get; set; } = true;
+        public bool ShowTooltip { get; set; } = true;
+        [DefaultValue(true)]
+        public bool ShowTooltipForPath { get; set; } = true;
         [Header("Text")]
         [ShowDespiteJsonIgnore, JsonIgnore]
         public bool ShowAllAlways {
@@ -224,6 +228,19 @@ public class CommonConfig : ModConfig {
     #region 过滤文件夹模式
     [DefaultValue(FolderFilterModes.FilterNameAndContent)]
     public FolderFilterModes FolderFilterMode { get; set; } = FolderFilterModes.FilterNameAndContent;
+    #endregion
+    #region 复制粘贴配置
+    [CustomModConfigItem(typeof(HiddenConfigElement))]
+    public ButtonCopyPasteConfigClass ButtonCopyPasteConfig { get; set; } = new();
+    public class ButtonCopyPasteConfigClass {
+        [DefaultValue(true)]
+        public bool CopyDisplayName { get; set; } = true;
+        [DefaultValue(true)]
+        public bool CopyAlias { get; set; } = true;
+        public bool CopyFavorite { get; set; }
+        public bool PasteReplace { get; set; }
+        public bool PasteFavorite { get; set; }
+    }
     #endregion
 
     #region 是否在模组加载时打印日志

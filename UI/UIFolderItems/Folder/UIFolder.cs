@@ -1,6 +1,5 @@
 ﻿using Humanizer;
 using ModFolder.Configs;
-using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
@@ -9,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.UI;
@@ -58,32 +58,26 @@ public class UIFolder : UIFolderItem {
         #region 右边的按钮
         #region 删除按钮
         if (FolderNode != null) {
-            var deleteButton = DeleteButton = NewRightButton(MTextures.ButtonDelete);
-            deleteButton.OnLeftClick += QuickFolderDelete;
-            mouseOverTooltips.Add((deleteButton, () => Language.GetTextValue("UI.Delete")));
+            DeleteButton = NewRightButton(MTextures.ButtonDelete);
+            DeleteButton.OnLeftClick += QuickFolderDelete;
+            mouseOverTooltips.Add((DeleteButton, () => Language.GetTextValue("UI.Delete")));
         }
         #endregion
         #region 重命名按钮
         if (FolderNode != null) {
-            var renameButton = RenameButton = NewRightButton(MTextures.ButtonRename);
-            _name.AttachRenameButtton(renameButton);
-            mouseOverTooltips.Add((renameButton, () => ModFolder.Instance.GetLocalizedValue("UI.Rename")));
-        }
-        #endregion
-        #region 导出按钮
-        if (FolderNode != null) {
-            var exportButton = ExportButton = NewRightButton(MTextures.ButtonExport);
-            exportButton.OnLeftClick += (_, _) => {
-                SoundEngine.PlaySound(SoundID.MenuTick);
-                ShareHelper.Export(FolderNode, !Main.keyState.PressingShift(), Main.keyState.PressingControl(), Main.keyState.PressingAlt());
-                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.Exported");
-            };
-            mouseOverTooltips.Add((exportButton, () => ModFolder.Instance.GetLocalizedValue("UI.Buttons.Export.Tooltip")));
+            RenameButton = NewRightButton(MTextures.ButtonRename);
+            _name.AttachRenameButtton(RenameButton);
+            mouseOverTooltips.Add((RenameButton, () => ModFolder.Instance.GetLocalizedValue("UI.Rename")));
         }
         #endregion
         AppendRightButtonsPanel();
         #endregion
         #region 启用状态
+        mouseOverTooltips.Add(_enableStatusText, ()
+            => string.IsNullOrEmpty(_enableStatusText.Text)
+                    || FolderNode == null
+                ? null
+                : GetEnableStatusTooltip(FolderNode));
         Append(_enableStatusText);
         #endregion
         #region 双击进入文件夹
@@ -96,7 +90,7 @@ public class UIFolder : UIFolderItem {
             if (FolderNode == null) {
                 return;
             }
-            if (e.Target == _name.RenameText || e.Target == DeleteButton || e.Target == RenameButton || e.Target == ExportButton) {
+            if (e.Target == _name.RenameText || rightButtons.Contains(e.Target)) {
                 return;
             }
             UIModFolderMenu.Instance.EnterFolder(FolderNode);
@@ -105,10 +99,9 @@ public class UIFolder : UIFolderItem {
         ForceRecalculateLayout();
     }
     #region 右边的按钮
-    protected override int RightButtonsLength => 3;
+    protected override int RightButtonsLength => 2;
     private UIImageWithVisibility? DeleteButton { get => rightButtons[0]; set => rightButtons[0] = value; }
     private UIImageWithVisibility? RenameButton { get => rightButtons[1]; set => rightButtons[1] = value; }
-    private UIImageWithVisibility? ExportButton { get => rightButtons[2]; set => rightButtons[2] = value; }
     #endregion
     #region Pass Filters
     public override PassFilterResults PassFiltersInner() => PassFilters(FolderNode);
@@ -328,7 +321,9 @@ public class UIFolder : UIFolderItem {
             if (!UIModFolderMenu.Instance.ModItemDict.TryGetValue(modNode.ModName, out var uimod)) {
                 continue;
             }
-            UIModFolderMenu.Instance.ArrangeDeleteMod(uimod);
+            if (!uimod.Loaded && ModOrganizer.CanDeleteFrom(uimod.TheLocalMod.location)) {
+                UIModFolderMenu.Instance.ArrangeDeleteMod(uimod);
+            }
         }
         if (shift || alt) {
             DeleteFolderInner(alt);
@@ -341,7 +336,12 @@ public class UIFolder : UIFolderItem {
     protected override string GetDisplayName() => FolderName;
     protected override string GetRenameText() => FolderName;
     protected override string GetRenameHintText() => FolderName;
-    protected override Func<string> GetNameMouseOverTooltipFunc() => () => FolderName;
+    protected override Func<string> GetNameMouseOverTooltipFunc() => () => {
+        if (ShowEnableStatusOnNameCondition()) {
+            return string.Join('\n', FolderName, GetEnableStatusTooltip(FolderNode));
+        }
+        return FolderName;
+    };
     protected override bool TryRename(string newName) {
         if (FolderNode == null || newName == ".." || newName == string.Empty) {
             return false;
@@ -357,16 +357,6 @@ public class UIFolder : UIFolderItem {
     }
     #endregion
     #region Draw
-    protected override string? GetTooltip() {
-        var tooltip = base.GetTooltip();
-        if (tooltip != null) {
-            return tooltip;
-        }
-        if (ShowEnableStatusWhenNoTooltipCondition()) {
-            return GetEnableStatusTooltip(FolderNode);
-        }
-        return null;
-    }
     /// <summary>
     /// 需要先检查是否可以显示以及确保此 FolderNode 已经过计算
     /// </summary>
@@ -374,18 +364,18 @@ public class UIFolder : UIFolderItem {
         return ModFolder.Instance.GetLocalizedValue("UI.FolderEnableStatus").FormatWith(folder.ChildrenCount, folder.EnabledCount, folder.ToEnableCount, folder.ToDisableCount);
     }
     [MemberNotNullWhen(true, nameof(FolderNode))]
-    private bool ShowEnableStatusWhenNoTooltipCondition() {
+    private bool ShowEnableStatusOnNameCondition() {
         if (FolderNode == null) {
             return false;
         }
         var config = CommonConfig.Instance;
+        if (!config.ShowEnableStatus.ShowTooltip) {
+            return false;
+        }
         if (config.ShowEnableStatus.ShowAny && StripeLayout) {
-            return _enableStatusText.IsMouseHovering;
+            return false; // 此时转移到 _enableStatusText 上去了
         }
-        if (config.ShowEnableStatusBackground) {
-            return true;
-        }
-        return false;
+        return true;
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         base.DrawSelf(spriteBatch);

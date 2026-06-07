@@ -34,9 +34,9 @@ public class UIFolderPathItem : UIElement {
         var showEnableStatus = CommonConfig.Instance.ShowEnableStatus;
         if (showEnableStatus.ShowBackgroundForPath) {
             UIFolder.DrawEnableStatus(spriteBatch, _dimensions.ToRectangle(), FolderNode);
-            if (draggingTo == null && IsMouseHovering && showEnableStatus.ShowAny) {
-                UICommon.TooltipMouseText(UIFolder.GetEnableStatusTooltip(FolderNode));
-            }
+        }
+        if (showEnableStatus.ShowTooltip && draggingTo == null && IsMouseHovering) {
+            UICommon.TooltipMouseText(UIFolder.GetEnableStatusTooltip(FolderNode));
         }
         //if (folder != Instance.CurrentFolderNode)
         spriteBatch.Draw(UICommon.DividerTexture.Value, new Rectangle(rectangle.X + rectangle.Width + 2, rectangle.Y, rectangle.Height, 2), null, Color.White,

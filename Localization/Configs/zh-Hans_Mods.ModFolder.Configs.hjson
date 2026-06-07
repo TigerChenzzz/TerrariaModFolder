@@ -102,6 +102,11 @@ CommonConfig: {
 		Label: 默认排序方式
 		// Tooltip: ""
 	}
+
+	ButtonCopyPasteConfig: {
+		Label: 复制粘贴按钮配置
+		// Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -119,6 +124,7 @@ ShowEnableStatusClass: {
 	Headers: {
 		Background: 背景
 		Text: 文字
+		Tooltip: 悬浮提示
 	}
 
 	ShowBackground: {
@@ -129,6 +135,16 @@ ShowEnableStatusClass: {
 	ShowBackgroundForPath: {
 		Label: 在文件路径显示背景
 		Tooltip: ""
+	}
+
+	ShowTooltip: {
+		Label: 显示悬浮提示
+		// Tooltip: ""
+	}
+
+	ShowTooltipForPath: {
+		Label: 在文件路径显示悬浮提示
+		// Tooltip: ""
 	}
 
 	ShowAllAlways: {
@@ -299,5 +315,34 @@ FolderMenuSortModes: {
 	DisplayNameZtoA: {
 		Label: 逆字典序
 		// Tooltip: "{$tModLoader.ModsSortNamesReverseAlph}"
+	}
+}
+
+ButtonCopyPasteConfigClass: {
+	// Tooltip: ""
+
+	CopyDisplayName: {
+		Label: 复制显示名
+		Tooltip: 复制时附带模组的显示名
+	}
+
+	CopyAlias: {
+		Label: 复制别名
+		Tooltip: 复制时附带模组的别名
+	}
+
+	CopyFavorite: {
+		Label: 复制收藏状态
+		Tooltip: 复制时附带模组的收藏状态
+	}
+
+	PasteReplace: {
+		Label: 粘贴替换
+		Tooltip: 粘贴时允许替换已有的显示名和别名
+	}
+
+	PasteFavorite: {
+		Label: 粘贴收藏状态
+		Tooltip: 粘贴时允许导入收藏状态
 	}
 }

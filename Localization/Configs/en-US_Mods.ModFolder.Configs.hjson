@@ -102,6 +102,11 @@ CommonConfig: {
 		Label: Default Sort Mode
 		Tooltip: ""
 	}
+
+	ButtonCopyPasteConfig: {
+		Label: Button Copy Paste Config
+		Tooltip: ""
+	}
 }
 
 SeeChangelogClass: {
@@ -119,6 +124,7 @@ ShowEnableStatusClass: {
 	Headers: {
 		Background: Background
 		Text: Text
+		Tooltip: Tooltip
 	}
 
 	ShowBackground: {
@@ -128,6 +134,16 @@ ShowEnableStatusClass: {
 
 	ShowBackgroundForPath: {
 		Label: Show Background For Path
+		Tooltip: ""
+	}
+
+	ShowTooltip: {
+		Label: Show Tooltip
+		Tooltip: ""
+	}
+
+	ShowTooltipForPath: {
+		Label: Show Tooltip For Path
 		Tooltip: ""
 	}
 
@@ -299,5 +315,34 @@ FolderMenuSortModes: {
 	DisplayNameZtoA: {
 		Label: Reverse Alphabetical
 		Tooltip: "{$tModLoader.ModsSortNamesReverseAlph}"
+	}
+}
+
+ButtonCopyPasteConfigClass: {
+	Tooltip: ""
+
+	CopyDisplayName: {
+		Label: Copy Display Names
+		Tooltip: Copy display names of the mods
+	}
+
+	CopyAlias: {
+		Label: Copy Aliases
+		Tooltip: copy aliases of the mods
+	}
+
+	CopyFavorite: {
+		Label: Copy Favorite
+		Tooltip: copy favorite status of the mods
+	}
+
+	PasteReplace: {
+		Label: Paste Replace
+		Tooltip: allow to replace the existing display names and aliases
+	}
+
+	PasteFavorite: {
+		Label: Paste Favorite
+		Tooltip: allow to paste the favorite status
 	}
 }

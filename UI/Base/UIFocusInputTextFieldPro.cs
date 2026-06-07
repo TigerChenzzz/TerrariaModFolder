@@ -6,11 +6,22 @@ using Terraria.UI.Chat;
 
 namespace ModFolder.UI.Base;
 
-// 主要修改: 在按下 Enter 时也会失去焦点
+// 主要修改:
+//     在按下 Enter 时也会失去焦点
+//     改名: CurrentString -> Text
+//     将 Text 改为属性, 无论何时修改时触发 OnTextChange
 public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public delegate void EventHandler(object sender, EventArgs e);
     public bool Focused;
-    public string CurrentString = "";
+    public string Text {
+        get;
+        set {
+            if (field != value) {
+                field = value;
+                OnTextChange?.Invoke(this, new());
+            }
+        }
+    } = string.Empty;
     public string HintText { get; set; } = hintText;
     private int _textBlinkerCount;
     private int _textBlinkerState;
@@ -19,13 +30,6 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public event EventHandler? OnUnfocus;
     public event EventHandler? OnTab;
     public float TextXAlign;
-    public void SetText(string? text) {
-        text ??= "";
-        if (CurrentString != text) {
-            CurrentString = text;
-            OnTextChange?.Invoke(this, new());
-        }
-    }
     public override void LeftClick(UIMouseEvent evt) {
         Main.clrInput();
         Focused = true;
@@ -54,19 +58,13 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         }
         PlayerInput.WritingText = true;
         Main.instance.HandleIME();
-        string inputText = Main.GetInputText(CurrentString);
+        string inputText = Main.GetInputText(Text);
         if (Main.inputTextEscape) {
             Main.inputTextEscape = false;
             Focused = false;
             OnUnfocus?.Invoke(this, new());
         }
-        if (!inputText.Equals(CurrentString)) {
-            CurrentString = inputText;
-            OnTextChange?.Invoke(this, new());
-        }
-        else {
-            CurrentString = inputText;
-        }
+        Text = inputText;
         if (JustPressed(Keys.Tab)) {
             if (UnfocusOnTab) {
                 Focused = false;
@@ -81,7 +79,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         HandleInput();
-        string text = CurrentString;
+        string text = Text;
         var dimensions = _dimensions;
         var textSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, text, Vector2.One).X;
         var width = dimensions.Width;
@@ -97,7 +95,7 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         if (_textBlinkerState == 1 && Focused) {
             text += "|";
         }
-        if (CurrentString.Length == 0) {
+        if (Text.Length == 0) {
             var hintText = HintText;
             var hintSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, hintText, Vector2.One).X;
             float hintLeft;

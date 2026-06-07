@@ -1,5 +1,6 @@
 using Humanizer;
 using Microsoft.CodeAnalysis;
+using Microsoft.Xna.Framework.Input;
 using ModFolder.Configs;
 using ModFolder.Helpers;
 using ModFolder.Systems;
@@ -150,21 +151,409 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     private UIElement buttonsBg = null!;
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonAllMods          { get => buttons[0]; set => buttons[0] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonOMF              { get => buttons[1]; set => buttons[1] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCL               { get => buttons[2]; set => buttons[2] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonB                { get => buttons[3]; set => buttons[3] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCreateFolder     { get => buttons[4]; set => buttons[4] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonMore             { get => buttons[5]; set => buttons[5] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyEnabled      { get => buttons[6]; set => buttons[6] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get => buttons[7]; set => buttons[7] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonUpdate           { get => buttons[8]; set => buttons[8] = value; }
-    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonImport           { get => buttons[9]; set => buttons[9] = value; }
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonMore             { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonAllMods          { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonOMF              { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCL               { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonB                { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCreateFolder     { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyEnabled      { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyPaste        { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonUpdate           { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get; set; } = null!;
 
-    private readonly UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[] buttons = new UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText>[10];
+    private readonly List<UIElement> buttons = [];
     private readonly UIAutoScaleTextTextPanel<string>[] buttonPlaceHolders = new UIAutoScaleTextTextPanel<string>[6];
     int buttonPage;
-    readonly int buttonPageMax = 2;
+    int ButtonPageMax => (buttons.Count + 3) / 5;
+    public void AddBottomButton(UIElement button) => buttons.Add(button);
+
+    private void OnInitialize_Buttons() {
+        #region 背景
+        buttonsBg = new UIElementWithContainsPointByChildren() {
+            Width = { Percent = 1 },
+            Height = { Pixels = 85 },
+            Top = { Pixels = -105, Percent = 1 },
+        };
+        uiElement.Append(buttonsBg);
+        #endregion
+        #region 更多按钮按钮
+        ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
+        ButtonMore.OnLeftMouseDown += (_, _) => {
+            suppressLeftMouseDownClearSelecting = true;
+        };
+        ButtonMore.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            buttonPage = (buttonPage + 1) % ButtonPageMax;
+            SettleBottomButtons();
+        };
+        #endregion
+
+        #region 启用与禁用按钮
+        ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
+        ButtonAllMods.OnLeftMouseDown += (_, _) => {
+            suppressLeftMouseDownClearSelecting = true;
+        };
+        ButtonAllMods.OnRightMouseDown += (_, _) => {
+            suppressRightMouseDownClearSelecting = true;
+        };
+        ButtonAllMods.OnLeftClick += (_, _) => {
+            if (!Main.keyState.PressingControl()) {
+                EnableMods();
+            }
+            else {
+                DisableMods(true, true);
+            }
+        };
+        ButtonAllMods.OnRightClick += (_, _) => DisableMods(false, !Main.keyState.PressingControl());
+        ButtonAllMods.OnMiddleClick += (_, _) => {
+            if (!Main.keyState.PressingControl()) {
+                ResetMods();
+            }
+            else {
+                DisableMods(true, false);
+            }
+        };
+        mouseOverTooltips.Add((ButtonAllMods, () => ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.Tooltip").Value));
+        AddBottomButton(ButtonAllMods);
+        #endregion
+        #region 打开模组文件夹按钮
+        ButtonOMF = new(Language.GetText("tModLoader.ModsOpenModsFolders"));
+        ButtonOMF.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+            Directory.CreateDirectory(ModLoader.ModPath);
+            Utils.OpenFolder(ModLoader.ModPath);
+
+            if (ModOrganizer.WorkshopFileFinder.ModPaths.Count != 0) {
+                string? workshopFolderPath = Directory.GetParent(ModOrganizer.WorkshopFileFinder.ModPaths[0])?.ToString();
+                if (workshopFolderPath != null)
+                    Utils.OpenFolder(workshopFolderPath);
+            }
+        };
+        mouseOverTooltips.Add((ButtonOMF, () => Language.GetTextValue("tModLoader.ModsOpenModsFoldersTooltip")));
+        AddBottomButton(ButtonOMF);
+        #endregion
+        #region 模组配置按钮
+        ButtonCL = new(Language.GetText("tModLoader.ModConfiguration"));
+        ButtonCL.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuOpen);
+            Main.menuMode = Interface.modConfigListID;
+            IsPreviousUIStateOfConfigList = true;
+        };
+        AddBottomButton(ButtonCL);
+        #endregion
+        #region 返回按钮
+        ButtonB = new(Language.GetText("UI.Back"));
+        ButtonB.OnLeftClick += (_, _) => BackButtonClicked();
+        mouseOverTooltips.Add((ButtonB, () => ModFolder.Instance.GetLocalization("UI.Buttons.Back.Tooltip").Value));
+        AddBottomButton(ButtonB);
+        #endregion
+        #region 新建文件夹按钮
+        ButtonCreateFolder = new(ModFolder.Instance.GetLocalization("UI.Buttons.CreateFolder.DisplayName"));
+        ButtonCreateFolder.OnLeftClick += (_, _) => {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            FolderNode node = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value);
+            CurrentFolderNode.SetChildAtTheTop(node);
+            nodeToRename = node;
+            list.ViewPosition = 0;
+        };
+        AddBottomButton(ButtonCreateFolder);
+        #endregion
+
+        #region 复制已启用模组到此处
+        ButtonCopyEnabled = new(ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.DisplayName"));
+        ButtonCopyEnabled.OnLeftClick += (_, _) => {
+            if (CurrentFolderNode == FolderDataSystem.Root || ShowAllMods) {
+                SoundEngine.PlaySound(SoundID.MenuClose);
+                return;
+            }
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            if (Main.keyState.PressingControl()) {
+                CurrentFolderNode.ClearChildrenF();
+            }
+            if (Main.keyState.PressingShift()) {
+                foreach (var mod in ModItemDict.Values) {
+                    if (mod.TheLocalMod.Enabled) {
+                        _ = new ModNode(mod.ModName) {
+                            ParentF = CurrentFolderNode
+                        };
+                    }
+                }
+            }
+            else {
+                foreach (var mod in ModItemDict.Values) {
+                    if (mod.Loaded) {
+                        _ = new ModNode(mod.ModName) {
+                            ParentF = CurrentFolderNode
+                        };
+                    }
+                }
+            }
+            FolderDataSystem.TreeChanged();
+        };
+        mouseOverTooltips.Add((ButtonCopyEnabled, () => ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.Tooltip").Value));
+        AddBottomButton(ButtonCopyEnabled);
+        #endregion
+        OnInitialize_ButtonCopyPaste();
+        #region 更新模组
+        ButtonUpdate = new(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DisplayName"));
+        ButtonUpdate.OnLeftClick += (_, _) => ButtonUpdateClicked();
+        mouseOverTooltips.Add((ButtonUpdate, () => ModFolder.Instance.GetLocalization("UI.Buttons.Update.Tooltip").Value));
+        AddBottomButton(ButtonUpdate);
+        #endregion
+        #region 禁用冗余前置
+        ButtonDisableRedundant = new(ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.DisplayName"));
+        ButtonDisableRedundant.OnLeftClick += (_, _) => DisableRedundant(false);
+        ButtonDisableRedundant.OnRightClick += (_, _) => DisableRedundant(true);
+        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.Tooltip").Value));
+        AddBottomButton(ButtonDisableRedundant);
+        #endregion
+
+        #region 按钮占位符
+        for (int i = 0; i < buttonPlaceHolders.Length; ++i) {
+            buttonPlaceHolders[i] = new(string.Empty);
+            buttonPlaceHolders[i].BackgroundColor *= 0.5f;
+            // buttonPlaceHolders[i].BackgroundColor.A *= 2;
+        }
+        #endregion
+        #region 按钮处理位置
+        SettleBottomButtons(false);
+        OnLeftMouseDown += (_, _) => {
+            if (!buttonsBg.ContainsPoint(Main.MouseScreen) && buttonPage != 0) {
+                buttonPage = 0;
+                SettleBottomButtons();
+            }
+        };
+        #endregion
+    }
+    private void SettleBottomButtons(bool recalculate = true) {
+        buttonPage = Math.Clamp(buttonPage, 0, ButtonPageMax - 1);
+        buttonsBg.RemoveAllChildren();
+        int start = buttonPage * 5;
+        for (int i = 0; i < 5; ++i) {
+            UIElement button;
+            int index = start + i;
+            if (index < buttons.Count) {
+                button = buttons[index];
+            }
+            else {
+                button = buttonPlaceHolders[i];
+            }
+            button.Width.Set(-10, 1f / 3);
+            button.Height.Pixels = 40;
+            button.HAlign = i % 3 * 0.5f;
+            button.VAlign = i % 6 / 3;
+            buttonsBg.Append(button);
+        }
+        #region 第六按钮
+        UIElement sixthButton;
+        if (start + 6 > buttons.Count) {
+            sixthButton = buttonPlaceHolders[5];
+        }
+        else if (start + 6 == buttons.Count) {
+            sixthButton = buttons[^1];
+        }
+        else {
+            sixthButton = ButtonMore;
+        }
+        sixthButton.Width.Set(-10, 1f / 3);
+        sixthButton.Height.Pixels = 40;
+        sixthButton.HAlign = 5 % 3 * 0.5f;
+        sixthButton.VAlign = 5 % 6 / 3;
+        buttonsBg.Append(sixthButton);
+        #endregion
+        if (recalculate) {
+            buttonsBg.RecalculateChildren();
+        }
+    }
+
+    #region Button Copy Paste
+    private UIElement ButtonCopyPasteBox { get; set; } = new();
+    private UIPanel ButtonCopyPastePanel { get; set; } = new();
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyDisplayName { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyDisplayName.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyAlias { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyAlias.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyFavorite { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyFavorite.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteReplace { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteReplace.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteFavorite { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteFavorite.Label"));
+
+    private void UpdateToggleCopyDisplayNameToggled() => ToggleCopyDisplayName.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyDisplayName;
+    private void UpdateToggleCopyAliasToggled() => ToggleCopyAlias.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyAlias;
+    private void UpdateToggleCopyFavoriteToggled() => ToggleCopyFavorite.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyFavorite;
+    private void UpdateTogglePasteReplaceToggled() => TogglePasteReplace.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteReplace;
+    private void UpdateTogglePasteFavoriteToggled() => TogglePasteFavorite.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteFavorite;
+
+    private void OnInitialize_ButtonCopyPaste() {
+        ButtonCopyPasteBox = new UIElementWithContainsPointByChildren();
+        #region ButtonCopyPaste
+        ButtonCopyPaste = new(ModFolder.Instance.GetLocalization("UI.Buttons.CopyPaste.DisplayName")) {
+            Width = new(0, 1),
+            Height = new(0, 1),
+            HAlign = 0.5f,
+            VAlign = 1,
+        };
+        AddMouseOverTooltipsByModKey(ButtonCopyPaste, "UI.Buttons.CopyPaste.Tooltip");
+        ButtonCopyPaste.OnLeftClick += (_, _) => ButtonCopyPasteClicked(false);
+        ButtonCopyPaste.OnRightClick += (_, _) => ButtonCopyPasteClicked(true);
+        ButtonCopyPaste.OnMouseOver += (_, _) => {
+            var boxParent = ButtonCopyPasteBox.Parent;
+            boxParent.RemoveChild(ButtonCopyPasteBox);
+            boxParent.Append(ButtonCopyPasteBox);
+            ButtonCopyPasteBox.RemoveAllChildren();
+            ButtonCopyPasteBox.Append(ButtonCopyPastePanel);
+            ButtonCopyPaste.Height = new(40, 0);
+            ButtonCopyPastePanel.Append(ButtonCopyPaste);
+            UpdateToggleCopyDisplayNameToggled();
+            UpdateToggleCopyAliasToggled();
+            UpdateToggleCopyFavoriteToggled();
+            UpdateTogglePasteReplaceToggled();
+            UpdateTogglePasteFavoriteToggled();
+            ButtonCopyPasteBox.Recalculate();
+        };
+        #endregion ButtonCopyPaste
+        #region ButtonCopyPastePanel
+        ButtonCopyPastePanel.Width = new(24, 1);
+        ButtonCopyPastePanel.MaxWidth = new(24, 1);
+        ButtonCopyPastePanel.Height = new(224, 1);
+        ButtonCopyPastePanel.MaxHeight = new(224, 1);
+        ButtonCopyPastePanel.Top = new(12, 0);
+        ButtonCopyPastePanel.HAlign = 0.5f;
+        ButtonCopyPastePanel.VAlign = 1;
+        ButtonCopyPastePanel.OnMouseOut += (e, element) => {
+            if (ButtonCopyPastePanel.ContainsPoint(new(Main.mouseX, Main.mouseY)))
+                return;
+            ButtonCopyPastePanel.RemoveChild(ButtonCopyPaste);
+            ButtonCopyPaste.Height = new(0, 1);
+            ButtonCopyPasteBox.RemoveAllChildren();
+            ButtonCopyPasteBox.Append(ButtonCopyPaste);
+            ButtonCopyPasteBox.Recalculate();
+        };
+        #endregion
+        #region Toggles
+        #region ToggleCopyDisplayName
+        ToggleCopyDisplayName.Width = new(0, 1);
+        ToggleCopyDisplayName.Height = new(30, 0);
+        AddMouseOverTooltipsByModKey(ToggleCopyDisplayName, "Configs.ButtonCopyPasteConfigClass.CopyDisplayName.Tooltip");
+        ToggleCopyDisplayName.OnToggled += toggled => {
+            CommonConfig.Instance.ButtonCopyPasteConfig.CopyDisplayName = toggled;
+            CommonConfig.Instance.Save();
+        };
+        ButtonCopyPastePanel.Append(ToggleCopyDisplayName);
+        #endregion
+        #region ToggleCopyAlias
+        ToggleCopyAlias.Width = new(0, 1);
+        ToggleCopyAlias.Height = new(30, 0);
+        ToggleCopyAlias.Top = new(40, 0);
+        AddMouseOverTooltipsByModKey(ToggleCopyAlias, "Configs.ButtonCopyPasteConfigClass.CopyAlias.Tooltip");
+        ToggleCopyAlias.OnToggled += toggled => {
+            CommonConfig.Instance.ButtonCopyPasteConfig.CopyAlias = toggled;
+            CommonConfig.Instance.Save();
+        };
+        ButtonCopyPastePanel.Append(ToggleCopyAlias);
+        #endregion
+        #region ToggleCopyFavorite
+        ToggleCopyFavorite.Width = new(0, 1);
+        ToggleCopyFavorite.Height = new(30, 0);
+        ToggleCopyFavorite.Top = new(80, 0);
+        AddMouseOverTooltipsByModKey(ToggleCopyFavorite, "Configs.ButtonCopyPasteConfigClass.CopyFavorite.Tooltip");
+        ToggleCopyFavorite.OnToggled += toggled => {
+            CommonConfig.Instance.ButtonCopyPasteConfig.CopyFavorite = toggled;
+            CommonConfig.Instance.Save();
+        };
+        ButtonCopyPastePanel.Append(ToggleCopyFavorite);
+        #endregion
+        #region TogglePasteReplace
+        TogglePasteReplace.HAlign = 1;
+        TogglePasteReplace.Width = new(0, 1);
+        TogglePasteReplace.Height = new(30, 0);
+        TogglePasteReplace.Top = new(120, 0);
+        AddMouseOverTooltipsByModKey(TogglePasteReplace, "Configs.ButtonCopyPasteConfigClass.PasteReplace.Tooltip");
+        TogglePasteReplace.OnToggled += toggled => {
+            CommonConfig.Instance.ButtonCopyPasteConfig.PasteReplace = toggled;
+            CommonConfig.Instance.Save();
+        };
+        ButtonCopyPastePanel.Append(TogglePasteReplace);
+        #endregion
+        #region TogglePasteFavorite
+        TogglePasteFavorite.HAlign = 1;
+        TogglePasteFavorite.Width = new(0, 1);
+        TogglePasteFavorite.Height = new(30, 0);
+        TogglePasteFavorite.Top = new(160, 0);
+        AddMouseOverTooltipsByModKey(TogglePasteFavorite, "Configs.ButtonCopyPasteConfigClass.PasteFavorite.Tooltip");
+        TogglePasteFavorite.OnToggled += toggled => {
+            CommonConfig.Instance.ButtonCopyPasteConfig.PasteFavorite = toggled;
+            CommonConfig.Instance.Save();
+        };
+        ButtonCopyPastePanel.Append(TogglePasteFavorite);
+        #endregion
+        #endregion
+        ButtonCopyPasteBox.Append(ButtonCopyPaste);
+        AddBottomButton(ButtonCopyPasteBox);
+    }
+    private void ButtonCopyPasteClicked(bool rightClick) {
+        SoundEngine.PlaySound(SoundID.MenuTick);
+        if (ShowAllMods) {
+            PopupInfoByKey("UI.PopupInfos.CopyPasteNotAllowedWhenShowingAllMods");
+            return;
+        }
+        if (rightClick) {
+            PasteContent();
+        }
+        else {
+            CopyContent();
+        }
+    }
+    private void CopyContent() {
+        List<Node> nodes = [];
+        var selecting = SelectingItems;
+        bool isSelecting = false;
+        if (selecting.Count == 0) {
+            foreach (var visible in VisibleItems) {
+                if (visible.Node is { } node) {
+                    nodes.Add(node);
+                }
+            }
+        }
+        else {
+            isSelecting = true;
+            var selectingList = selecting.ToList();
+            selectingList.Sort((x, y) => x.IndexCache.CompareTo(y.IndexCache));
+            foreach (var select in selectingList) {
+                if (select.Node is { } node) {
+                    nodes.Add(node);
+                }
+            }
+        }
+        if (nodes.Count == 0) {
+            PopupInfoByKey("UI.PopupInfos.NotAnyItemCopied");
+            return;
+        }
+        ShareHelper.Export(nodes, true, true, false);
+        if (isSelecting) {
+            PopupInfoByKey("UI.PopupInfos.SelectedItemsCopied");
+        }
+        else {
+            PopupInfoByKey("UI.PopupInfos.AllItemsInTheFolderCopied");
+        }
+    }
+    private void PasteContent() {
+        var result = ShareHelper.Import(CurrentFolderNode, false, false);
+
+        switch (result) {
+        case ShareHelper.ImportResult.Success:
+            PopupInfoByKey("UI.PopupInfos.Imported");
+            break;
+        case ShareHelper.ImportResult.InvalidClipboard:
+            PopupInfoByKey("UI.PopupInfos.ImportClipboardInvalid");
+            break;
+        case ShareHelper.ImportResult.NotImplemented:
+            PopupInfoByKey("UI.PopupInfos.ImportVersionNotImplemented");
+            break;
+        case ShareHelper.ImportResult.InvalidVersion:
+            PopupInfoByKey("UI.PopupInfos.ImportInvalidVersion");
+            break;
+        }
+    }
+    #endregion
     #endregion
     #endregion
 
@@ -538,7 +927,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #region 搜索栏
     private UIPanel filterTextBoxBackground = null!;
-    private UIInputTextField filterTextBox = null!;
+    private UIFocusInputTextFieldPro filterTextBox = null!;
     private UICycleImage SearchFilterToggle = null!;
     private void OnInitialize_SearchFilter(Asset<Texture2D> texture) {
         filterTextBoxBackground = new UIPanel {
@@ -550,7 +939,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         filterTextBoxBackground.SetPadding(0);
         filterTextBoxBackground.OnRightClick += ClearSearchField;
         upperMenuContainer.Append(filterTextBoxBackground);
-        filterTextBox = new UIInputTextField(Language.GetTextValue("tModLoader.ModsTypeToSearch")) {
+        filterTextBox = new UIFocusInputTextFieldPro(Language.GetTextValue("tModLoader.ModsTypeToSearch")) {
             Height = { Percent = 1f },
             Width = { Percent = 1f },
             Left = { Pixels = 5 },
@@ -596,8 +985,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement) => Filter = string.Empty;
     #endregion
 
-    private bool CanCustomizeOrder() => NotAnyFilter();
-    public bool NotAnyFilter() {
+    private bool CanCustomizeOrder() {
         var end = categoryButtonStartIndex + categoryButtons.Length;
         for (int i = categoryButtonStartIndex; i < end; ++i) {
             if (_topButtonData[i] != 0) {
@@ -605,6 +993,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             }
         }
         return Filter == string.Empty;
+    }
+    public bool NotAnyFilter() {
+        return Filter == string.Empty
+            && LoadedFilterMode == ModLoadedFilters.All
+            && EnabledFilterMode == FolderEnabledFilters.All
+            && ModSideFilterMode == ModSideFilter.All
+        ;
     }
     #endregion
 
@@ -824,173 +1219,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }.WithPadding(15f);
         Append(uIHeaderTexTPanel);
         #endregion
-        #region 底下的按钮
-        #region 背景
-        buttonsBg = new() {
-            Width = { Percent = 1 },
-            Height = { Pixels = 85 },
-            Top = { Pixels = -105, Percent = 1 },
-        };
-        uiElement.Append(buttonsBg);
-        #endregion
-        #region 启用与禁用按钮
-        ButtonAllMods = new(ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.DisplayName"));
-        ButtonAllMods.OnLeftMouseDown += (_, _) => {
-            suppressLeftMouseDownClearSelecting = true;
-        };
-        ButtonAllMods.OnRightMouseDown += (_, _) => {
-            suppressRightMouseDownClearSelecting = true;
-        };
-        ButtonAllMods.OnLeftClick += (_, _) => {
-            if (!Main.keyState.PressingControl()) {
-                EnableMods();
-            }
-            else {
-                DisableMods(true, true);
-            }
-        };
-        ButtonAllMods.OnRightClick += (_, _) => DisableMods(false, !Main.keyState.PressingControl());
-        ButtonAllMods.OnMiddleClick += (_, _) => {
-            if (!Main.keyState.PressingControl()) {
-                ResetMods();
-            }
-            else {
-                DisableMods(true, false);
-            }
-        };
-        mouseOverTooltips.Add((ButtonAllMods, () => ModFolder.Instance.GetLocalization("UI.Buttons.AllMods.Tooltip").Value));
-        #endregion
-        #region 打开模组文件夹按钮
-        ButtonOMF = new(Language.GetText("tModLoader.ModsOpenModsFolders"));
-        ButtonOMF.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuOpen);
-            Directory.CreateDirectory(ModLoader.ModPath);
-            Utils.OpenFolder(ModLoader.ModPath);
-
-            if (ModOrganizer.WorkshopFileFinder.ModPaths.Count != 0) {
-                string? workshopFolderPath = Directory.GetParent(ModOrganizer.WorkshopFileFinder.ModPaths[0])?.ToString();
-                if (workshopFolderPath != null)
-                    Utils.OpenFolder(workshopFolderPath);
-            }
-        };
-        mouseOverTooltips.Add((ButtonOMF, () => Language.GetTextValue("tModLoader.ModsOpenModsFoldersTooltip")));
-        #endregion
-        #region 模组配置按钮
-        ButtonCL = new(Language.GetText("tModLoader.ModConfiguration"));
-        ButtonCL.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuOpen);
-            Main.menuMode = Interface.modConfigListID;
-            IsPreviousUIStateOfConfigList = true;
-        };
-        #endregion
-        #region 更多按钮按钮
-        ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
-        ButtonMore.OnLeftMouseDown += (_, _) => {
-            suppressLeftMouseDownClearSelecting = true;
-        };
-        ButtonMore.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuTick);
-            buttonPage = (buttonPage + 1) % buttonPageMax;
-            SettleBottomButtons();
-        };
-        #endregion
-        #region 新建文件夹按钮
-        ButtonCreateFolder = new(ModFolder.Instance.GetLocalization("UI.Buttons.CreateFolder.DisplayName"));
-        ButtonCreateFolder.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuTick);
-            FolderNode node = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value);
-            CurrentFolderNode.SetChildAtTheTop(node);
-            nodeToRename = node;
-            list.ViewPosition = 0;
-        };
-        #endregion
-        #region 返回按钮
-        ButtonB = new(Language.GetText("UI.Back"));
-        ButtonB.OnLeftClick += (_, _) => BackButtonClicked();
-        mouseOverTooltips.Add((ButtonB, () => ModFolder.Instance.GetLocalization("UI.Buttons.Back.Tooltip").Value));
-        #endregion
-        #region 复制已启用模组到此处
-        ButtonCopyEnabled = new(ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.DisplayName"));
-        ButtonCopyEnabled.OnLeftClick += (_, _) => {
-            if (CurrentFolderNode == FolderDataSystem.Root || ShowAllMods) {
-                SoundEngine.PlaySound(SoundID.MenuClose);
-                return;
-            }
-            SoundEngine.PlaySound(SoundID.MenuTick);
-            if (Main.keyState.PressingControl()) {
-                CurrentFolderNode.ClearChildrenF();
-            }
-            if (Main.keyState.PressingShift()) {
-                foreach (var mod in ModItemDict.Values) {
-                    if (mod.TheLocalMod.Enabled) {
-                        _ = new ModNode(mod.ModName) {
-                            ParentF = CurrentFolderNode
-                        };
-                    }
-                }
-            }
-            else {
-                foreach (var mod in ModItemDict.Values) {
-                    if (mod.Loaded) {
-                        _ = new ModNode(mod.ModName) {
-                            ParentF = CurrentFolderNode
-                        };
-                    }
-                }
-            }
-            FolderDataSystem.TreeChanged();
-        };
-        mouseOverTooltips.Add((ButtonCopyEnabled, () => ModFolder.Instance.GetLocalization("UI.Buttons.CopyEnabled.Tooltip").Value));
-        #endregion
-        #region 禁用冗余前置
-        ButtonDisableRedundant = new(ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.DisplayName"));
-        ButtonDisableRedundant.OnLeftClick += (_, _) => DisableRedundant(false);
-        ButtonDisableRedundant.OnRightClick += (_, _) => DisableRedundant(true);
-        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.Tooltip").Value));
-        #endregion
-        #region 更新模组
-        ButtonUpdate = new(ModFolder.Instance.GetLocalization("UI.Buttons.Update.DisplayName"));
-        ButtonUpdate.OnLeftClick += (_, _) => ButtonUpdateClicked();
-        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Update.Tooltip").Value));
-        #endregion
-        #region 导入文件夹
-        ButtonImport = new(ModFolder.Instance.GetLocalization("UI.Buttons.Import.DisplayName"));
-        ButtonImport.OnLeftClick += (_, _) => {
-            SoundEngine.PlaySound(SoundID.MenuTick);
-            if (ShowAllMods) {
-                PopupInfoByKey("UI.PopupInfos.ImportNotAllowedWhenShowingAllMods");
-                return;
-            }
-            var result = ShareHelper.Import(CurrentFolderNode, Main.keyState.PressingShift(), Main.keyState.PressingAlt());
-            switch (result) {
-            case ShareHelper.ImportResult.Success:
-                PopupInfoByKey("UI.PopupInfos.Imported");
-                break;
-            case ShareHelper.ImportResult.InvalidClipboard:
-                PopupInfoByKey("UI.PopupInfos.ImportClipboardInvalid");
-                break;
-            }
-        };
-        mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.Import.Tooltip").Value));
-        #endregion
-
-        #region 按钮占位符
-        for (int i = 0; i < buttonPlaceHolders.Length; ++i) {
-            buttonPlaceHolders[i] = new(string.Empty);
-            buttonPlaceHolders[i].BackgroundColor *= 0.5f;
-            // buttonPlaceHolders[i].BackgroundColor.A *= 2;
-        }
-        #endregion
-        #region 按钮处理位置
-        SettleBottomButtons(false);
-        OnLeftMouseDown += (_, _) => {
-            if (!buttonsBg.ContainsPoint(Main.MouseScreen)) {
-                buttonPage = 0;
-                SettleBottomButtons();
-            }
-        };
-        #endregion
-        #endregion
+        OnInitialize_Buttons();
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         uiPanel.Append(upperMenuContainer);
         Append(uiElement);
@@ -1061,7 +1290,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
 #endif
     public override void XButton1MouseDown(UIMouseEvent evt) {
+        base.XButton1MouseDown(evt);
         GotoUpperFolder(); // 鼠标 4 键返回
+    }
+    public override void XButton2MouseDown(UIMouseEvent evt) {
+        base.XButton2MouseDown(evt);
+        // TODO: 回撤与重做
     }
     private void MouseMove() {
         MouseMove_SelectAndDrag();
@@ -1098,6 +1332,32 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #endregion
+    #region Ctrl C/V
+    private void Draw_DetectCtrlACV() {
+        if (PlayerInput.WritingText)
+            return;
+        if (!Main.keyState.PressingControl())
+            return;
+        if (Main.keyState[Keys.A] == KeyState.Down && Main.oldKeyState[Keys.A] == KeyState.Up) {
+            CtrlAPressed();
+        }
+        if (Main.keyState[Keys.C] == KeyState.Down && Main.oldKeyState[Keys.C] == KeyState.Up) {
+            CtrlCPressed();
+        }
+        if (Main.keyState[Keys.V] == KeyState.Down && Main.oldKeyState[Keys.V] == KeyState.Up) {
+            CtrlVPressed();
+        }
+    }
+    private void CtrlAPressed() {
+        _selectingItems.AddRange(VisibleItems);
+    }
+    private void CtrlCPressed() {
+        ButtonCopyPasteClicked(false);
+    }
+    private void CtrlVPressed() {
+        ButtonCopyPasteClicked(true);
+    }
+    #endregion
     #endregion
 
     private void ResettleVertical() {
@@ -1132,27 +1392,6 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         uiScrollbar.Top.Pixels = upperPixels;
         uiScrollbar.Height.Pixels = -upperPixels;
         uiPanel.RecalculateChildren();
-    }
-    private void SettleBottomButtons(bool recalculate = true) {
-        buttonPage = Math.Clamp(buttonPage, 0, buttonPageMax - 1);
-        buttonsBg.RemoveAllChildren();
-        for (int i = buttonPage * 6; i < (buttonPage + 1) * 6; ++i) {
-            UIElement button;
-            if (i < buttons.Length) {
-                button = buttons[i];
-            }
-            else {
-                button = buttonPlaceHolders[i % 6];
-            }
-            button.Width.Set(-10, 1f / 3);
-            button.Height.Pixels = 40;
-            button.HAlign = i % 3 * 0.5f;
-            button.VAlign = i % 6 / 3;
-            buttonsBg.Append(button);
-        }
-        if (recalculate) {
-            buttonsBg.RecalculateChildren();
-        }
     }
 
     #region 返回
@@ -1571,9 +1810,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
         ShowTooltips();
+        Draw_DetectCtrlACV(); // 在画完子元素后
     }
     #region 鼠标的悬浮提示和悬浮图片
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
+    private void AddMouseOverTooltipsByModKey(UIElement element, string localizationModKey)
+        => mouseOverTooltips.Add((element, () => ModFolder.Instance.GetLocalizedValue(localizationModKey)));
     /// <summary>
     /// 当鼠标在一些东西上时显示悬浮提示
     /// </summary>
@@ -2727,7 +2969,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (ShowAllMods)
             return;
         var status = CommonConfig.Instance.ShowEnableStatus;
-        CurrentFolderNode.RefreshCounts(status.ShowBackground || status.ShowAny, status.ShowBackgroundForPath);
+        CurrentFolderNode.RefreshCounts(status.ShowBackground || status.ShowAny || status.ShowTooltip,
+            status.ShowBackgroundForPath || status.ShowTooltipForPath);
     }
     #endregion
 }

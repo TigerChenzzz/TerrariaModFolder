@@ -83,20 +83,20 @@ partial class UIFolderItem {
             if (replaceToRenameText) {
                 replaceToRenameText = false;
                 _renameText.HintText = _item.GetRenameHintText();
-                _renameText.CurrentString = _item.GetRenameText();
+                _renameText.Text = _item.GetRenameText();
                 this.ReplaceChildrenByIndex(0, _renameText);
                 _renameText.Focused = true;
             }
             if (directReplaceToRenameText) {
                 directReplaceToRenameText = false;
                 _renameText.HintText = _item.GetRenameHintText();
-                _renameText.CurrentString = string.Empty;
+                _renameText.Text = string.Empty;
                 this.ReplaceChildrenByIndex(0, _renameText);
                 _renameText.Focused = true;
             }
         }
         private void OnUnfocus_TryRename(object sender, EventArgs e) {
-            var newName = _renameText.CurrentString;
+            var newName = _renameText.Text;
             if (shouldBePlaceHolder) {
                 replaceToPlaceHolder = true;
             }
