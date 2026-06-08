@@ -137,8 +137,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     #region 子元素
-    private UIElement uiElement = null!;
-    private UIPanel uiPanel = null!;
+    private UIElementWithCustomContainingPoint MainBox { get; set; } = null!;
+    private UIPanel MainPanel { get; set; } = null!;
     private UIImagePro refreshButton = null!;
     private int refreshButtonIndex;
     private readonly UIElement refreshButtonPlaceHolder = new();
@@ -175,7 +175,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Height = { Pixels = 85 },
             Top = { Pixels = -105, Percent = 1 },
         };
-        uiElement.Append(buttonsBg);
+        MainBox.Append(buttonsBg);
         #endregion
         #region 更多按钮按钮
         ButtonMore = new(ModFolder.Instance.GetLocalization("UI.Buttons.More.DisplayName"));
@@ -371,16 +371,16 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIElement ButtonCopyPasteBox { get; set; } = new();
     private UIPanel ButtonCopyPastePanel { get; set; } = new();
     private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyDisplayName { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyDisplayName.Label"));
-    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyAlias { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyAlias.Label"));
-    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyFavorite { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyFavorite.Label"));
-    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteReplace { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteReplace.Label"));
-    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteFavorite { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteFavorite.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyAlias       { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyAlias.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> ToggleCopyFavorite    { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.CopyFavorite.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteReplace    { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteReplace.Label"));
+    private UIAutoScaleTextTextPanelToggle<LocalizedText> TogglePasteFavorite   { get; set; } = new(ModFolder.Instance.GetLocalization("Configs.ButtonCopyPasteConfigClass.PasteFavorite.Label"));
 
     private void UpdateToggleCopyDisplayNameToggled() => ToggleCopyDisplayName.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyDisplayName;
-    private void UpdateToggleCopyAliasToggled() => ToggleCopyAlias.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyAlias;
-    private void UpdateToggleCopyFavoriteToggled() => ToggleCopyFavorite.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyFavorite;
-    private void UpdateTogglePasteReplaceToggled() => TogglePasteReplace.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteReplace;
-    private void UpdateTogglePasteFavoriteToggled() => TogglePasteFavorite.Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteFavorite;
+    private void UpdateToggleCopyAliasToggled      () => ToggleCopyAlias      .Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyAlias;
+    private void UpdateToggleCopyFavoriteToggled   () => ToggleCopyFavorite   .Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.CopyFavorite;
+    private void UpdateTogglePasteReplaceToggled   () => TogglePasteReplace   .Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteReplace;
+    private void UpdateTogglePasteFavoriteToggled  () => TogglePasteFavorite  .Toggled = CommonConfig.Instance.ButtonCopyPasteConfig.PasteFavorite;
 
     private void OnInitialize_ButtonCopyPaste() {
         ButtonCopyPasteBox = new UIElementWithContainsPointByChildren();
@@ -408,6 +408,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             UpdateTogglePasteReplaceToggled();
             UpdateTogglePasteFavoriteToggled();
             ButtonCopyPasteBox.Recalculate();
+            // MainBox.AddCustomContainingPoint(ButtonCopyPastePanel.ContainsPoint);
         };
         #endregion ButtonCopyPaste
         #region ButtonCopyPastePanel
@@ -426,6 +427,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             ButtonCopyPasteBox.RemoveAllChildren();
             ButtonCopyPasteBox.Append(ButtonCopyPaste);
             ButtonCopyPasteBox.Recalculate();
+            // MainBox.RemoveCustomContainingPoint(ButtonCopyPastePanel.ContainsPoint);
         };
         #endregion
         #region Toggles
@@ -1090,24 +1092,23 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #region OnInitialize, OnActivate, OnDeactivate
     public override void OnInitialize() {
         #region 全部元素的容器
-        // UICommon.MaxPanelWidth  // 600
-        uiElement = new UIElement {
+        MainBox = new() {
             Width = { Percent = 0.8f },
-            MaxWidth = UICommon.MaxPanelWidth,
+            MaxWidth = UICommon.MaxPanelWidth, // 600
             Top = { Pixels = 220 },
             Height = { Pixels = -220, Percent = 1f },
             HAlign = 0.5f,
         };
         #endregion
         #region 除开下面按钮之外的面板
-        uiPanel = new UIPanel {
+        MainPanel = new UIPanel {
             Width = { Percent = 1f },
             Height = { Pixels = -110, Percent = 1f }, // -110
             BackgroundColor = UICommon.MainPanelBackground,
             PaddingTop = 0f,
             HAlign = 0.5f,
         };
-        uiElement.Append(uiPanel);
+        MainBox.Append(MainPanel);
         #endregion
         OnInitialize_Loading(); // 正在加载时的循环图标
         float upperPixels = 10;
@@ -1125,7 +1126,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         folderPathList.OnDrawWithSpriteBatch += sb => {
             sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
         };
-        folderPathListIndex = uiPanel.AppendAndGetIndex(folderPathList);
+        folderPathListIndex = MainPanel.AppendAndGetIndex(folderPathList);
         #endregion
         #region 刷新按钮
         #region refresh3 版
@@ -1158,7 +1159,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 refreshButton.SourceRectangle = new(30, 0, 30, 30);
             }
         };
-        refreshButtonIndex = uiPanel.AppendAndGetIndex(refreshButton);
+        refreshButtonIndex = MainPanel.AppendAndGetIndex(refreshButton);
         #endregion
         #region 单图标 + highlight 版
         /*
@@ -1195,10 +1196,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = { Pixels = upperPixels },
             ListPadding = 2f,
         };
-        uiPanel.Append(list);
+        MainPanel.Append(list);
         #endregion
         #region 内存占用
-        ramUsageIndex = uiPanel.AppendAndGetIndex(ramUsagePlaceHolder);
+        ramUsageIndex = MainPanel.AppendAndGetIndex(ramUsagePlaceHolder);
         #endregion
         #region 滚条
         // TODO: 点按这个滚条会产生一个偏移的 bug
@@ -1207,7 +1208,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = { Pixels = upperPixels },
             HAlign = 1f
         }.WithView(100f, 1000f);
-        uiPanel.Append(uiScrollbar);
+        MainPanel.Append(uiScrollbar);
 
         list.SetScrollbar(uiScrollbar);
         #endregion
@@ -1221,8 +1222,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         #endregion
         OnInitialize_Buttons();
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
-        uiPanel.Append(upperMenuContainer);
-        Append(uiElement);
+        MainPanel.Append(upperMenuContainer);
+        Append(MainBox);
         OnInitialize_Debug();
     }
     [Conditional("DEBUG")]
@@ -1365,33 +1366,33 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (ShowRamUsage) {
             upperPixels += 2;
             ramUsage.Top.Pixels = upperPixels;
-            uiPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
+            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
             if (!UIMemoryBar.RecalculateMemoryNeeded) {
                 ramUsage.Show();
             }
             upperPixels += ramUsage.Height.Pixels; // 20
         }
         else {
-            uiPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsagePlaceHolder);
+            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsagePlaceHolder);
         }
         if (!ShowAllMods) {
             upperPixels += 2;
             folderPathList.Top.Pixels = upperPixels;
             refreshButton.Top.Pixels = upperPixels;
-            uiPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
-            uiPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
+            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
+            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
             upperPixels += folderPathList.Height.Pixels; // 30
         }
         else {
-            uiPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
-            uiPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
+            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
+            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
         }
         upperPixels += 6;
         list.Top.Pixels = upperPixels;
         list.Height.Pixels = -upperPixels;
         uiScrollbar.Top.Pixels = upperPixels;
         uiScrollbar.Height.Pixels = -upperPixels;
-        uiPanel.RecalculateChildren();
+        MainPanel.RecalculateChildren();
     }
 
     #region 返回
