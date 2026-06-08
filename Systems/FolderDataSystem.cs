@@ -3,6 +3,7 @@ using ModFolder.UI.Menu;
 using ModFolder.UI.UIFolderItems.Mods;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
 using Terraria.ModLoader.Core;
 using Terraria.Social.Steam;
 
@@ -129,6 +130,10 @@ public static class FolderDataSystem {
                 }
             }
         }
+        [Obsolete($"using {nameof(FolderDataSystem)}.{nameof(ReceiveLocalModDataFromUI)} instead", true)]
+        /// <summary>
+        /// F for no DataChanged call
+        /// </summary>
         public void ReceiveDataFromF(UIModItemInFolderLoaded uiMod) {
             ModName = uiMod.ModName;
             PublishId = uiMod.PublishId;
@@ -741,6 +746,49 @@ public static class FolderDataSystem {
             DataChanged();
         }
         return anyRemoved;
+    }
+
+    /// <summary>
+    /// F for no DataChanged call
+    /// </summary>
+    /// <returns>has any been modified</returns>
+    private static bool ReceiveLocalModDataFromUIF(UIModItemInFolderLoaded uiMod) {
+        bool modified = false;
+        var modName = uiMod.ModName;
+        var publishId = uiMod.PublishId;
+        if (publishId != 0) {
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(PublishIds, modName, out var exists);
+            if (!exists || current != publishId) {
+                current = publishId;
+                modified = true;
+            }
+        }
+        var lastModified = uiMod.LastModified;
+        if (lastModified != default) {
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(LastModifieds, modName, out var exists);
+            if (!exists || current != lastModified) {
+                current = lastModified;
+                modified = true;
+            }
+        }
+        var displayName = uiMod.ModDisplayName;
+        if (!string.IsNullOrEmpty(displayName)) {
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(DisplayNames, modName, out var exists);
+            if (!exists || current != displayName) {
+                current = displayName;
+                modified = true;
+            }
+        }
+        return modified;
+    }
+    public static void ReceiveLocalModDataFromUI(IEnumerable<UIModItemInFolderLoaded> uiMods) {
+        bool modified = false;
+        foreach (var uiMod in uiMods) {
+            modified |= ReceiveLocalModDataFromUIF(uiMod);
+        }
+        if (modified) {
+            DataChanged();
+        }
     }
 
     public static void UpdateLastModified(FolderNode? folder = null) {

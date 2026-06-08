@@ -15,7 +15,7 @@ UI: {
 				rightclick to disable mods
 				middle click to reset mods to the previous enabled states
 				the mods are from the current folder or selected mods and folders by default
-				pressing Alt to also contains the subfolders
+				pressing Alt to include the subfolders
 				pressing Shift for all mods
 				pressing Ctrl to not ignore the favorite mods
 				specially, pressing Ctrl and right click is regarded as right click but not pressing Ctrl, and disable the redundant dependencies
@@ -118,6 +118,19 @@ UI: {
 				The copy target is the selected if any or all in the current folder
 				'''
 		}
+
+		SubscribeAll: {
+			DisplayName: Subscribe All
+			Tooltip:
+				'''
+				Subscribe all or selected unsubscribed mods in this folder
+				Pressing Alt to include subfolders
+				Pressing Shift for all mods
+				'''
+			SearchingForMods: Searching for mods to subscribe...
+			NoModsToSubscribe: Not mods to subscribe.
+			DialogText: Are you sure to subscribe the mods below?
+		}
 	}
 
 	SortButtons: {
@@ -206,6 +219,9 @@ UI: {
 		SteamNotAvailable: Steam not available!
 		DownloadModError: Download mods error! See log for more detailed info.
 		CantFindModInWorkshop: Can't find the mod in workshop: {0} ({1})
+		CantFindModInWorkshopWithoutDisplayName: Can't find the mod in workshop: {0}
+		NoPublishIdStored: No Publish ID stored for mod: {0} ({1})
+		NoPublishIdStoredWithoutDisplayName: No Publish ID stored for mod: {0}
 		EnableNotAllowedWhenLoading: Can't enable mods when loading!
 		DisableNotAllowedWhenLoading: Can't disable mods when loading!
 		ResetNotAllowedWhenLoading: Can't reset mods when loading!

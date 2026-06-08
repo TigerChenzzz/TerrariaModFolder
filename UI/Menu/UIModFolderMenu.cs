@@ -23,6 +23,7 @@ using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.ModBrowser;
+using Terraria.Social.Base;
 using Terraria.Social.Steam;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
@@ -77,6 +78,22 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public UIHorizontalList folderPathList = null!;
     private int folderPathListIndex;
     private readonly UIElement folderPathListPlaceHolder = new();
+    private void OnInitialize_FolderPathList(ref float upperPixels) {
+        upperPixels += 2;
+        folderPathList = new() {
+            Top = { Pixels = upperPixels },
+            Height = { Pixels = 30 },
+            Left = { Pixels = 5 },
+            Width = { Pixels = -40, Percent = 1 },
+        };
+        upperPixels += 30;
+        folderPathList.SetPadding(1);
+        folderPathList.ListPadding = 2;
+        folderPathList.OnDrawWithSpriteBatch += sb => {
+            sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
+        };
+        folderPathListIndex = MainPanel.AppendAndGetIndex(folderPathList);
+    }
 
     private FolderPathClass? _folderPath;
     private FolderPathClass FolderPath {
@@ -144,6 +161,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private readonly UIElement refreshButtonPlaceHolder = new();
     private UIFolderItemList list = null!;
     private UIScrollbar uiScrollbar = null!;
+    #endregion
     #region 下面的一堆按钮
     public class UIAutoScaleTextTextPanelWithFadedMouseOver<T> : UIAutoScaleTextTextPanel<T> {
         public UIAutoScaleTextTextPanelWithFadedMouseOver(T text) : base(text) {
@@ -161,6 +179,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonCopyPaste        { get; set; } = null!;
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonUpdate           { get; set; } = null!;
     private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonDisableRedundant { get; set; } = null!;
+    private UIAutoScaleTextTextPanelWithFadedMouseOver<LocalizedText> ButtonSubscribeAll     { get; set; } = null!;
 
     private readonly List<UIElement> buttons = [];
     private readonly UIAutoScaleTextTextPanel<string>[] buttonPlaceHolders = new UIAutoScaleTextTextPanel<string>[6];
@@ -308,6 +327,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         mouseOverTooltips.Add((ButtonDisableRedundant, () => ModFolder.Instance.GetLocalization("UI.Buttons.DisableRedundant.Tooltip").Value));
         AddBottomButton(ButtonDisableRedundant);
         #endregion
+        OnInitialize_ButtonSubscribeAll();
 
         #region 按钮占位符
         for (int i = 0; i < buttonPlaceHolders.Length; ++i) {
@@ -556,6 +576,260 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #endregion
+    #region ButtonSubscribeAll
+    private Task? subscribeAllTask;
+    private CancellationTokenSource? subscribeAllCts;
+    [MemberNotNull(nameof(subscribeAllCts))]
+    private void RefreshSubscribeAllCts() {
+        if (subscribeAllCts != null) {
+            subscribeAllCts.Cancel();
+            subscribeAllCts.Dispose();
+        }
+        subscribeAllCts = new();
+    }
+    private void ClearSubscribeAllCts() {
+        if (subscribeAllCts == null) {
+            return;
+        }
+        subscribeAllCts.Cancel();
+        subscribeAllCts.Dispose();
+        subscribeAllCts = null;
+    }
+
+    private void OnInitialize_ButtonSubscribeAll() {
+        ButtonSubscribeAll = new(ModFolder.Instance.GetLocalization("UI.Buttons.SubscribeAll.DisplayName"));
+        mouseOverTooltips.Add((ButtonSubscribeAll, () => ModFolder.Instance.GetLocalization("UI.Buttons.SubscribeAll.Tooltip").Value));
+        ButtonSubscribeAll.OnLeftClick += (_, _) => ButtonSubscribeAllClicked();
+        AddBottomButton(ButtonSubscribeAll);
+    }
+    private void ButtonSubscribeAllClicked() {
+        SoundEngine.PlaySound(SoundID.MenuTick);
+        if (!SteamedWraps.SteamAvailable) {
+            PopupInfoByKey("UI.PopupInfos.SteamNotAvailable");
+            return;
+        }
+        if (!Loaded) {
+            PopupInfoByKey("UI.PopupInfos.CantSubscribeWhenLoading");
+            return;
+        }
+        #region 收集要订阅的模组
+        HashSet<string> modNames = [];
+        if (ShowAllMods) {
+            foreach (var item in VisibleItems) {
+                if (item is UIModItemInFolderUnloaded u) {
+                    modNames.Add(u.ModName);
+                }
+            }
+        }
+        else {
+            // 按住 Shift 则为所有模组
+            if (Main.keyState.PressingShift()) {
+                foreach (var node in FolderDataSystem.Root.ModNodesInTree) {
+                    modNames.Add(node.ModName);
+                }
+            }
+            // 不按住 Alt 或 Shift 时...
+            else if (!Main.keyState.PressingAlt()) {
+                // 若有选中的项则为选中的模组及文件夹
+                if (SelectingItems.Count != 0) {
+                    foreach (var item in SelectingItems) {
+                        if (item is UIModItemInFolderUnloaded u) {
+                            modNames.Add(u.ModName);
+                        }
+                        else if (item is UIFolder f && f.FolderNode is { } folderNode) {
+                            foreach (var node in folderNode.ModNodesInTree) {
+                                modNames.Add(node.ModName);
+                            }
+                        }
+                    }
+                }
+                // 否则为当前文件夹下的所有模组
+                else {
+                    foreach (var item in VisibleItems) {
+                        if (item is UIModItemInFolderUnloaded u) {
+                            modNames.Add(u.ModName);
+                        }
+                    }
+                }
+            }
+            // 按住 Alt 时则为当前文件夹下所有模组和文件夹
+            else {
+                foreach (var item in VisibleItems) {
+                    if (item is UIModItemInFolderUnloaded u) {
+                        modNames.Add(u.ModName);
+                    }
+                    else if (item is UIFolder f && f.FolderNode is { } folderNode) {
+                        foreach (var node in folderNode.ModNodesInTree) {
+                            modNames.Add(node.ModName);
+                        }
+                    }
+                }
+            }
+        }
+        var tempUIs = modNames.Where(n => !IsModSubscribed(n))
+            .Select(n => new UIModItemInFolderUnloaded(new ModNode(n)))
+            .Where(u => u.CanSubscribe()).ToList();
+        bool anyModToSubscribe = tempUIs.Count > 0;
+        #endregion
+        ModDownloadItem[]? modsToSubscribe = null;
+        #region 弹出提示窗口
+        #region 窗口
+        UIPanel panel = new(){
+            Width = { Pixels = 500 },
+            Height = { Pixels = 500 },
+            HAlign = .5f,
+            VAlign = .7f,
+            BackgroundColor = new Color(63, 82, 151),
+            BorderColor = Color.Black,
+        };
+        panel.SetPadding(6);
+        AppendConfirmPanel(panel, ClearSubscribeAllCts);
+        #endregion
+        #region 文本
+        var dialogText = new UIText(ModFolder.Instance.GetLocalization(!anyModToSubscribe
+                ? "UI.Buttons.SubscribeAll.NoModsToSubscribe"
+                : "UI.Buttons.SubscribeAll.SearchingForMods")) {
+            Width = { Percent = .85f },
+            HAlign = .5f,
+            Top = new(10, 0),
+            IsWrapped = true,
+        };
+        panel.Append(dialogText);
+        #endregion
+        #region 列表
+        UpdateListItem[]? updateListItems = null;
+        bool updateListItemsAdded = false;
+        UIList subscribeModsList = new() {
+            Left = new(0, 0.05f),
+            Width = new(-20, 0.9f),
+            Top = new(50, 0),
+            Height = new(-120, 1),
+        };
+        UIScrollbar scrollbar = new() {
+            Width = new(20, 0),
+            HAlign = 1,
+            Top = new(50, 0),
+            Height = new(-120, 1),
+        };
+        subscribeModsList.SetScrollbar(scrollbar);
+        subscribeModsList.OnUpdate += _ => {
+            if (updateListItems != null && !updateListItemsAdded) {
+                updateListItemsAdded = true;
+                subscribeModsList.AddRange(updateListItems);
+            }
+        };
+        panel.Append(subscribeModsList);
+        panel.Append(scrollbar);
+        #endregion
+        #region 按钮是
+        var yesButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.104")) {
+            TextColor = Color.Gray,
+            Width = new(-10f, 1f / 3),
+            HAlign = .15f,
+            Height = { Pixels = 40 },
+            Top = new(-60, 1),
+            IgnoresMouseInteraction = true,
+        }.WithFadedMouseOver();
+        yesButton.OnLeftClick += (_, _) => {
+            if (subscribeAllTask != null || updateListItems == null) {
+                return;
+            }
+            if (updateListItems.Length == 0) {
+                RemoveConfirmPanel();
+                return;
+            }
+            var realUpdateListItems = updateListItems.Where(i => i.Selecting).ToArray();
+            if (realUpdateListItems.Length == 0) {
+                realUpdateListItems = updateListItems;
+            }
+            Task.Run(() => DownloadHelper.DownloadMods([.. realUpdateListItems.Select(i => i.Mod)]));
+            RemoveConfirmPanel();
+        };
+        panel.Append(yesButton);
+        #endregion
+        #region 按钮否
+        var noButton = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("LegacyMenu.105")) {
+            Width = new(-10f, 1f / 3),
+            HAlign = .85f,
+            Height = { Pixels = 40 },
+            Top = new(-60, 1),
+        }.WithFadedMouseOver();
+        noButton.OnLeftClick += (_, _) => RemoveConfirmPanel();
+        panel.Append(noButton);
+        #endregion
+        panel.Recalculate();
+        #endregion
+        if (!anyModToSubscribe) {
+            return;
+        }
+        RefreshSubscribeAllCts();
+        var token = subscribeAllCts.Token;
+        subscribeAllTask = Task.Run(async () => {
+            string text = ModFolder.Instance.GetLocalizedValue("UI.Buttons.SubscribeAll.SearchingForMods");
+            HashSet<ModDownloadItem> tempSubscribeSet = [];
+            HashSet<ModPubId_t> tempIds = [];
+            List<UpdateListItem> tempUpdateListItems = [];
+            int i = 0;
+            foreach (var ui in tempUIs) {
+                dialogText.SetText($"{text}\n({i++} / {tempUIs.Count}) ({ui.ModName})");
+                token.ThrowIfCancellationRequested();
+                var mdi = await UIModItemInFolderUnloaded.TryGetModDownloadItem(ui.ModName);
+                if (mdi == null || tempIds.Contains(mdi.PublishId)) {
+                    continue;
+                }
+                token.ThrowIfCancellationRequested();
+                var connectedMods = DownloadHelper.GetFullDownloadEnumerable([mdi]).ToHashSet();
+                foreach (var ii in connectedMods) {
+                    if (tempIds.Contains(ii.PublishId))
+                        continue;
+                    tempSubscribeSet.Add(ii);
+                    tempIds.Add(ii.PublishId);
+                    var updateListItem = ToUpdateListItem(ii, connectedMods);
+                    tempUpdateListItems.Add(updateListItem);
+                    updateListItem.OnSelected += () => {
+                        if (updateListItems == null) {
+                            return;
+                        }
+                        foreach (var i in updateListItems) {
+                            if (updateListItem.ConnectedMods.Contains(i.Mod)) {
+                                i.SetSelectingQuick(true);
+                            }
+                        }
+                    };
+                    updateListItem.OnDeselected += () => {
+                        if (updateListItems == null) {
+                            return;
+                        }
+                        foreach (var i in updateListItems) {
+                            if (i.ConnectedMods.Contains(updateListItem.Mod)) {
+                                i.SetSelectingQuick(false);
+                            }
+                        }
+                    };
+                }
+            }
+            dialogText.SetText(text);
+            modsToSubscribe = [.. tempSubscribeSet];
+            updateListItems = [.. tempUpdateListItems];
+            while (!updateListItemsAdded) {
+                await Task.Yield();
+                if (token.IsCancellationRequested) {
+                    subscribeAllTask = null;
+                    return;
+                }
+            }
+            Thread.MemoryBarrier();
+            if (updateListItems.Length > 0) {
+                dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.SubscribeAll.DialogText"));
+                yesButton.TextColor = Color.White;
+                yesButton.IgnoresMouseInteraction = false;
+            }
+            else {
+                dialogText.SetText(ModFolder.Instance.GetLocalization("UI.Buttons.SubscribeAll.NoModsToSubscribe"));
+            }
+            subscribeAllTask = null;
+        });
+    }
     #endregion
     #endregion
 
@@ -1113,21 +1387,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         OnInitialize_Loading(); // 正在加载时的循环图标
         float upperPixels = 10;
         OnInitialize_UpperMenuContainer(ref upperPixels);   // 排序与过滤的条
-        #region 文件夹路径
-        upperPixels += 2;
-        folderPathList = new() {
-            Top = { Pixels = upperPixels },
-            Height = { Pixels = 30 },
-            Left = { Pixels = 5 },
-            Width = { Pixels = -40, Percent = 1 },
-        };
-        folderPathList.SetPadding(1);
-        folderPathList.ListPadding = 2;
-        folderPathList.OnDrawWithSpriteBatch += sb => {
-            sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
-        };
-        folderPathListIndex = MainPanel.AppendAndGetIndex(folderPathList);
-        #endregion
+        OnInitialize_FolderPathList(ref upperPixels); // 文件夹路径
         #region 刷新按钮
         #region refresh3 版
         refreshButton = new(MTextures.UI("Refresh3")) {
@@ -1730,7 +1990,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
                 }
                 modsCurrent.Add(m.ModName);
                 if (ModItemDict.TryGetValue(m.ModName, out var uiMod)) {
-                    m.ReceiveDataFromF(uiMod);
+                    // m.ReceiveDataFromF(uiMod); // 在 Populate 阶段收集过数据了, 这里不再需要
                     if (uiMod.PassFilters(filterResults)) {
                         uiMod.ModNode = m;
                         yield return uiMod;
@@ -2642,20 +2902,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (CommonConfig.Instance.RemoveRedundantData) {
             FolderDataSystem.RemoveRedundantData();
         }
-        #region 遍历一遍 Root 来做各种事情
-        bool modified = false;
-        foreach (var mod in FolderDataSystem.Root.ModNodesInTree) {
-            if (ModItemDict.TryGetValue(mod.ModName, out var uiMod)) {
-                modified = true;
-                mod.ReceiveDataFromF(uiMod);
-            }
-        }
-        if (modified) {
-            FolderDataSystem.DataChanged();
-        }
+        FolderDataSystem.ReceiveLocalModDataFromUI(ModItemDict.Values);
         FolderDataSystem.UpdateLastModified();
-        // TODO: 更多...
-        #endregion
         ArrangeGenerate();
     }
     #endregion
@@ -2704,6 +2952,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             downloadProgressQueue.Dequeue();
         }
     }
+
+    /// <summary>
+    /// 需要先判断 <see cref="Loaded"/> 为真才可使用
+    /// </summary>
+    public bool IsModSubscribed(string modName) => ModItemDict.ContainsKey(modName);
     #endregion
     #region 更新模组
     private Task? updateTask;
@@ -2739,7 +2992,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             HAlign = .5f,
             VAlign = .7f,
             BackgroundColor = new Color(63, 82, 151),
-            BorderColor = Color.Black
+            BorderColor = Color.Black,
         };
         updatePanel.SetPadding(6);
         AppendConfirmPanel(updatePanel, ClearUpdateCts);
@@ -2904,15 +3157,20 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         public static Color BorderMouseOver => new(255, 231, 69);
         public static Color BorderSelecting => new(191, 173, 69);
         public static Color BorderMouseOverAndSelecting => new(255, 231, 69);
-        public UpdateListItem(ModDownloadItem mod) {
+        public UpdateListItem(ModDownloadItem mod) : this(mod, [.. DownloadHelper.GetFullDownloadEnumerable([mod])]) { }
+        public UpdateListItem(ModDownloadItem mod, HashSet<ModDownloadItem> connectedMods) {
             Mod = mod;
-            ConnectedMods = [.. DownloadHelper.GetFullDownloadEnumerable([mod])];
+            ConnectedMods = connectedMods;
             ConnectedMods.Remove(mod);
             SetPadding(4);
             PaddingTop = PaddingBottom = 8;
+            var modName = mod.ModName;
+            if (FolderDataSystem.DisplayNames.TryGetValue(modName, out var displayName)) {
+                modName = Utils.CleanChatTags(displayName);
+            }
             string str = mod.Installed != null
-                ? ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.UpdateItemPattern").FormatWith(mod.ModName, mod.Installed.Version, mod.Version)
-                : ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.NewItemPattern").FormatWith(mod.ModName, mod.Version);
+                ? ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.UpdateItemPattern").FormatWith(modName, mod.Installed.Version, mod.Version)
+                : ModFolder.Instance.GetLocalizedValue("UI.Buttons.Update.NewItemPattern").FormatWith(modName, mod.Version);
             
             Text = new(str) {
                 Width = new(-4, 1),
@@ -2945,6 +3203,13 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     private static UpdateListItem ToUpdateListItem(ModDownloadItem mod) {
         return new(mod) {
+            Width = new(0, 1),
+            // panel 的 Height 在 Recalculate 时计算
+        };
+    }
+
+    private static UpdateListItem ToUpdateListItem(ModDownloadItem mod, HashSet<ModDownloadItem> connectedMods) {
+        return new(mod, connectedMods) {
             Width = new(0, 1),
             // panel 的 Height 在 Recalculate 时计算
         };

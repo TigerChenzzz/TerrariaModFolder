@@ -3,6 +3,7 @@ using ModFolder.Helpers;
 using ModFolder.Systems;
 using ModFolder.UI.Base;
 using ModFolder.UI.Menu;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -27,7 +28,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     private readonly FolderDataSystem.ModNode _modNode = modNode;
     public FolderDataSystem.ModNode ModNode => _modNode;
     public override FolderDataSystem.Node? Node => ModNode;
-    public override DateTime LastModified => FolderDataSystem.LastModifieds.GetValueOrDefault(ModName);
+    public override DateTime LastModified => _modNode.LastModified; // FolderDataSystem.LastModifieds.GetValueOrDefault(ModName);
     public override bool Favorite {
         get => ModNode.Favorite;
         set {
@@ -53,7 +54,10 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         #region 重新订阅按钮
         if (ModNode.PublishId != 0 && SteamedWraps.SteamAvailable) {
             var subsribeButton = SubscribeButton = NewRightButton(MTextures.ButtonSubscribe);
-            subsribeButton.OnLeftClick += TrySubscribeMod;
+            subsribeButton.OnLeftClick += (_, _) => {
+                SoundEngine.PlaySound(SoundID.MenuTick);
+                TrySubscribeMod();
+            };
             mouseOverTooltips.Add((subsribeButton, GetSubscribeButtonTooltip));
         }
         #endregion
@@ -115,15 +119,21 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
     #region 订阅 (下载)
     // TODO: 检查 SteamedWraps.SteamAvailable 以判断是否可以下载
 
-    Task? SubscribeTask { get; set; }
-    private void TrySubscribeMod(UIMouseEvent evt, UIElement listeningElement) {
-        SoundEngine.PlaySound(SoundID.MenuTick);
+    private static ConcurrentDictionary<string, Task> SubscribeTasks { get; set; } = [];
+    private void TrySubscribeMod() {
         if (GetCantSubscribePopupInfo() is string popupInfo) {
             UIModFolderMenu.PopupInfo(popupInfo);
             return;
         }
-        SubscribeTask = SubscribeModAsync().ContinueWith(t => SubscribeTask = null);
+        SubscribeTasks.GetOrAdd(ModName, key => {
+            var task = SubscribeModStaticAsync(ModName);
+            task = task.ContinueWith(t => SubscribeTasks.TryRemove(NewPair(key, task)));
+            return task;
+        });
 
+        if (!DoNothing()) {
+            return;
+        }
         // 翻源码:
         // ModDownloadItem 由来:
         #region ModDownloadItem 由来
@@ -175,6 +185,69 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         await DownloadHelper.DownloadMods([modDownloadItem]);
     }
 
+    private static async Task SubscribeModStaticAsync(string modName) {
+        #region 获取 ModDownloadItem
+        if (!FolderDataSystem.PublishIds.TryGetValue(modName, out var publishId)) {
+            if (FolderDataSystem.DisplayNames.TryGetValue(modName, out var displayName)) {
+                displayName = Utils.CleanChatTags(displayName);
+                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.NoPublishIdStored", displayName, modName);
+            }
+            else {
+                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.NoPublishIdStoredWithoutDisplayName", modName);
+            }
+            return;
+        }
+        await Task.Yield();
+        QueryParameters queryParameters = new() {
+            searchModIds = [new() { m_ModPubId = publishId.ToString() }]
+        };
+        QueryInstance aQueryInstance = new(queryParameters);
+        ModDownloadItem? modDownloadItem = null;
+        try {
+            await foreach (var mod in QueryItemsAsync(aQueryInstance, [], CancellationToken.None)) {
+                modDownloadItem = mod;
+                break;
+            }
+        }
+        catch (Exception e) {
+            ModFolder.Instance.Logger.Error($"exception thrown when downloading {modName}({publishId}): {e}", e);
+        }
+        if (modDownloadItem == null) {
+            if (FolderDataSystem.DisplayNames.TryGetValue(modName, out var displayName)) {
+                displayName = Utils.CleanChatTags(displayName);
+                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.CantFindModInWorkshop", displayName, modName);
+            }
+            else {
+                UIModFolderMenu.PopupInfoByKey("UI.PopupInfos.CantFindModInWorkshopWithoutDisplayName", modName);
+            }
+            return;
+        }
+        #endregion
+        await DownloadHelper.DownloadMods([modDownloadItem]);
+    }
+
+    public static async Task<ModDownloadItem?> TryGetModDownloadItem(string modName) {
+        if (!FolderDataSystem.PublishIds.TryGetValue(modName, out var publishId)) {
+            return null;
+        }
+        await Task.Yield();
+        QueryParameters queryParameters = new() {
+            searchModIds = [new() { m_ModPubId = publishId.ToString() }]
+        };
+        QueryInstance aQueryInstance = new(queryParameters);
+        ModDownloadItem? modDownloadItem = null;
+        try {
+            await foreach (var mod in QueryItemsAsync(aQueryInstance, [], CancellationToken.None)) {
+                modDownloadItem = mod;
+                break;
+            }
+        }
+        catch (Exception e) {
+            ModFolder.Instance.Logger.Error($"exception thrown when downloading {modName}({publishId}): {e}", e);
+        }
+        return modDownloadItem;
+    }
+
     private static async IAsyncEnumerable<ModDownloadItem?> QueryItemsAsync(QueryInstance query, List<string> missingMods, [EnumeratorCancellation] CancellationToken token) {
         var numPages = Math.Ceiling(query.queryParameters.searchModIds.Length / (float)SteamworksConstances.kNumUGCResultsPerPage);
 
@@ -224,13 +297,28 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
             return SubscribeStatus.Downloading;
         }
-        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+        if (SubscribeTasks.TryGetValue(ModName, out var subscribeTask) && !subscribeTask.IsCompleted) {
             return SubscribeStatus.Subscribing;
         }
         if (UIModFolderMenu.Instance.Loading) {
             return SubscribeStatus.Loading;
         }
         return SubscribeStatus.None;
+    }
+    public bool CanSubscribe() {
+        if (ModNode.PublishId == 0) {
+            return false;
+        }
+        if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
+            return false;
+        }
+        if (SubscribeTasks.TryGetValue(ModName, out var subscribeTask) && !subscribeTask.IsCompleted) {
+            return false;
+        }
+        if (UIModFolderMenu.Instance.Loading) {
+            return false;
+        }
+        return true;
     }
     public string? GetCantSubscribePopupInfo() {
         if (ModNode.PublishId == 0) {
@@ -239,7 +327,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
         if (UIModFolderMenu.Instance.Downloads.ContainsKey(ModNode.ModName)) {
             return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeWhenDownloading");
         }
-        if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+        if (SubscribeTasks.TryGetValue(ModName, out var subscribeTask) && !subscribeTask.IsCompleted) {
             return ModFolder.Instance.GetLocalizedValue("UI.PopupInfos.CantSubscribeWhenSubscribing");
         }
         if (UIModFolderMenu.Instance.Loading) {
@@ -254,7 +342,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
                 UIMemoryBar.SizeSuffix(progressForTooltip.BytesReceived, 2),
                 UIMemoryBar.SizeSuffix(progressForTooltip.TotalBytesNeeded, 2));
         }
-        else if (SubscribeTask != null && !SubscribeTask.IsCompleted) {
+        if (SubscribeTasks.TryGetValue(ModName, out var subscribeTask) && !subscribeTask.IsCompleted) {
             // return "订阅中...";
             return ModFolder.Instance.GetLocalizedValue("UI.Buttons.Subscribe.Tooltips.Subscribing");
         }
@@ -271,10 +359,7 @@ public class UIModItemInFolderUnloaded(FolderDataSystem.ModNode modNode) : UIMod
 
     public override void Draw(SpriteBatch spriteBatch) {
         #region 订阅按钮调整透明度
-        var subscribeButton = SubscribeButton;
-        if (subscribeButton != null) {
-            subscribeButton.Visibility = GetSubscribeStatus() != SubscribeStatus.None ? 0.4f : 1;
-        }
+        SubscribeButton?.Visibility = GetSubscribeStatus() != SubscribeStatus.None ? 0.4f : 1;
         #endregion
         base.Draw(spriteBatch);
     }

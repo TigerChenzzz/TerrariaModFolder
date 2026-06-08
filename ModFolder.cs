@@ -23,8 +23,6 @@ namespace ModFolder;
 
 // BUG: 启用时可能启用到过期的模组?
 // BUG: 强制需求配置更改的模组可能不会引发重新加载? (关于 UIModItemInFolder._configChangesRequireReload 的问题)
-// BUG: Generate 之后收藏等信息丢失?
-// BUG: 启用的模组应该也可以删除索引
 // BUG: 进入配置后按 Esc 仍然会回到原版模组页
 
 // TODO: 筛选模组位置 (steam, 本地, 整合包)
@@ -34,7 +32,6 @@ namespace ModFolder;
 // TODO: 显示所有下载项
 // TODO: 取消订阅时保留 description 等信息(description, 图片, build.txt) (可选 (对于每次取消订阅, 而不是可配置))
 // TODO: Generate 修缮, 只在必要时重新生成
-// TODO: 复制文件夹
 // TODO: 文件夹快捷方式
 // TODO: 批量 重新订阅 / 删除 (删除索引 / 取消订阅 / Both)    本文件夹下 / 本文件夹下及所有子文件夹下 (alt 控制)
 // TODO: 关于各处二次确认和 ctrl shift alt 的联动: 二次确认界面有三个提示指示分别有什么用, 按下对应键时对应提示亮起且此时按确认时才会有对应效果
@@ -49,11 +46,7 @@ namespace ModFolder;
 // TODO: 下载缺失依赖
 // TODO: 搜索文件夹
 // TODO: 按特定键双击文件夹以启用 / 禁用所有内含模组 (禁用冗余依赖?)
-// TODO: 文件夹的模组启用状态剔除重复的模组
 
-// TODO: 右键拖动时禁用左键?
-
-// TODO: 添加按钮是否筛选文件夹
 // TODO: 分组与筛选: 按类型 (客户端 / 服务端 / 文件夹), 按 Steam 还是本地文件, 按收藏, 筛选最近更新与新添加
 
 // TODO: 搜索全部时同时搜索文件夹, 同时展示文件夹或模组的位置 (文件夹树中)
@@ -74,7 +67,6 @@ namespace ModFolder;
 // TODO: 启用某个玩家对应的模组
 // TODO: 收藏的特效
 // TOTEST: 测试整合包
-// TODO: 如何可以删除已启用的模组?
 
 // TODO: 按钮的悬浮提示和 Ctrl Shift Alt 提示更加明显
 // TODO: 按钮的展开

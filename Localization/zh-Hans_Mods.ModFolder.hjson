@@ -119,6 +119,19 @@ UI: {
 				否则为所有当前文件夹内容
 				'''
 		}
+
+		SubscribeAll: {
+			DisplayName: 批量订阅
+			Tooltip:
+				'''
+				订阅本文件夹下的模组或选中的模组和文件夹中的未订阅模组
+				按住 Alt 则同时包含子文件夹
+				按住 Shift 则应用于所有模组
+				'''
+			SearchingForMods: 正在搜索需要订阅的模组...
+			NoModsToSubscribe: 没有模组需要订阅.
+			DialogText: 确认要订阅以下模组吗?
+		}
 	}
 
 	SortButtons: {
@@ -207,6 +220,9 @@ UI: {
 		SteamNotAvailable: Steam 不可用!
 		DownloadModError: 下载模组时发生错误! 具体错误请查看日志.
 		CantFindModInWorkshop: 未在创意工坊找到模组: {0} ({1})
+		CantFindModInWorkshopWithoutDisplayName: 未在创意工坊找到模组: {0}
+		NoPublishIdStored: 未储存模组发布 ID: {0} ({1})
+		NoPublishIdStoredWithoutDisplayName: 未储存模组发布 ID: {0}
 		EnableNotAllowedWhenLoading: 正在加载中, 无法启用模组!
 		DisableNotAllowedWhenLoading: 正在加载中, 无法禁用模组!
 		ResetNotAllowedWhenLoading: 正在加载中, 无法重置模组!
