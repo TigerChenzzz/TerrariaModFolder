@@ -114,6 +114,7 @@ UI: {
 				'''
 				Left click to copy (Ctrl + C)
 				Right click to paste (Ctrl + V)
+				Middle click to cut (Ctrl + X)
 				not avaliable when showing all mods
 				The copy target is the selected if any or all in the current folder
 				'''
@@ -130,6 +131,12 @@ UI: {
 			SearchingForMods: Searching for mods to subscribe...
 			NoModsToSubscribe: Not mods to subscribe.
 			DialogText: Are you sure to subscribe the mods below?
+		}
+
+		ShowDownloading: {
+			DisplayName: Show Downloading
+			Tooltip: ""
+			DialogText: Downloading Mods
 		}
 	}
 
@@ -210,18 +217,25 @@ UI: {
 		ImportNotAllowedWhenShowingAllMods: Import is not allowed when showing all mods, please use folder system!
 		CopyPasteNotAllowedWhenShowingAllMods: Copy & Paste is not allowed when showing all mods, please use folder system!
 		NotAnyItemCopied: Not any item can be copied.
+		NotAnyItemCut: Not any item can be cut.
 		Imported: The clipboard content has been pasted to the current folder.
 		ImportClipboardInvalid: The clipboard content is invalid!
 		ImportVersionNotImplemented: The importing function of the data's version is not implemented!
 		ImportInvalidVersion: The json data's "Version" is invalid!
+		CutPasted: The cut content has been pasted to the currrent folder.
+		SameCutPasteTarget: Cut and paste target is the same!
+		CutPasteToSubFolder: Cut-and-paste to the sub folder not allowed!
 		SelectedItemsCopied: The selected items are copied to the clipboard.
 		AllItemsInTheFolderCopied: All items in the folder are copied to the clipboard.
+		SelectedItemsCut: The selected items are cut to the clipboard.
+		AllItemsInTheFolderCut: All items in the folder are cut to the clipboard.
 		SteamNotAvailable: Steam not available!
 		DownloadModError: Download mods error! See log for more detailed info.
 		CantFindModInWorkshop: Can't find the mod in workshop: {0} ({1})
 		CantFindModInWorkshopWithoutDisplayName: Can't find the mod in workshop: {0}
 		NoPublishIdStored: No Publish ID stored for mod: {0} ({1})
 		NoPublishIdStoredWithoutDisplayName: No Publish ID stored for mod: {0}
+		DownloadModSucceed: Mod download succeeded: {0} ({1})
 		EnableNotAllowedWhenLoading: Can't enable mods when loading!
 		DisableNotAllowedWhenLoading: Can't disable mods when loading!
 		ResetNotAllowedWhenLoading: Can't reset mods when loading!

@@ -114,6 +114,7 @@ UI: {
 				'''
 				左键以复制 (Ctrl + C)
 				右键以粘贴 (Ctrl + V)
+				中键以剪切 (Ctrl + X)
 				在显示所有模组时不可用
 				复制对象为: 当有选中对象时使用选中, 
 				否则为所有当前文件夹内容
@@ -131,6 +132,12 @@ UI: {
 			SearchingForMods: 正在搜索需要订阅的模组...
 			NoModsToSubscribe: 没有模组需要订阅.
 			DialogText: 确认要订阅以下模组吗?
+		}
+
+		ShowDownloading: {
+			DisplayName: 显示下载
+			Tooltip: 显示正在下载中的模组
+			DialogText: 正在下载的模组
 		}
 	}
 
@@ -211,18 +218,25 @@ UI: {
 		ImportNotAllowedWhenShowingAllMods: 当显示所有模组时无法导入, 请使用文件夹系统!
 		CopyPasteNotAllowedWhenShowingAllMods: 当显示所有模组时无法复制粘贴, 请使用文件夹系统!
 		NotAnyItemCopied: 没有内容可复制
+		NotAnyItemCut: 没有内容可剪切
 		Imported: 剪贴板内容已粘贴到当前文件夹下
 		ImportClipboardInvalid: 剪贴板内容不合法!
 		ImportVersionNotImplemented: 数据中版本的导入方法未实现!
 		ImportInvalidVersion: Json 数据的版本信息不合法!
+		CutPasted: 剪切内容已粘贴到当前文件夹下
+		SameCutPasteTarget: 剪切粘贴到同一位置!
+		CutPasteToSubFolder: 剪切粘贴到子文件夹是不合法的!
 		SelectedItemsCopied: 选中内容已复制到剪贴板
 		AllItemsInTheFolderCopied: 当前文件夹中所有内容已复制到剪贴板
+		SelectedItemsCut: 选中内容已剪切到剪贴板
+		AllItemsInTheFolderCut: 当前文件夹中所有内容已剪切到剪贴板
 		SteamNotAvailable: Steam 不可用!
 		DownloadModError: 下载模组时发生错误! 具体错误请查看日志.
 		CantFindModInWorkshop: 未在创意工坊找到模组: {0} ({1})
 		CantFindModInWorkshopWithoutDisplayName: 未在创意工坊找到模组: {0}
 		NoPublishIdStored: 未储存模组发布 ID: {0} ({1})
 		NoPublishIdStoredWithoutDisplayName: 未储存模组发布 ID: {0}
+		DownloadModSucceed: 模组下载成功: {0} ({1})
 		EnableNotAllowedWhenLoading: 正在加载中, 无法启用模组!
 		DisableNotAllowedWhenLoading: 正在加载中, 无法禁用模组!
 		ResetNotAllowedWhenLoading: 正在加载中, 无法重置模组!

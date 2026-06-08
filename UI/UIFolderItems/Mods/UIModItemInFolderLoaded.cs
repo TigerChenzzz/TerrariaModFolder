@@ -691,19 +691,13 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     public override void DrawSelf(SpriteBatch spriteBatch) {
         #region 根据启用状态设置块状图标的透明度
         {
-            Color iconColor;
-            if (NoStripeLayout) {
-                if (_mod.Enabled) {
-                    iconColor = Color.White;
-                }
-                else {
-                    iconColor = Color.White * 0.3f;
-                }
-            }
-            else {
-                iconColor = Color.White;
-            }
-            _modIcon.Color = iconColor;
+            float transparent = (IsCutting, NoStripeLayout && !_mod.Enabled) switch {
+                (false, false) => 1,
+                (false, true) => 0.3f,
+                (true, false) => 0.6f,
+                (true, true) => 0.1f,
+            };
+            _modIcon.Color = Color.White * transparent;
         }
         #endregion
         base.DrawSelf(spriteBatch);

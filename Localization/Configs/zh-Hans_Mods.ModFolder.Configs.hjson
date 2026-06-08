@@ -112,6 +112,15 @@ CommonConfig: {
 		Label: 显示小图标
 		Tooltip: 如果存在小图标, 则条状布局会使用小图标
 	}
+
+	RapidDelete: {
+		Label: 快速取消订阅
+		Tooltip:
+			'''
+			当开启此项时, 批量取消订阅模组会变得更快但更卡
+			(会为每一个模组开一个 Task)
+			'''
+	}
 }
 
 SeeChangelogClass: {

@@ -315,6 +315,10 @@ public static class FolderDataSystem {
         private static readonly HashSet<string> _pathModNamesCache = [];
         #region 树操作
         public void AddChild(Node child) => child.Parent = this;
+        /// <summary>
+        /// F 表示不会调用 <see cref="TreeChanged"/>
+        /// </summary>
+        public void AddChildF(Node child) => child.ParentF = this;
         public void SetChildAtTheTop(Node child) {
             child.ParentF = null;
             child.ParentPublic = this;
@@ -405,7 +409,11 @@ public static class FolderDataSystem {
             _parent = null;
             TreeChanged();
         }
-        public void ClearChildren() => _children.Clear();
+        public void ClearChildren() {
+            _children.Clear();
+            TreeChanged();
+        }
+
         public void ClearChildrenF() => _children.Clear();
         #endregion
     }

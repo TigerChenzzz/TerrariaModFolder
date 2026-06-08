@@ -77,11 +77,16 @@ public static class ShareHelper {
         }
         var nodeJsons = nodesArray.ToObject<List<JObject>>();
         if (nodeJsons != null) {
+            bool modified = false;
             foreach (var nodeJson in nodeJsons) {
                 var node = LoadNode(nodeJson);
                 if (node != null) {
-                    currentFolder.AddChild(node);
+                    currentFolder.AddChildF(node);
+                    modified = true;
                 }
+            }
+            if (modified) {
+                TreeChanged();
             }
         }
         else {

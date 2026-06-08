@@ -246,6 +246,10 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool ShowSmallIcon { get; set; } = true;
     #endregion
+    #region 快速删除
+    [DefaultValue(true)]
+    public bool RapidDelete { get; set; } = true;
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]

@@ -1,7 +1,5 @@
 ﻿using ModFolder.UI.Menu;
-using System.Threading;
 using System.Threading.Tasks;
-using Terraria.ModLoader.Core;
 using Terraria.ModLoader.UI.DownloadManager;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.Social.Steam;
@@ -11,7 +9,6 @@ namespace ModFolder.UI.UIFolderItems.Mods;
 public class DownloadProgressImpl : IDownloadProgress {
     public ModDownloadItem ModDownloadItem { get; private init; }
     public bool Completed { get; private set; }
-    public string? DisplayName { get; private set; }
     public float Progress { get; private set; }
     public long BytesReceived { get; private set; }
     public long TotalBytesNeeded { get; private set; }
@@ -25,7 +22,11 @@ public class DownloadProgressImpl : IDownloadProgress {
         CreateTimeRandomized = CreateTime - Random.Shared.Next(100000);
     }
 
+    public event Action? OnDownloadSucceeded;
+    public event Action? OnDownloadCompleted;
+
     private bool started;
+    public bool Succeeded { get; private set; }
     public void TryStart() {
         if (started) {
             return;
@@ -39,35 +40,25 @@ public class DownloadProgressImpl : IDownloadProgress {
                     new(ulong.Parse(ModDownloadItem.PublishId.m_ModPubId)),
                     this,
                     true /* mod.NeedUpdate || !SteamedWraps.IsWorkshopItemInstalled(publishId) */);
-                DownloadSucceeded();
+                Succeeded = true;
+                OnDownloadSucceeded?.Invoke();
             }
             finally {
-                DownloadCompleted();
+                Completed = true;
+                OnDownloadCompleted?.Invoke();
             }
         });
     }
-
+    
     public void DownloadStarted(string displayName) {
-        DisplayName = displayName;
+#if DEBUG
+        UIModFolderMenu.PopupInfo("Download started: " + displayName);
+#endif
     }
 
     public void UpdateDownloadProgress(float progress, long bytesReceived, long totalBytesNeeded) {
         Progress = progress;
         BytesReceived = bytesReceived;
         TotalBytesNeeded = totalBytesNeeded;
-    }
-
-    public void DownloadCompleted() {
-        Completed = true;
-    }
-
-    private static readonly object localModsChangedLock = new();
-
-    public void DownloadSucceeded() {
-        lock (localModsChangedLock) {
-            ModOrganizer.LocalModsChanged([ModDownloadItem.ModName], isDeletion: false);
-        }
-        Thread.MemoryBarrier();
-        UIModFolderMenu.Instance.ArrrangeRepopulate();
     }
 }

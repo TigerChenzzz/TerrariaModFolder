@@ -470,6 +470,10 @@ public class UIFolder : UIFolderItem {
         DrawParallelogramLoop(spriteBatch, rect, start + enableWidth, start + enableWidth + toEnableWidth, ToEnableBorderColor, ToEnableInnerColor);
         DrawParallelogramLoop(spriteBatch, rect, start + enableWidth + toEnableWidth, start + enableWidth + toEnableWidth + toDisableWidth, ToDisableBorderColor, ToDisableInnerColor);
     }
+    protected override void UpdateCutStatus(bool isCutting, float transparent) {
+        base.UpdateCutStatus(isCutting, transparent);
+        _folderIcon.Color = Color.White * transparent;
+    }
     #endregion
     #region Layout
     protected override void RecalculateStripeLayout() {

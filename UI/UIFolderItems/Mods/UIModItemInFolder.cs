@@ -1,6 +1,7 @@
 ﻿using ModFolder.Systems;
 using ModFolder.UI.Menu;
 using System.Diagnostics.CodeAnalysis;
+using Terraria.UI;
 
 namespace ModFolder.UI.UIFolderItems.Mods;
 
@@ -84,12 +85,13 @@ public abstract class UIModItemInFolder : UIFolderItem {
         }
     }
     #region 画下载状态
-    private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) {
-        Rectangle rectangle = GetDimensions().ToRectangle();
+    private void DrawDownloadStatus(SpriteBatch spriteBatch, DownloadProgressImpl progress) => DrawDownloadStatus(this, spriteBatch, progress);
+    public static void DrawDownloadStatus(UIElement self, SpriteBatch spriteBatch, DownloadProgressImpl progress) {
+        Rectangle rectangle = self.GetDimensions().ToRectangle();
         Rectangle progressRectangle;
         Rectangle progressRectangleOuter;
         int size;
-        if (BlockWithNameLayout) {
+        if (rectangle.Height > rectangle.Width) {
             progressRectangle = new(rectangle.X + 1, rectangle.Y + 1, rectangle.Width - 2, (int)((rectangle.Height - 2) * progress.Progress));
             progressRectangleOuter = new(rectangle.X, rectangle.Y, rectangle.Width, progressRectangle.Height + 2);
             size = rectangle.Height;
@@ -117,8 +119,8 @@ public abstract class UIModItemInFolder : UIFolderItem {
         }
         int start = end - goThroughWidth;
         
-        DrawParallelogramByLayout(LayoutType, spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
-        DrawParallelogramByLayout(LayoutType, spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
+        DrawParallelogram(spriteBatch, rectangle, start, end, Color.White * 0.8f, default);
+        DrawParallelogram(spriteBatch, progressRectangleOuter, start, end, default, Color.White * 0.3f);
     }
     #endregion
     #endregion

@@ -112,6 +112,15 @@ CommonConfig: {
 		Label: Show Small Icon
 		Tooltip: Show small icon in stripe layout when possible
 	}
+
+	RapidDelete: {
+		Label: Rapid Unsubscribe
+		Tooltip:
+			'''
+			When unsubscribing multiple mods, enable this would unsubscribe them in a rapid but laggy way, vice versa.
+			(using 1 Task per unsubscribing mod)
+			'''
+	}
 }
 
 SeeChangelogClass: {

@@ -240,6 +240,19 @@ public abstract partial class UIFolderItem : UIElement {
     #endregion
     protected virtual Color PanelColor => UICommon.DefaultUIBlue;
     protected virtual Color PanelHoverColor => UICommon.DefaultUIBlueMouseOver;
+    private bool _isCutting;
+    protected bool IsCutting => _isCutting;
+    protected virtual void UpdateCutStatus(bool isCutting, float transparent) {
+        _name.Text.TextColor = Color.White * transparent;
+        _name.Text.ShadowColor = Color.Black * transparent;
+    }
+    private void Draw_MonitorCutStatus() {
+        var isCutting = UIModFolderMenu.Instance.IsCutting(Node);
+        if (_isCutting != isCutting) {
+            _isCutting = isCutting;
+            UpdateCutStatus(isCutting, isCutting ? 0.6f : 1);
+        }
+    }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         var dimensions = GetDimensions();
         var rectangle = dimensions.ToRectangle();
@@ -311,6 +324,7 @@ public abstract partial class UIFolderItem : UIElement {
         #endregion
     }
     public override void Draw(SpriteBatch spriteBatch) {
+        Draw_MonitorCutStatus();
         Draw_UpdateRightButtons();
         Draw_UpdateName();
         Draw_ArrangeRecalculateChildren();

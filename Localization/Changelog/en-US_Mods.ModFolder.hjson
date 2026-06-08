@@ -1,5 +1,12 @@
 Changelog:
 	'''
+	[c/00ff00:v0.7.1]
+	[c/ff0000:- add "Subscribe All" and "Show Download" button]
+	- config show small icon in stripe layout
+	[c/ffff00:- Ctrl + X to cut]
+	[c/999999:- parallel process on unsubscribe multiple mods, make it more rapid but more laggy (configurable)]
+	[c/999999:- fix copy paste config broken]
+
 	[c/00ff00:v0.7.0]
 	[c/ff0000:- add copy & paste button, with shortcut of Ctrl + C/V, replaced the folder import and export, and compatible with old formats]
 	- Ctrl + A to select all
