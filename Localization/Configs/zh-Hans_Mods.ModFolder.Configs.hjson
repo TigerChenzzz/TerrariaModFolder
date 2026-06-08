@@ -107,6 +107,11 @@ CommonConfig: {
 		Label: 复制粘贴按钮配置
 		// Tooltip: ""
 	}
+
+	ShowSmallIcon: {
+		Label: 显示小图标
+		Tooltip: 如果存在小图标, 则条状布局会使用小图标
+	}
 }
 
 SeeChangelogClass: {

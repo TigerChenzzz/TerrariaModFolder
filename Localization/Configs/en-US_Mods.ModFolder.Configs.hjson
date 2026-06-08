@@ -107,6 +107,11 @@ CommonConfig: {
 		Label: Button Copy Paste Config
 		Tooltip: ""
 	}
+
+	ShowSmallIcon: {
+		Label: Show Small Icon
+		Tooltip: Show small icon in stripe layout when possible
+	}
 }
 
 SeeChangelogClass: {

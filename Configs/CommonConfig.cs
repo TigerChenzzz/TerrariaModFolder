@@ -242,6 +242,10 @@ public class CommonConfig : ModConfig {
         public bool PasteFavorite { get; set; }
     }
     #endregion
+    #region 显示小图标
+    [DefaultValue(true)]
+    public bool ShowSmallIcon { get; set; } = true;
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]

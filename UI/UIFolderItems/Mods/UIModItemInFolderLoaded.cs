@@ -60,7 +60,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     private Asset<Texture2D>? smallIcon;
     private Asset<Texture2D>? bigIcon;
     private void SetModIcon() {
-        Asset<Texture2D>? icon = LayoutType == LayoutTypes.Stripe ? smallIcon ?? bigIcon : bigIcon;
+        Asset<Texture2D>? icon = (CommonConfig.Instance.ShowSmallIcon && LayoutType == LayoutTypes.Stripe) ? smallIcon ?? bigIcon : bigIcon;
         if (icon != null) {
             _modIcon.SetImage(icon);
         }
