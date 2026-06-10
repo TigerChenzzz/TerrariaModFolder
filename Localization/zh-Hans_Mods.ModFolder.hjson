@@ -5,6 +5,8 @@ UI: {
 			DescriptionWhenLeftClick: 右键以打开原版界面。
 		}
 
+		PathBack.Tooltip: 后退 (鼠标 X1 / Alt + ←)
+		PathForward.Tooltip: 前进 (鼠标 X2 / Alt + →)
 		CreateFolder.DisplayName: 新建文件夹
 
 		AllMods: {

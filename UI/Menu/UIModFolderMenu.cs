@@ -75,13 +75,21 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// 当前处于哪个文件夹下
     /// </summary>
     public FolderNode CurrentFolderNode => FolderPath[^1];
-    public UIHorizontalList folderPathList = null!;
-    private int folderPathListIndex;
-    private readonly UIElement folderPathListPlaceHolder = new();
-    
-    private UIImagePro refreshButton = null!;
-    private int refreshButtonIndex;
-    private readonly UIElement refreshButtonPlaceHolder = new();
+
+    public UIHorizontalList FolderPathList { get; set; } = null!;
+    private UIImagePro RefreshButton { get; set; } = null!;
+    private UIImage PathBackButton { get; set; } = null!;
+    private UIImage PathForwardButton { get; set; } = null!;
+    private readonly UIElement _pathBackButtonPlaceHolder = new();
+    private readonly UIElement _pathForwardButtonPlaceHolder = new();
+    private int _pathBackButtonIndex;
+    private int _pathForwardButtonIndex;
+    public bool IsPathBackAvailable { get; private set; }
+    public bool IsPathForwardAvailable { get; private set; }
+
+    private UIElement FolderPathListBox { get; set; } = new();
+    private readonly UIElement _folderPathListBoxPlaceHolder = new();
+    private int _folderPathListBoxIndex;
 
     private FolderPathClass? _folderPath;
     private FolderPathClass FolderPath {
@@ -95,55 +103,100 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     }
 
     private void OnInitialize_FolderPathList(ref float upperPixels) {
-        #region Folder Path List
         upperPixels += 2;
-        folderPathList = new() {
-            Top = { Pixels = upperPixels },
-            Height = { Pixels = 30 },
-            Left = { Pixels = 5 },
-            Width = { Pixels = -40, Percent = 1 },
+        #region 总体容器
+        FolderPathListBox.Top.Pixels = upperPixels;
+        FolderPathListBox.Height.Pixels = 30;
+        FolderPathListBox.Width.Percent = 1;
+        _folderPathListBoxIndex = MainPanel.AppendAndGetIndex(FolderPathListBox);
+        #endregion
+        #region 返回前进按钮
+        PathBackButton = new(MTextures.UI("PathBack")) {
+            Width = { Pixels = 30 },
+            Height = { Percent = 30 },
+            VAlign = 0.5f,
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
         };
-        upperPixels += 30;
-        folderPathList.SetPadding(1);
-        folderPathList.ListPadding = 2;
-        folderPathList.OnDrawWithSpriteBatch += sb => {
-            sb.DrawBox(folderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
+        PathBackButton.OnDraw += e => DrawPathMoveButton(e, IsPathBackAvailable);
+        PathBackButton.OnLeftClick += (_, _) => {
+            if (!IsPathBackAvailable)
+                return;
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            PathBack();
         };
-        folderPathListIndex = MainPanel.AppendAndGetIndex(folderPathList);
+        AddMouseOverTooltipsByModKey(PathBackButton, "UI.Buttons.PathBack.Tooltip");
+        _pathBackButtonIndex = FolderPathListBox.AppendAndGetIndex(PathBackButton);
+
+        PathForwardButton = new(MTextures.UI("PathForward")) {
+            Width = { Pixels = 30 },
+            Height = { Percent = 30 },
+            VAlign = 0.5f,
+            Left = { Pixels = 30 },
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
+        };
+        PathForwardButton.OnDraw += e => DrawPathMoveButton(e, IsPathForwardAvailable);
+        PathForwardButton.OnLeftClick += (_, _) => {
+            if (!IsPathForwardAvailable)
+                return;
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            PathForward();
+        };
+        AddMouseOverTooltipsByModKey(PathForwardButton, "UI.Buttons.PathForward.Tooltip");
+        _pathForwardButtonIndex = FolderPathListBox.AppendAndGetIndex(PathForwardButton);
+
+        static void DrawPathMoveButton(UIElement self, bool available) {
+            if (available && self.IsMouseHovering) {
+                Main.spriteBatch.DrawBox(self._dimensions.ToRectangle(), Color.White * 0.3f, Color.White * 0.1f);
+            }
+        }
+        #endregion
+        #region Folder Path List
+        FolderPathList = new() {
+            Height = { Percent = 1 },
+            Left = { Pixels = 60 },
+            Width = { Pixels = -95, Percent = 1 },
+        };
+        FolderPathList.SetPadding(1);
+        FolderPathList.ListPadding = 2;
+        FolderPathList.OnDrawWithSpriteBatch += sb => {
+            sb.DrawBox(FolderPathList.GetDimensions().ToRectangle(), Color.Black * 0.6f, UICommon.DefaultUIBlue * 0.2f);
+        };
+        FolderPathListBox.Append(FolderPathList);
         UpdateFolderHistory(CurrentFolderNode);
         #endregion
         #region 刷新按钮
         #region refresh3 版
-        refreshButton = new(MTextures.UI("Refresh3")) {
+        RefreshButton = new(MTextures.UI("Refresh3")) {
             Width = { Pixels = 30 },
-            Height = { Pixels = 30 },
+            Height = { Percent = 30 },
+            VAlign = 0.5f,
             Left = { Pixels = -35, Precent = 1 },
-            Top = { Pixels = upperPixels },
             ScaleToFit = true,
             AllowResizingDimensions = false,
         };
-        upperPixels += 30;
         bool refreshButtonPressed = false;
-        refreshButton.OnLeftClick += Refresh;
-        refreshButton.SourceRectangle = new(0, 0, 30, 30);
-        refreshButton.OnLeftMouseDown += (_, _) => {
+        RefreshButton.OnLeftClick += Refresh;
+        RefreshButton.SourceRectangle = new(0, 0, 30, 30);
+        RefreshButton.OnLeftMouseDown += (_, _) => {
             refreshButtonPressed = true;
         };
         OnLeftMouseUp += (_, _) => {
             refreshButtonPressed = false;
         };
-        refreshButton.PreDrawSelf += spriteBatch => {
-            if (!refreshButton.IsMouseHovering) {
-                refreshButton.SourceRectangle = new(0, 0, 30, 30);
+        RefreshButton.PreDrawSelf += spriteBatch => {
+            if (!RefreshButton.IsMouseHovering) {
+                RefreshButton.SourceRectangle = new(0, 0, 30, 30);
             }
             else if (refreshButtonPressed) {
-                refreshButton.SourceRectangle = new(60, 0, 30, 30);
+                RefreshButton.SourceRectangle = new(60, 0, 30, 30);
             }
             else {
-                refreshButton.SourceRectangle = new(30, 0, 30, 30);
+                RefreshButton.SourceRectangle = new(30, 0, 30, 30);
             }
         };
-        refreshButtonIndex = MainPanel.AppendAndGetIndex(refreshButton);
+        FolderPathListBox.Append(RefreshButton);
         #endregion
         #region 单图标 + highlight 版
         /*
@@ -172,19 +225,46 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         */
         #endregion
         #endregion
+        upperPixels += 30;
     }
     private void ResetVertical_FolderPathList(ref float upperPixels) {
         if (ShowFolderSystem) {
             upperPixels += 2;
-            folderPathList.Top.Pixels = upperPixels;
-            refreshButton.Top.Pixels = upperPixels;
-            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
-            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
-            upperPixels += folderPathList.Height.Pixels; // 30
+            FolderPathListBox.Top.Pixels = upperPixels;
+            MainPanel.ReplaceChildrenByIndex(_folderPathListBoxIndex, FolderPathListBox);
+            upperPixels += FolderPathListBox.Height.Pixels; // 30
         }
         else {
-            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
-            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
+            MainPanel.ReplaceChildrenByIndex(_folderPathListBoxIndex, _folderPathListBoxPlaceHolder);
+        }
+    }
+    private void Generate_PathMoveButtons() {
+        SetPathMoveButtonAvailable(PathBackButton, IsPathBackAvailable = TestPathBackAvailable());
+        SetPathMoveButtonAvailable(PathForwardButton, IsPathForwardAvailable = TestPathForwardAvaliable());
+        CheckShowingPathMoveButtons();
+    }
+    private static void SetPathMoveButtonAvailable(UIImage button, bool available) {
+        button.Color = available ? Color.White : Color.Gray * 0.6f;
+    }
+
+    private bool showingPathMoveButtons = true;
+    private void CheckShowingPathMoveButtons() {
+        var configValue = CommonConfig.Instance.UsePathMoveButtons;
+        if (showingPathMoveButtons == configValue) {
+            return;
+        }
+        showingPathMoveButtons = configValue;
+        if (showingPathMoveButtons) {
+            FolderPathListBox.ReplaceChildrenByIndex(_pathBackButtonIndex, PathBackButton);
+            FolderPathListBox.ReplaceChildrenByIndex(_pathForwardButtonIndex, PathForwardButton);
+            FolderPathList.Left.Pixels = 60;
+            FolderPathList.Width.Pixels = -95;
+        }
+        else {
+            FolderPathListBox.ReplaceChildrenByIndex(_pathBackButtonIndex, _pathBackButtonPlaceHolder);
+            FolderPathListBox.ReplaceChildrenByIndex(_pathForwardButtonIndex, _pathForwardButtonPlaceHolder);
+            FolderPathList.Left.Pixels = 5;
+            FolderPathList.Width.Pixels = -40;
         }
     }
     #region 文件夹跳转
@@ -218,7 +298,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public void EnterFolder(FolderNode? folder) {
         folder ??= FolderDataSystem.Root;
         ModListUI.ViewPosition = 0;
-        bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
+        bool max = FolderPathList.ViewPosition == FolderPathList.MaxViewPosition;
         if (folder.Parent == CurrentFolderNode) {
             FolderPath.Add(folder);
             goto ReadyToReturn;
@@ -235,7 +315,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ClearSelectingItems();
         ArrangeGenerate();
         if (max) {
-            folderPathList.ViewPosition = folderPathList.MaxViewPosition;
+            FolderPathList.ViewPosition = FolderPathList.MaxViewPosition;
         }
     }
     public void GotoUpperFolder() {
@@ -275,7 +355,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return false;
         }
         ModListUI.ViewPosition = 0;
-        bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
+        bool max = FolderPathList.ViewPosition == FolderPathList.MaxViewPosition;
         List<FolderNode> path = [];
         while (folder != null) {
             path.Add(folder);
@@ -291,11 +371,20 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         ClearSelectingItems();
         ArrangeGenerate();
         if (max) {
-            folderPathList.ViewPosition = folderPathList.MaxViewPosition;
+            FolderPathList.ViewPosition = FolderPathList.MaxViewPosition;
         }
         return true;
     }
-    public void MoveBack() {
+    private static bool TestDirectGotoFolder(FolderNode? folder) {
+        while (folder != null) {
+            if (folder == FolderDataSystem.Root) {
+                return true;
+            }
+            folder = folder.Parent;
+        }
+        return false;
+    }
+    public void PathBack() {
         FolderHistoryIndex.ClampMaxTo(FolderHistory.Count - 1);
         if (FolderHistoryIndex <= 0) {
             return;
@@ -307,7 +396,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             FolderHistoryIndex = 0;
         }
     }
-    public void MoveForward() {
+    public void PathForward() {
         if (FolderHistoryIndex >= FolderHistory.Count - 1) {
             return;
         }
@@ -316,6 +405,12 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             FolderHistory.RemoveRange(FolderHistoryIndex..^0);
             FolderHistoryIndex -= 1;
         }
+    }
+    private bool TestPathBackAvailable() {
+        return TestDirectGotoFolder(FolderHistory.GetS(FolderHistoryIndex - 1));
+    }
+    private bool TestPathForwardAvaliable() {
+        return TestDirectGotoFolder(FolderHistory.GetS(FolderHistoryIndex + 1));
     }
     #endregion
     #endregion
@@ -1935,11 +2030,11 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 #endif
     public override void XButton1MouseDown(UIMouseEvent evt) {
         base.XButton1MouseDown(evt);
-        MoveBack(); // 鼠标 4 键返回
+        PathBack(); // 鼠标 4 键返回
     }
     public override void XButton2MouseDown(UIMouseEvent evt) {
         base.XButton2MouseDown(evt);
-        MoveForward();
+        PathForward();
     }
     private void MouseMove() {
         MouseMove_SelectAndDrag();
@@ -1976,29 +2071,34 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
     }
     #endregion
-    #region Ctrl C/V
-    private void Draw_DetectCtrlXXX() {
+    #region Ctrl XXX, Alt XXX
+    private void Draw_DetectCombindedKey() {
         if (PlayerInput.WritingText)
             return;
-        if (!Main.keyState.PressingControl())
-            return;
-        if (Main.keyState[Keys.A] == KeyState.Down && Main.oldKeyState[Keys.A] == KeyState.Up) {
-            CtrlAPressed();
+        if (Main.keyState.PressingControl()) {
+            if (Main.keyState[Keys.A] == KeyState.Down && Main.oldKeyState[Keys.A] == KeyState.Up) {
+                CtrlAPressed();
+            }
+            if (Main.keyState[Keys.X] == KeyState.Down && Main.oldKeyState[Keys.X] == KeyState.Up) {
+                CtrlXPressed();
+            }
+            if (Main.keyState[Keys.C] == KeyState.Down && Main.oldKeyState[Keys.C] == KeyState.Up) {
+                CtrlCPressed();
+            }
+            if (Main.keyState[Keys.V] == KeyState.Down && Main.oldKeyState[Keys.V] == KeyState.Up) {
+                CtrlVPressed();
+            }
         }
-        if (Main.keyState[Keys.X] == KeyState.Down && Main.oldKeyState[Keys.X] == KeyState.Up) {
-            CtrlXPressed();
-        }
-        if (Main.keyState[Keys.C] == KeyState.Down && Main.oldKeyState[Keys.C] == KeyState.Up) {
-            CtrlCPressed();
-        }
-        if (Main.keyState[Keys.V] == KeyState.Down && Main.oldKeyState[Keys.V] == KeyState.Up) {
-            CtrlVPressed();
-        }
-        if (Main.keyState[Keys.Left] == KeyState.Down && Main.oldKeyState[Keys.Left] == KeyState.Up) {
-            CtrlLeftPressed();
-        }
-        if (Main.keyState[Keys.Right] == KeyState.Down && Main.oldKeyState[Keys.Right] == KeyState.Up) {
-            CtrlRightPressed();
+        if (Main.keyState.PressingAlt()) {
+            if (Main.keyState[Keys.Left] == KeyState.Down && Main.oldKeyState[Keys.Left] == KeyState.Up) {
+                AltLeftPressed();
+            }
+            if (Main.keyState[Keys.Right] == KeyState.Down && Main.oldKeyState[Keys.Right] == KeyState.Up) {
+                AltRightPressed();
+            }
+            if (Main.keyState[Keys.Up] == KeyState.Down && Main.oldKeyState[Keys.Up] == KeyState.Up) {
+                AltUpPressed();
+            }
         }
     }
     private void CtrlAPressed() {
@@ -2013,11 +2113,14 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     private void CtrlVPressed() {
         ButtonCopyPasteClicked(1);
     }
-    private void CtrlLeftPressed() {
-        MoveBack();
+    private void AltLeftPressed() {
+        PathBack();
     }
-    private void CtrlRightPressed() {
-        MoveForward();
+    private void AltRightPressed() {
+        PathForward();
+    }
+    private void AltUpPressed() {
+        GotoUpperFolder();
     }
     #endregion
     #endregion
@@ -2286,7 +2389,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
         #region 若不在根目录, 则添加一个返回上级的文件夹
-        if (ShowFolderSystem && CurrentFolderNode != FolderDataSystem.Root) {
+        if (CommonConfig.Instance.UseDoubleDotFolder && ShowFolderSystem && CurrentFolderNode != FolderDataSystem.Root) {
             UIFolder upperFolder = new("..");
             ModListUI.Add(upperFolder);
             upperFolder.Selectable = false;
@@ -2301,6 +2404,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             item.Activate();
         }
         VisibleItems = visibleItems;
+        Generate_PathMoveButtons();
         Recalculate();
         UnstashSelectingItems();
         TryRefreshFolderData();
@@ -2446,7 +2550,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         #endregion
         ShowTooltips();
-        Draw_DetectCtrlXXX(); // 在画完子元素后
+        // 在画完子元素后, 用来检测输入框是否被占用
+        Draw_DetectCombindedKey();
     }
     #region 鼠标的悬浮提示和悬浮图片
     private readonly List<(UIElement, Func<string>)> mouseOverTooltips = [];
@@ -2719,10 +2824,10 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         bool canCustomizeOrder = CanCustomizeOrder();
         #endregion
         #region 如果在文件夹路径的 UI 中, 尝试判断是否拖到了某个非本文件夹的 PathItem 中
-        int folderPathListCountM1 = folderPathList.Count - 1;
+        int folderPathListCountM1 = FolderPathList.Count - 1;
         // TODO: 算法优化
         for (int i = 0; i < folderPathListCountM1; ++i) {
-            var item = folderPathList.Items[i];
+            var item = FolderPathList.Items[i];
             if (item.IsMouseHovering) {
                 DraggingTo = item;
                 DraggingDirection = 0;

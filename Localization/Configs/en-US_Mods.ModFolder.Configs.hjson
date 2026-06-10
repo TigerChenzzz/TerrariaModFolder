@@ -121,6 +121,20 @@ CommonConfig: {
 			(using 1 Task per unsubscribing mod)
 			'''
 	}
+
+	UseDoubleDotFolder: {
+		Label: '''".." Folder'''
+		Tooltip: Add a ".." folder to go to the upper folder when not at the root
+	}
+
+	UsePathMoveButtons: {
+		Label: Show Go Back and Go Forward Buttons
+		Tooltip:
+			'''
+			Show the buttons at the left of the folder path
+			shortcuts still work when the buttons are not shown
+			'''
+	}
 }
 
 SeeChangelogClass: {

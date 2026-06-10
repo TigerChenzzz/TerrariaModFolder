@@ -5,6 +5,8 @@ UI: {
 			DescriptionWhenLeftClick: Rightclick to open the original UI.
 		}
 
+		PathBack.Tooltip: Go Back (Mouse X1 / Alt + ←)
+		PathForward.Tooltip: Go Forward (Mouse X2 / Alt + →)
 		CreateFolder.DisplayName: Create Folder
 
 		AllMods: {

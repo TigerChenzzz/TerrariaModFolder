@@ -250,6 +250,13 @@ public class CommonConfig : ModConfig {
     [DefaultValue(true)]
     public bool RapidDelete { get; set; } = true;
     #endregion
+    #region 使用 ".."
+    public bool UseDoubleDotFolder { get; set; } // = false;
+    #endregion
+    #region 前进后退按钮
+    [DefaultValue(true)]
+    public bool UsePathMoveButtons { get; set; } = true;
+    #endregion
 
     #region 是否在模组加载时打印日志
     [CustomModConfigItem(typeof(BooleanElementForDeveloperMode))]

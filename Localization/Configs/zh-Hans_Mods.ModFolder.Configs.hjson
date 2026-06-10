@@ -121,6 +121,20 @@ CommonConfig: {
 			(会为每一个模组开一个 Task)
 			'''
 	}
+
+	UseDoubleDotFolder: {
+		Label: '''".."文件夹'''
+		Tooltip: 在非根目录增加一个".."文件夹来返回上级文件夹
+	}
+
+	UsePathMoveButtons: {
+		Label: 显示后退前进按钮
+		Tooltip:
+			'''
+			在文件夹目录左侧显示后退前进按钮
+			即使不显示也可以用快捷键来后退或前进
+			'''
+	}
 }
 
 SeeChangelogClass: {

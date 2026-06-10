@@ -1,5 +1,10 @@
 Changelog:
 	'''
+	[c/00ff00:v0.7.2]
+	[c/ff0000:- add "Go Back" and "Go Forward" buttons and relative shortcuts (Mouse X1/X2 / Alt + ←/→/↑)]
+	[c/999999:- configure whether to show "Go Back" and "Go Forward" buttons]
+	[c/999999:- configure whether to show ".." folder (go to upper folder)]
+
 	[c/00ff00:v0.7.1]
 	[c/ff0000:- add "Subscribe All" and "Show Download" button]
 	- config show small icon in stripe layout

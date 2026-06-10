@@ -8,7 +8,7 @@ namespace ModFolder.UI.Menu;
 /// 当 FolderPath 改变时同步修改 folderPathList 中的元素
 /// </summary>
 public class FolderPathClass : IList<FolderNode> {
-    private static UIHorizontalList HList => UIModFolderMenu.Instance.folderPathList;
+    private static UIHorizontalList HList => UIModFolderMenu.Instance.FolderPathList;
     private readonly List<FolderNode> data = [];
     public FolderNode this[int index] {
         get => data[index];
