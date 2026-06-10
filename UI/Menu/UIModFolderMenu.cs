@@ -78,7 +78,24 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     public UIHorizontalList folderPathList = null!;
     private int folderPathListIndex;
     private readonly UIElement folderPathListPlaceHolder = new();
+    
+    private UIImagePro refreshButton = null!;
+    private int refreshButtonIndex;
+    private readonly UIElement refreshButtonPlaceHolder = new();
+
+    private FolderPathClass? _folderPath;
+    private FolderPathClass FolderPath {
+        get {
+            _folderPath ??= [];
+            if (_folderPath.Count == 0) {
+                _folderPath.Add(FolderDataSystem.Root);
+            }
+            return _folderPath;
+        }
+    }
+
     private void OnInitialize_FolderPathList(ref float upperPixels) {
+        #region Folder Path List
         upperPixels += 2;
         folderPathList = new() {
             Top = { Pixels = upperPixels },
@@ -94,16 +111,80 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         };
         folderPathListIndex = MainPanel.AppendAndGetIndex(folderPathList);
         UpdateFolderHistory(CurrentFolderNode);
-    }
-
-    private FolderPathClass? _folderPath;
-    private FolderPathClass FolderPath {
-        get {
-            _folderPath ??= [];
-            if (_folderPath.Count == 0) {
-                _folderPath.Add(FolderDataSystem.Root);
+        #endregion
+        #region 刷新按钮
+        #region refresh3 版
+        refreshButton = new(MTextures.UI("Refresh3")) {
+            Width = { Pixels = 30 },
+            Height = { Pixels = 30 },
+            Left = { Pixels = -35, Precent = 1 },
+            Top = { Pixels = upperPixels },
+            ScaleToFit = true,
+            AllowResizingDimensions = false,
+        };
+        upperPixels += 30;
+        bool refreshButtonPressed = false;
+        refreshButton.OnLeftClick += Refresh;
+        refreshButton.SourceRectangle = new(0, 0, 30, 30);
+        refreshButton.OnLeftMouseDown += (_, _) => {
+            refreshButtonPressed = true;
+        };
+        OnLeftMouseUp += (_, _) => {
+            refreshButtonPressed = false;
+        };
+        refreshButton.PreDrawSelf += spriteBatch => {
+            if (!refreshButton.IsMouseHovering) {
+                refreshButton.SourceRectangle = new(0, 0, 30, 30);
             }
-            return _folderPath;
+            else if (refreshButtonPressed) {
+                refreshButton.SourceRectangle = new(60, 0, 30, 30);
+            }
+            else {
+                refreshButton.SourceRectangle = new(30, 0, 30, 30);
+            }
+        };
+        refreshButtonIndex = MainPanel.AppendAndGetIndex(refreshButton);
+        #endregion
+        #region 单图标 + highlight 版
+        /*
+        refreshButton = new(Textures.UI("Refresh"));
+        refreshButton.Width.Pixels = 30;
+        refreshButton.Height.Pixels = 30;
+        refreshButton.Left.Set(-35, 1);
+        refreshButton.Top.Pixels = upperPixels;
+        upperPixels += 30;
+        refreshButton.ScaleToFit = true;
+        refreshButton.AllowResizingDimensions = false;
+        bool refreshButtonPressed = false;
+        refreshButton.OnLeftClick += Refresh;
+        refreshButton.OnLeftMouseDown += (_, _) => {
+            refreshButtonPressed = true;
+        };
+        OnLeftMouseUp += (_, _) => {
+            refreshButtonPressed = false;
+        };
+        refreshButton.PreDrawSelf += spriteBatch => {
+            if (refreshButton.IsMouseHovering) {
+                spriteBatch.DrawBox(refreshButton._dimensions.ToRectangle(), Color.White * 0.8f, Color.White * (refreshButtonPressed ? 0.2f : 0.1f));
+            }
+        };
+        uIPanel.Append(refreshButton);
+        */
+        #endregion
+        #endregion
+    }
+    private void ResetVertical_FolderPathList(ref float upperPixels) {
+        if (ShowFolderSystem) {
+            upperPixels += 2;
+            folderPathList.Top.Pixels = upperPixels;
+            refreshButton.Top.Pixels = upperPixels;
+            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
+            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
+            upperPixels += folderPathList.Height.Pixels; // 30
+        }
+        else {
+            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
+            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
         }
     }
     #region 文件夹跳转
@@ -136,7 +217,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     /// <param name="folder"></param>
     public void EnterFolder(FolderNode? folder) {
         folder ??= FolderDataSystem.Root;
-        list.ViewPosition = 0;
+        ModListUI.ViewPosition = 0;
         bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
         if (folder.Parent == CurrentFolderNode) {
             FolderPath.Add(folder);
@@ -161,7 +242,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (FolderPath.Count <= 1) {
             return;
         }
-        list.ViewPosition = 0;
+        ModListUI.ViewPosition = 0;
         FolderPath.RemoveAt(FolderPath.Count - 1);
         ClearSelectingItems();
         ArrangeGenerate();
@@ -181,7 +262,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             if (FolderPath[i] != folder) {
                 continue;
             }
-            list.ViewPosition = 0;
+            ModListUI.ViewPosition = 0;
             FolderPath.RemoveRange(i + 1, FolderPath.Count - i - 1);
             ClearSelectingItems();
             ArrangeGenerate();
@@ -193,7 +274,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         if (folder == null) {
             return false;
         }
-        list.ViewPosition = 0;
+        ModListUI.ViewPosition = 0;
         bool max = folderPathList.ViewPosition == folderPathList.MaxViewPosition;
         List<FolderNode> path = [];
         while (folder != null) {
@@ -240,13 +321,75 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
 
     #region 子元素
+    #region 标题
+    private UITextPanel<LocalizedText> HeaderTextPanel { get; set; } = null!;
+    private void OnInitialize_HeaderTextPanel() {
+        // 放到左上角
+        HeaderTextPanel = new UITextPanel<LocalizedText>(Language.GetText("tModLoader.ModsModsList"), 0.8f, true) {
+            Left = { Pixels = 20 },
+            Top = { Pixels = 20 },
+            BackgroundColor = UICommon.DefaultUIBlue
+        }.WithPadding(15f);
+        Append(HeaderTextPanel);
+    }
+    #endregion
+    #region 全部元素的容器 Main Box
     private UIElementWithCustomContainingPoint MainBox { get; set; } = null!;
+    private void OnIntialize_MainBox() {
+        MainBox = new() {
+            Width = { Percent = 0.8f },
+            MaxWidth = UICommon.MaxPanelWidth, // 600
+            Top = { Pixels = 220 },
+            Height = { Pixels = -220, Percent = 1f },
+            HAlign = 0.5f,
+        };
+    }
+    #endregion
+    #region 除开下面按钮之外的面板 Main Panel
     private UIPanel MainPanel { get; set; } = null!;
-    private UIImagePro refreshButton = null!;
-    private int refreshButtonIndex;
-    private readonly UIElement refreshButtonPlaceHolder = new();
-    private UIFolderItemList list = null!;
-    private UIScrollbar uiScrollbar = null!;
+    private void OnInitialize_MainPanel() {
+        MainPanel = new UIPanel {
+            Width = { Percent = 1f },
+            Height = { Pixels = -110, Percent = 1f },
+            BackgroundColor = UICommon.MainPanelBackground,
+            PaddingTop = 0f,
+            HAlign = 0.5f,
+        };
+        MainBox.Append(MainPanel);
+    }
+    #endregion
+    #region 模组列表 Mod List UI
+    private UIFolderItemList ModListUI { get; set; } = null!;
+    private UIScrollbar ModListScrollbar { get; set; } = null!;
+
+    private void OnInitialize_ModList(ref float upperPixels) {
+        upperPixels += 6;
+        ModListUI = new UIFolderItemList {
+            Width = { Pixels = -25, Percent = 1f },
+            Height = { Pixels = -upperPixels, Percent = 1f },
+            Top = { Pixels = upperPixels },
+            ListPadding = 2f,
+        };
+        MainPanel.Append(ModListUI);
+
+        // TODO: 点按这个滚条会产生一个偏移的 bug
+        ModListScrollbar = new UIScrollbar {
+            Height = { Pixels = -upperPixels, Percent = 1f },
+            Top = { Pixels = upperPixels },
+            HAlign = 1f
+        }.WithView(100f, 1000f);
+        MainPanel.Append(ModListScrollbar);
+
+        ModListUI.SetScrollbar(ModListScrollbar);
+    }
+    private void ResetVertical_ModList(ref float upperPixels) {
+        upperPixels += 6;
+        ModListUI.Top.Pixels = upperPixels;
+        ModListUI.Height.Pixels = -upperPixels;
+        ModListScrollbar.Top.Pixels = upperPixels;
+        ModListScrollbar.Height.Pixels = -upperPixels;
+    }
+    #endregion
     #endregion
     #region 下面的一堆按钮
     public class UIAutoScaleTextTextPanelWithFadedMouseOver<T> : UIAutoScaleTextTextPanel<T> {
@@ -346,7 +489,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             FolderNode node = new(ModFolder.Instance.GetLocalization("UI.NewFolderDefaultName").Value);
             CurrentFolderNode.SetChildAtTheTop(node);
             nodeToRename = node;
-            list.ViewPosition = 0;
+            ModListUI.ViewPosition = 0;
         };
         AddBottomButton(ButtonCreateFolder);
         #endregion
@@ -1260,12 +1403,32 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         var texture = MTextures.UI("SortIcons");
         OnInitialize_SortButtons(texture);
         OnInitialize_SearchFilter(texture);
+
+        // MainPanel.Append(upperMenuContainer); // Append 延后处理, 防止输入框被完全占用 // TBT: 现在还需要吗
     }
     #endregion
     #region 内存占用
     private readonly UIMemoryBar ramUsage = new();
     private int ramUsageIndex;
     private readonly UIElement ramUsagePlaceHolder = new();
+    private void OnInitialize_RamUsage(ref float upperPixels) {
+        ramUsage.Top.Pixels = upperPixels + 2;
+        ramUsageIndex = MainPanel.AppendAndGetIndex(ramUsagePlaceHolder);
+    }
+    private void ResetVertical_RamUsage(ref float upperPixels) {
+        if (ShowRamUsage) {
+            upperPixels += 2;
+            ramUsage.Top.Pixels = upperPixels;
+            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
+            if (!UIMemoryBar.RecalculateMemoryNeeded) {
+                ramUsage.Show();
+            }
+            upperPixels += ramUsage.Height.Pixels; // 20
+        }
+        else {
+            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsagePlaceHolder);
+        }
+    }
     #endregion
 
     #region 首部菜单的按钮
@@ -1691,121 +1854,15 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
     #endregion
     #region OnInitialize, OnActivate, OnDeactivate
     public override void OnInitialize() {
-        #region 全部元素的容器
-        MainBox = new() {
-            Width = { Percent = 0.8f },
-            MaxWidth = UICommon.MaxPanelWidth, // 600
-            Top = { Pixels = 220 },
-            Height = { Pixels = -220, Percent = 1f },
-            HAlign = 0.5f,
-        };
-        #endregion
-        #region 除开下面按钮之外的面板
-        MainPanel = new UIPanel {
-            Width = { Percent = 1f },
-            Height = { Pixels = -110, Percent = 1f }, // -110
-            BackgroundColor = UICommon.MainPanelBackground,
-            PaddingTop = 0f,
-            HAlign = 0.5f,
-        };
-        MainBox.Append(MainPanel);
-        #endregion
+        OnIntialize_MainBox(); // 全部元素的容器
+        OnInitialize_MainPanel(); // 除开下面按钮之外的面板
         OnInitialize_Loading(); // 正在加载时的循环图标
+        OnInitialize_HeaderTextPanel(); // 标题
         float upperPixels = 10;
         OnInitialize_UpperMenuContainer(ref upperPixels);   // 排序与过滤的条
+        OnInitialize_RamUsage(ref upperPixels); // 内存占用
         OnInitialize_FolderPathList(ref upperPixels); // 文件夹路径
-        #region 刷新按钮
-        #region refresh3 版
-        refreshButton = new(MTextures.UI("Refresh3")) {
-            Width = { Pixels = 30 },
-            Height = { Pixels = 30 },
-            Left = { Pixels = -35, Precent = 1 },
-            Top = { Pixels = upperPixels },
-            ScaleToFit = true,
-            AllowResizingDimensions = false,
-        };
-        upperPixels += 30;
-        bool refreshButtonPressed = false;
-        refreshButton.OnLeftClick += Refresh;
-        refreshButton.SourceRectangle = new(0, 0, 30, 30);
-        refreshButton.OnLeftMouseDown += (_, _) => {
-            refreshButtonPressed = true;
-        };
-        OnLeftMouseUp += (_, _) => {
-            refreshButtonPressed = false;
-        };
-        refreshButton.PreDrawSelf += spriteBatch => {
-            if (!refreshButton.IsMouseHovering) {
-                refreshButton.SourceRectangle = new(0, 0, 30, 30);
-            }
-            else if (refreshButtonPressed) {
-                refreshButton.SourceRectangle = new(60, 0, 30, 30);
-            }
-            else {
-                refreshButton.SourceRectangle = new(30, 0, 30, 30);
-            }
-        };
-        refreshButtonIndex = MainPanel.AppendAndGetIndex(refreshButton);
-        #endregion
-        #region 单图标 + highlight 版
-        /*
-        refreshButton = new(Textures.UI("Refresh"));
-        refreshButton.Width.Pixels = 30;
-        refreshButton.Height.Pixels = 30;
-        refreshButton.Left.Set(-35, 1);
-        refreshButton.Top.Pixels = upperPixels;
-        upperPixels += 30;
-        refreshButton.ScaleToFit = true;
-        refreshButton.AllowResizingDimensions = false;
-        bool refreshButtonPressed = false;
-        refreshButton.OnLeftClick += Refresh;
-        refreshButton.OnLeftMouseDown += (_, _) => {
-            refreshButtonPressed = true;
-        };
-        OnLeftMouseUp += (_, _) => {
-            refreshButtonPressed = false;
-        };
-        refreshButton.PreDrawSelf += spriteBatch => {
-            if (refreshButton.IsMouseHovering) {
-                spriteBatch.DrawBox(refreshButton._dimensions.ToRectangle(), Color.White * 0.8f, Color.White * (refreshButtonPressed ? 0.2f : 0.1f));
-            }
-        };
-        uIPanel.Append(refreshButton);
-        */
-        #endregion
-        #endregion
-        #region 模组列表
-        upperPixels += 6;
-        list = new UIFolderItemList {
-            Width = { Pixels = -25, Percent = 1f },
-            Height = { Pixels = -upperPixels, Percent = 1f },
-            Top = { Pixels = upperPixels },
-            ListPadding = 2f,
-        };
-        MainPanel.Append(list);
-        #endregion
-        #region 内存占用
-        ramUsageIndex = MainPanel.AppendAndGetIndex(ramUsagePlaceHolder);
-        #endregion
-        #region 滚条
-        // TODO: 点按这个滚条会产生一个偏移的 bug
-        uiScrollbar = new UIScrollbar {
-            Height = { Pixels = -upperPixels, Percent = 1f },
-            Top = { Pixels = upperPixels },
-            HAlign = 1f
-        }.WithView(100f, 1000f);
-        MainPanel.Append(uiScrollbar);
-
-        list.SetScrollbar(uiScrollbar);
-        #endregion
-        #region 标题
-        var uIHeaderTexTPanel = new UITextPanel<LocalizedText>(Language.GetText("tModLoader.ModsModsList"), 0.8f, true) {
-            Left = { Pixels = 20 },
-            Top = { Pixels = 20 },
-            BackgroundColor = UICommon.DefaultUIBlue
-        }.WithPadding(15f);
-        Append(uIHeaderTexTPanel);
-        #endregion
+        OnInitialize_ModList(ref upperPixels); // 模组列表
         OnInitialize_Buttons();
         // 最后添加搜索过滤条, 防止输入框被完全占用 (如果在 list 之前那么就没法重命名了)
         MainPanel.Append(upperMenuContainer);
@@ -1843,7 +1900,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         // 在 OnInitialize 之后执行
         ArrangeGenerate();
         Main.clrInput();
-        list.Clear();
+        ModListUI.Clear();
         if (!_loaded) {
             ConfigManager.LoadAll(); // Makes sure MP configs are cleared.
             Populate();
@@ -1853,7 +1910,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         OnDeactivate_Loading();
         OnDeactivate_Update();
         MenuNotificationsTracker.Clear();
-        SetListViewPositionAfterGenerated(list.ViewPosition);
+        SetListViewPositionAfterGenerated(ModListUI.ViewPosition);
         FolderDataSystem.Save();
     }
     #endregion
@@ -1967,35 +2024,9 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     private void ResettleVertical() {
         float upperPixels = upperMenuContainer.Top.Pixels + upperMenuContainer.Height.Pixels;
-        if (ShowRamUsage) {
-            upperPixels += 2;
-            ramUsage.Top.Pixels = upperPixels;
-            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsage);
-            if (!UIMemoryBar.RecalculateMemoryNeeded) {
-                ramUsage.Show();
-            }
-            upperPixels += ramUsage.Height.Pixels; // 20
-        }
-        else {
-            MainPanel.ReplaceChildrenByIndex(ramUsageIndex, ramUsagePlaceHolder);
-        }
-        if (!ShowAllMods) {
-            upperPixels += 2;
-            folderPathList.Top.Pixels = upperPixels;
-            refreshButton.Top.Pixels = upperPixels;
-            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathList);
-            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButton);
-            upperPixels += folderPathList.Height.Pixels; // 30
-        }
-        else {
-            MainPanel.ReplaceChildrenByIndex(folderPathListIndex, folderPathListPlaceHolder);
-            MainPanel.ReplaceChildrenByIndex(refreshButtonIndex, refreshButtonPlaceHolder);
-        }
-        upperPixels += 6;
-        list.Top.Pixels = upperPixels;
-        list.Height.Pixels = -upperPixels;
-        uiScrollbar.Top.Pixels = upperPixels;
-        uiScrollbar.Height.Pixels = -upperPixels;
+        ResetVertical_RamUsage(ref upperPixels); // 内存条
+        ResetVertical_FolderPathList(ref upperPixels); // 文件夹路径
+        ResetVertical_ModList(ref upperPixels); // 模组列表
         MainPanel.RecalculateChildren();
     }
 
@@ -2013,7 +2044,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         // 在 OnDeactivate 中有了
         // FolderDataSystem.Save();
         FolderPath.Clear();
-        list.ViewPosition = 0;
+        ModListUI.ViewPosition = 0;
         ClearSelectingItems();
 
         #region 强制重载
@@ -2221,8 +2252,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
 
     #region 生成 Generate
     private void Generate() {
-        list.Clear();
-        list.StopMoving();
+        ModListUI.Clear();
+        ModListUI.StopMoving();
         StashSelectingItems(true);
         // ClearConfirmPanels(true);
         UIFolderItemFilterResults filterResults = new();
@@ -2251,19 +2282,19 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             text.Recalculate();
             panel.Append(text);
             panel.Height.Set(text.MinHeight.Pixels + panel.PaddingTop, 0f);
-            list.Add(panel);
+            ModListUI.Add(panel);
         }
         #endregion
         #region 若不在根目录, 则添加一个返回上级的文件夹
         if (ShowFolderSystem && CurrentFolderNode != FolderDataSystem.Root) {
             UIFolder upperFolder = new("..");
-            list.Add(upperFolder);
+            ModListUI.Add(upperFolder);
             upperFolder.Selectable = false;
             upperFolder.Activate();
         }
         #endregion
         visibleItems = visibleItems.HeapSort((u1, u2) => u1.CompareTo(u2));
-        list.AddRange(visibleItems);
+        ModListUI.AddRange(visibleItems);
         int i = 0;
         foreach (var item in visibleItems) {
             item.IndexCache = i++;
@@ -2274,7 +2305,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         UnstashSelectingItems();
         TryRefreshFolderData();
         if (_listViewPositionToSetAfterGenerated != null) {
-            list.ViewPosition = _listViewPositionToSetAfterGenerated.Value;
+            ModListUI.ViewPosition = _listViewPositionToSetAfterGenerated.Value;
             _listViewPositionToSetAfterGenerated = null;
         }
     }
@@ -2703,7 +2734,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         // TODO: 算法优化
         UIFolderItem? aim = null;
         if (LayoutType == LayoutTypes.Stripe) {
-            foreach (var listItem in list._items) {
+            foreach (var listItem in ModListUI._items) {
                 if (listItem is not UIFolderItem fi) {
                     continue;
                 }
@@ -2716,7 +2747,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         }
         else {
             bool reachedButton = false;
-            foreach (var listItem in list._items) {
+            foreach (var listItem in ModListUI._items) {
                 if (listItem is not UIFolderItem fi) {
                     continue;
                 }
@@ -3304,7 +3335,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             return;
         }
         foreach (var r in toRemove) {
-            list.RemoveChild(r);
+            ModListUI.RemoveChild(r);
         }
     }
     public void ArrangeRemove(UIElement child) => toRemove.Add(child);
