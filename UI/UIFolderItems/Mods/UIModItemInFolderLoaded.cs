@@ -132,13 +132,10 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     }
     #endregion
     #region 更新提示
-    [MemberNotNullWhen(true, nameof(_tMLUpdateRequiredInStripeLayout), nameof(_tMLUpdateRequiredInBlockLayout))]
+    [MemberNotNullWhen(true, nameof(_tMLUpdateRequired))]
     public bool HasUpdateRequired { get; set; }
-    private UIAutoScaleTextTextPanel<string>? _tMLUpdateRequiredInStripeLayout;
-    private UIImage? _tMLUpdateRequiredInBlockLayout;
-    private int _tMLUpdateRequiredIndex;
+    private UIImage? _tMLUpdateRequired;
     private void OnInitialize_TMLUpdateRequired() {
-        // TODO: 美化
         // Don't show the Enable/Disable button if there is no loadable version
         string? updateVersion = null;
         Color updateColor = Color.Orange;
@@ -161,41 +158,33 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             return;
         }
         HasUpdateRequired = true;
-        _tMLUpdateRequiredInStripeLayout = new UIAutoScaleTextTextPanel<string>(Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)).WithFadedMouseOver(updateColor, updateColor * 0.7f);
-        _tMLUpdateRequiredInStripeLayout.BackgroundColor = updateColor * 0.7f;
-        _tMLUpdateRequiredInStripeLayout.Width.Pixels = 280;
-        _tMLUpdateRequiredInStripeLayout.Height.Pixels = 30;
-        _tMLUpdateRequiredInStripeLayout.VAlign = 0.5f;
-        _tMLUpdateRequiredInStripeLayout.Left.Pixels = 32;
-        _tMLUpdateRequiredInStripeLayout.OnLeftClick += (_, _) => {
-            Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
-        };
-        _tMLUpdateRequiredInBlockLayout = new(MTextures.Deprecated) { // 26 x 26
+        _tMLUpdateRequired = new(MTextures.Deprecated) { // 26 x 26
             RemoveFloatingPointsFromDrawPosition = true,
             HAlign = 0.5f,
+            VAlign = 0.5f,
         };
-        _tMLUpdateRequiredInBlockLayout.Top = new((BlockHeight - _tMLUpdateRequiredInBlockLayout.Height.Pixels) / 2, 0);
-        _tMLUpdateRequiredInBlockLayout.OnLeftClick += (_, _) => {
+        _tMLUpdateRequired.OnLeftClick += (_, _) => {
             Utils.OpenToURL("https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-players#beta-branches");
         };
-        if (BlockLayout) {
-            _tMLUpdateRequiredIndex = this.AppendAndGetIndex(_tMLUpdateRequiredInBlockLayout);
-        }
-        else {
-            _tMLUpdateRequiredIndex = this.AppendAndGetIndex(_tMLUpdateRequiredInStripeLayout);
-        }
-        mouseOverTooltips.Add((_tMLUpdateRequiredInStripeLayout, () => Language.GetTextValue("tModLoader.SwitchVersionInfoButton")));
-        mouseOverTooltips.Add((_tMLUpdateRequiredInBlockLayout, () => $"{Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)}\n{Language.GetTextValue("tModLoader.SwitchVersionInfoButton")}"));
+        Append(_tMLUpdateRequired);
+        
+        mouseOverTooltips.Add((_tMLUpdateRequired, () => $"{Language.GetTextValue("tModLoader.MBRequiresTMLUpdate", updateVersion)}\n{Language.GetTextValue("tModLoader.SwitchVersionInfoButton")}"));
     }
     private void SwitchTMLUpdateRequiredToStripeLayout() {
-        if (HasUpdateRequired) {
-            this.ReplaceChildrenByIndex(_tMLUpdateRequiredIndex, _tMLUpdateRequiredInStripeLayout);
+        if (!HasUpdateRequired) {
+            return;
         }
+        _tMLUpdateRequired.Left = new(16, -0.5f);
+        _tMLUpdateRequired.Top = new();
+        _tMLUpdateRequired.Color = Color.White * 0.7f;
     }
     private void SwitchTMLUpdateRequiedToBlockLayout() {
-        if (HasUpdateRequired) {
-            this.ReplaceChildrenByIndex(_tMLUpdateRequiredIndex, _tMLUpdateRequiredInBlockLayout);
+        if (!HasUpdateRequired) {
+            return;
         }
+        _tMLUpdateRequired.Left = new();
+        _tMLUpdateRequired.Top = new(BlockHeight / 2, -0.5f);
+        _tMLUpdateRequired.Color = Color.White;
     }
     #endregion
     #region 右边的按钮
@@ -745,7 +734,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     #endregion
     #region 启用与禁用
     public bool TryToggleEnabled() {
-        if (_tMLUpdateRequiredInStripeLayout != null)
+        if (HasUpdateRequired)
             return false;
         // TODO: 双击某些位置时不能切换
         ToggleEnabled();
