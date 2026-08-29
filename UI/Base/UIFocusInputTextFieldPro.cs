@@ -1,4 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using ModFolder.UI.Menu;
+using ReLogic.Localization.IME;
+using ReLogic.OS;
 using Terraria.GameContent;
 using Terraria.GameInput;
 using Terraria.UI;
@@ -12,7 +15,22 @@ namespace ModFolder.UI.Base;
 //     将 Text 改为属性, 无论何时修改时触发 OnTextChange
 public class UIFocusInputTextFieldPro(string hintText) : UIElement {
     public delegate void EventHandler(object sender, EventArgs e);
-    public bool Focused;
+    public bool Focused {
+        get;
+        set {
+            if (field == value) {
+                return;
+            }
+            field = value;
+            if (value) {
+                UIModFolderMenu.Instance.SetIMEPositionGetter(GetIMEPosition);
+            }
+            else {
+                UIModFolderMenu.Instance.SetIMEPositionGetter(null);
+                OnUnfocus?.Invoke(this, new());
+            }
+        }
+    }
     public string Text {
         get;
         set {
@@ -38,7 +56,6 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         Vector2 point = new(Main.mouseX, Main.mouseY);
         if (!ContainsPoint(point) && Main.mouseLeft) {
             Focused = false;
-            OnUnfocus?.Invoke(this, new());
         }
         if (++_textBlinkerCount >= 20) {
             _textBlinkerState = (_textBlinkerState + 1) % 2;
@@ -62,40 +79,24 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
         if (Main.inputTextEscape) {
             Main.inputTextEscape = false;
             Focused = false;
-            OnUnfocus?.Invoke(this, new());
         }
         Text = inputText;
         if (JustPressed(Keys.Tab)) {
             if (UnfocusOnTab) {
                 Focused = false;
-                OnUnfocus?.Invoke(this, new());
             }
             OnTab?.Invoke(this, new());
         }
         if (JustPressed(Keys.Enter)) {
             Focused = false;
-            OnUnfocus?.Invoke(this, new());
         }
     }
     public override void DrawSelf(SpriteBatch spriteBatch) {
         HandleInput();
         string text = Text;
         var dimensions = _dimensions;
-        var textSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, text, Vector2.One).X;
         var width = dimensions.Width;
-        float left;
-        if (width <= textSize + 8) {
-            left = width - textSize - 8;
-        }
-        else {
-            left = (width - textSize) * TextXAlign;
-        }
-        Vector2 textPosition = new((int)(dimensions.X + left), (int)dimensions.Y);
-
-        if (_textBlinkerState == 1 && Focused) {
-            text += "|";
-        }
-        if (Text.Length == 0) {
+        if (text.Length == 0 && !Focused) {
             var hintText = HintText;
             var hintSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, hintText, Vector2.One).X;
             float hintLeft;
@@ -107,7 +108,36 @@ public class UIFocusInputTextFieldPro(string hintText) : UIElement {
             }
             Vector2 hintPosition = new((int)(dimensions.X + hintLeft), (int)dimensions.Y);
             Utils.DrawBorderString(spriteBatch, hintText, hintPosition, Color.Gray);
+            return;
         }
-        Utils.DrawBorderString(spriteBatch, text, textPosition, Color.White);
+        List<TextSnippet> textSnippets = ChatManager.ParseMessage(text, Color.White);
+        // from Main.DrawPlayerChat
+        string compositionString = Platform.Get<IImeService>().CompositionString;
+		if (compositionString != null && compositionString.Length > 0)
+			textSnippets.Add(new(compositionString, new Color(255, 240, 20)));
+        var textSize = ChatManager.GetStringSize(FontAssets.MouseText.Value, [..textSnippets], Vector2.One).X + 12;
+        float left;
+        if (width <= textSize) {
+            left = width - textSize;
+        }
+        else {
+            left = (width - textSize) * TextXAlign;
+        }
+        Vector2 textPosition = new((int)(dimensions.X + left), (int)dimensions.Y);
+
+        if (_textBlinkerState == 1 && Focused) {
+            textSnippets.Add(new("|"));
+        }
+        // Utils.DrawBorderString(spriteBatch, textSnippets, textPosition, Color.White);
+        ChatManager.DrawColorCodedStringWithShadow(spriteBatch, FontAssets.MouseText.Value, [.. textSnippets],
+            textPosition, 0, Vector2.Zero, Vector2.One, out _);
+    }
+
+    private Vector2? GetIMEPosition() {
+        if (!Focused) {
+            return null;
+        }
+        var rect = _dimensions.ToRectangle();
+        return rect.BottomLeft() + new Vector2(0, 32);
     }
 }

@@ -1,5 +1,9 @@
 Changelog:
 	'''
+	[c/00ff00:v0.7.3.1]
+	[c/999999:- IME support]
+	[c/999999:- the text in the search would hide overflowed part]
+
 	[c/00ff00:v0.7.3]
 	[c/999999:- support TML 1.4.5]
 	[c/999999:- update hint in stripe layout turns to a red cross above the icon just like in block layout]

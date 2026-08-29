@@ -1794,7 +1794,8 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
             Top = { Percent = 0f },
             Left = { Pixels = 36, },
             Width = { Pixels = -36 - 36, Percent = 1 },
-            Height = { Percent = 1 }
+            Height = { Percent = 1 },
+            OverflowHidden = true,
         };
         filterTextBoxBackground.SetPadding(0);
         filterTextBoxBackground.OnRightClick += ClearSearchField;
@@ -2536,6 +2537,7 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         Draw_TryCloseButtons();
         Draw_UpdateDraggingTo();
         base.Draw(spriteBatch);
+        Draw_IME();
         MenuNotificationsTracker.Draw(spriteBatch);
         #region DrawMouseTexture
         if (_mouseTexture != null) {
@@ -3773,5 +3775,20 @@ public class UIModFolderMenu : UIState, IHaveBackButtonCommand {
         CurrentFolderNode.RefreshCounts(status.ShowBackground || status.ShowAny || status.ShowTooltip,
             status.ShowBackgroundForPath || status.ShowTooltipForPath);
     }
+    #endregion
+    #region IME
+    private void Draw_IME() {
+        if (!Main.instance._imeToggle) {
+            return;
+        }
+        var imePosition = _imePositionGetter?.Invoke();
+        if (!imePosition.HasValue) {
+            return;
+        }
+        Main.instance.DrawWindowsIMEPanel(imePosition.Value);
+    }
+
+    private Func<Vector2?>? _imePositionGetter;
+    public void SetIMEPositionGetter(Func<Vector2?>? getter) => _imePositionGetter = getter;
     #endregion
 }
