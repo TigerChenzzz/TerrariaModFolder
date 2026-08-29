@@ -247,4 +247,10 @@ public static class MyUtils {
     }
 
     public static StringBuilder SharedStringBuilder { get; } = new();
+
+    public static string ToStringAndClear(this StringBuilder stringBuilder) {
+        var result = stringBuilder.ToString();
+        stringBuilder.Clear();
+        return result;
+    }
 }

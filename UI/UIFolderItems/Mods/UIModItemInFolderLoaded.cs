@@ -54,7 +54,7 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
 
     #region 子元素
     #region 图标
-    private readonly static Asset<Texture2D> DefaultIcon = Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
+    private readonly static Asset<Texture2D> DefaultIcon = Mod.PlaceholderModIcon; // Main.Assets.Request<Texture2D>("Images/UI/DefaultResourcePackIcon");
     private readonly UIImage _modIcon = new UIImage(DefaultIcon).SettleCommonly();
     private void OnInitialize_ModIcon() => Append(_modIcon);
     private Asset<Texture2D>? smallIcon;
@@ -355,24 +355,55 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
     Task? generateTask;
     private async Task GenerateAsync() {
         await Task.Yield();
+        #region 已加载内容
+        if (ModLoader.TryGetMod(ModName, out var loadedMod)) {
+            loadedContentCounts = [
+                loadedMod.GetContent<ModItem>().Count(),
+                loadedMod.GetContent<ModNPC>().Count(),
+                loadedMod.GetContent<ModTile>().Count(),
+                loadedMod.GetContent<ModWall>().Count(),
+                loadedMod.GetContent<ModBuff>().Count(),
+                loadedMod.GetContent<ModMount>().Count()
+            ];
+            int total = loadedContentCounts.Sum();
+            if (total == 0) {
+                loadedContentCounts = null;
+            }
+            await Task.Yield();
+        }
+        #endregion
         #region 加载图标
-        if (_mod.modFile.HasFile("icon_small.rawimg")) {
+        if (_mod.modFile.HasFile("icon_small.png")) {
             try {
                 using (_mod.modFile.Open()) {
-                    using var s = _mod.modFile.GetStream("icon_small.rawimg");
-                    smallIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".rawimg");
+                    using var s = _mod.modFile.GetStream("icon_small.png");
+                    smallIcon = Main.Assets.CreateUntracked<Texture2D>(s, "icon_small.png");
                 }
             }
             catch (Exception e) {
                 Logging.tML.Error("Unknown error", e);
             }
+            await Task.Yield();
         }
+        else if (_mod.modFile.HasFile("icon_small.rawimg")) {
+            try {
+                using (_mod.modFile.Open()) {
+                    using var s = _mod.modFile.GetStream("icon_small.rawimg");
+                    smallIcon = Main.Assets.CreateUntracked<Texture2D>(s, "icon_small.rawimg");
+                }
+            }
+            catch (Exception e) {
+                Logging.tML.Error("Unknown error", e);
+            }
+            await Task.Yield();
+        }
+        // var modIcon = ModLoader.GetModIcon(_mod.modFile) ?? Mod.PlaceholderModIcon;
         if (_mod.modFile.HasFile("icon.png")) {
             try {
                 using (_mod.modFile.Open()) {
                     using var s = _mod.modFile.GetStream("icon.png");
                     // if (bigIcon.Width() == 80 && bigIcon.Height() == 80)
-                    bigIcon = Main.Assets.CreateUntracked<Texture2D>(s, ".png");
+                    bigIcon = Main.Assets.CreateUntracked<Texture2D>(s, "icon.png");
                 }
             }
             catch (Exception e) {
@@ -380,17 +411,20 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
             }
         }
         SetModIcon();
-        /*
-        if (smallIcon != null && bigIcon != null) {
-            _modIcon.OnMouseOver += (_, _) => _modIcon.SetImage(bigIcon);
-            _modIcon.OnMouseOut += (_, _) => _modIcon.SetImage(smallIcon);
-        }
-        */
         #endregion
         generateTask = null;
 
         // 依赖关系的加载在 UIModFolderMenu 的 Populate 时通过调用所有模组的 SetModReferences 完成
     }
+    private int[]? loadedContentCounts;
+    private static readonly string[] LoadedContentLocalizationKeys = [
+        "tModLoader.ModsXItems",
+        "tModLoader.ModsXNPCs",
+        "tModLoader.ModsXTiles",
+        "tModLoader.ModsXWalls",
+        "tModLoader.ModsXBuffs",
+        "tModLoader.ModsXMounts"
+    ];
     #endregion
     #region 引用相关
     /// <summary>
@@ -809,12 +843,39 @@ public class UIModItemInFolderLoaded(LocalMod localMod) : UIModItemInFolder {
         return name;
     }
     protected override Func<string> GetNameMouseOverTooltipFunc() {
-        if (string.IsNullOrEmpty(_mod.properties.author)) {
-            return () => HasAlias ? $"{Alias} ({ModDisplayName}) v{_mod.modFile.Version}" : $"{ModDisplayName} v{_mod.modFile.Version}";
-        }
-        return () => HasAlias
-            ? $"{Alias} ({ModDisplayName}) v{_mod.modFile.Version}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}"
-            : $"{ModDisplayName} v{_mod.modFile.Version}\n{Language.GetTextValue("tModLoader.ModsByline", _mod.properties.author)}";
+        return () => {
+            SharedStringBuilder.Clear();
+            #region 名称
+            if (HasAlias) {
+                SharedStringBuilder.AppendFormat("{0} ({1})", Alias, ModDisplayName);
+            }
+            else {
+                SharedStringBuilder.Append(ModDisplayName);
+            }
+            #endregion
+            #region 版本
+            SharedStringBuilder.Append(" v");
+            SharedStringBuilder.Append(_mod.modFile.Version);
+            #endregion
+            #region 作者
+            var author = _mod.properties.author;
+            if (!string.IsNullOrEmpty(author)) {
+                SharedStringBuilder.AppendLine();
+                SharedStringBuilder.Append(Language.GetTextValue("tModLoader.ModsByline", author));
+            }
+            #endregion
+            #region 加载的内容
+            if (loadedContentCounts != null) {
+                for (int i = 0; i < loadedContentCounts.Length; ++i) {
+                    if (loadedContentCounts[i] > 0) {
+                        SharedStringBuilder.AppendLine();
+                        SharedStringBuilder.Append(Language.GetTextValue(LoadedContentLocalizationKeys[i], loadedContentCounts[i]));
+                    }
+                }
+            }
+            #endregion
+            return SharedStringBuilder.ToStringAndClear();
+        };
     }
     #endregion
     #region PassFilters

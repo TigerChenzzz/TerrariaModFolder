@@ -1,5 +1,9 @@
 Changelog:
 	'''
+	[c/00ff00:v0.7.3.2]
+	[c/999999:- fix that the small icon isn't used]
+	- loaded mods would show their content counts in the tooltip
+
 	[c/00ff00:v0.7.3.1]
 	[c/999999:- IME support]
 	[c/999999:- the text in the search would hide overflowed part]
@@ -60,7 +64,7 @@ Changelog:
 	[c/ffff00:- When showing all mods, the unloaded mods are also shown]
 	- folders and not loaded mods can also be sorted by last modified
 	[c/ff0000:- add popup infos, in some cases (such as import and export) a popup info would be shown at the bottom right]
-	[c/999999:- fix the big icon somethings not show up when hovering over the icon]
+	[c/999999:- fix that the big icon sometimes doesn't show up when hovering over the icon]
 
 	[c/00ff00:v0.3.2]
 	[c/ff0000:- add an "Update Mods" button (in "More Buttons"), to directly check and update mods]
